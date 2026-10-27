@@ -37,7 +37,8 @@ create table public.zonas (
 );
 
 insert into public.zonas (id, nombre, activa) values
-  ('escobar', 'Belén de Escobar', true),
+  ('maschwitz', 'Ingeniero Maschwitz', true),
+  ('escobar', 'Belén de Escobar', false),
   ('pacheco', 'Pacheco', false),
   ('tigre', 'Tigre', false),
   ('olivos', 'Olivos', false),

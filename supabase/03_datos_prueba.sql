@@ -49,13 +49,13 @@ begin
 
   -- Comercios
   insert into public.comercios (dueno_id, zona_id, nombre, rubro, direccion, lat, lng, abre, cierra, aprobado)
-  values ('de300000-0000-4000-8000-000000000001', 'escobar', 'Mercería La Aguja', 'Mercería', 'San Martín 780, Belén de Escobar', -34.34612, -58.80176, '09:00', '20:00', true)
+  values ('de300000-0000-4000-8000-000000000001', 'maschwitz', 'Mercería La Aguja', 'Mercería', 'Av. Independencia 1250, Ingeniero Maschwitz', -34.38204, -58.73707, '09:00', '20:00', true)
   returning id into c1;
   insert into public.comercios (dueno_id, zona_id, nombre, rubro, direccion, lat, lng, abre, cierra, aprobado)
-  values ('de300000-0000-4000-8000-000000000002', 'escobar', 'Ferretería El Tornillo', 'Ferretería', 'Av. Ricardo Balbín 1040, Belén de Escobar', -34.35300, -58.78299, '08:00', '18:00', true)
+  values ('de300000-0000-4000-8000-000000000002', 'maschwitz', 'Ferretería El Tornillo', 'Ferretería', 'Mendoza 1100, Ingeniero Maschwitz', -34.38167, -58.74743, '08:00', '18:00', true)
   returning id into c2;
   insert into public.comercios (dueno_id, zona_id, nombre, rubro, direccion, lat, lng, abre, cierra, aprobado)
-  values ('de300000-0000-4000-8000-000000000003', 'escobar', 'Solido herrajes', 'Herrajes', 'Rivadavia 1450, Belén de Escobar', -34.36390, -58.80400, '08:00', '18:00', true)
+  values ('de300000-0000-4000-8000-000000000003', 'maschwitz', 'Solido herrajes', 'Herrajes', 'Av. Benito Villanueva 1500, Ingeniero Maschwitz', -34.39523, -58.73961, '08:00', '18:00', true)
   returning id into c3;
   insert into public.comercios (dueno_id, zona_id, nombre, rubro, direccion, lat, lng, abre, cierra, aprobado)
   values ('de300000-0000-4000-8000-000000000004', 'pacheco', 'Mercería Pacheco', 'Mercería', 'Av. Cazón 2315, Pacheco', -34.44964, -58.65034, '09:00', '19:00', true)

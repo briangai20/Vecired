@@ -29,7 +29,7 @@ set local role authenticated;
 select set_config('request.jwt.claims', '{"sub":"11111111-1111-1111-1111-111111111111","role":"authenticated"}', true);
 
 insert into public.comercios (zona_id, nombre, rubro, direccion, lat, lng)
-values ('escobar', 'Mercería de Prueba', 'Mercería', 'San Martín 780', -34.348, -58.795);
+values ('maschwitz', 'Mercería de Prueba', 'Mercería', 'Av. Independencia 1250', -34.382, -58.737);
 
 insert into public.productos (comercio_id, nombre, precio, modo, stock)
 select id, x.nombre, x.precio, 'exacto', x.stock
@@ -58,10 +58,10 @@ do $$ begin
   if (select count(*) from public.productos) <> 3 then
     raise exception 'FALLA: el visitante no ve los 3 productos del comercio aprobado';
   end if;
-  if (select count(*) from public.comercios_cercanos(-34.35, -58.79, 5, 'HILÓ')) <> 1 then
+  if (select count(*) from public.comercios_cercanos(-34.383, -58.737, 5, 'HILÓ')) <> 1 then
     raise exception 'FALLA: la búsqueda por cercanía no encontró el comercio';
   end if;
-  if (select count(*) from public.comercios_cercanos(-34.35, -58.79, 5, 'taladro')) <> 0 then
+  if (select count(*) from public.comercios_cercanos(-34.383, -58.737, 5, 'taladro')) <> 0 then
     raise exception 'FALLA: la búsqueda encontró un producto que no existe';
   end if;
   if (select count(*) from public.perfiles) <> 0 then
@@ -79,7 +79,7 @@ do $$
 declare ok boolean := false;
 begin
   begin
-    insert into public.comercios (zona_id, nombre, rubro, direccion) values ('escobar', 'Trucho', 'x', 'x');
+    insert into public.comercios (zona_id, nombre, rubro, direccion) values ('maschwitz', 'Trucho', 'x', 'x');
   exception when others then ok := true;
   end;
   if not ok then raise exception 'FALLA: una compradora pudo crear un comercio'; end if;
