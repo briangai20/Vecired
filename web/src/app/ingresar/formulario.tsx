@@ -43,7 +43,7 @@ export function FormularioCuenta({ siguiente, modoInicial }: { siguiente: string
         <form key={JSON.stringify(estadoAlta.valores ?? {})} action={accionAlta} className="mt-6 space-y-4">
           <input type="hidden" name="siguiente" value={siguiente} />
           <fieldset>
-            <legend className="text-xs">Quiero usar VECI para…</legend>
+            <legend className="text-xs">Quiero usar Vecired para…</legend>
             <div className="mt-2 grid gap-2 sm:grid-cols-2">
               {[
                 { v: "comprador", t: "Comprar", d: "Buscar y reservar productos" },

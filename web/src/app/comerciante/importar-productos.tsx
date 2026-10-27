@@ -31,7 +31,7 @@ const EJEMPLO = [
 function descargarEjemplo() {
   const csv = "﻿" + EJEMPLO.map((f) => f.map((c) => (/[;"\n]/.test(c) ? `"${c.replace(/"/g, '""')}"` : c)).join(";")).join("\r\n");
   const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
-  const a = Object.assign(document.createElement("a"), { href: url, download: "productos-veci.csv" });
+  const a = Object.assign(document.createElement("a"), { href: url, download: "productos-vecired.csv" });
   a.click();
   URL.revokeObjectURL(url);
 }

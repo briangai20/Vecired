@@ -12,8 +12,8 @@ const geistSans = Geist({
 
 export const metadata: Metadata = {
   title: {
-    default: "VECI | Conectá con el comercio de tu barrio",
-    template: "%s | VECI",
+    default: "Vecired | Conectá con el comercio de tu barrio",
+    template: "%s | Vecired",
   },
   description:
     "Encontrá productos en los comercios de tu barrio, reservalos y retiralos en el local.",
@@ -34,7 +34,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
                 V
               </span>
               <span>
-                <span className="block text-2xl leading-none font-black tracking-tight text-white">VECI</span>
+                <span className="block text-2xl leading-none font-black tracking-tight text-white">Vecired</span>
                 <span className="mt-1 block text-xs text-white">Conectá con el comercio de tu barrio</span>
               </span>
             </Link>
