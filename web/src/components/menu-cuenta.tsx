@@ -28,6 +28,11 @@ export async function MenuCuenta() {
           Mi comercio
         </Link>
       ) : null}
+      {usuario.admin ? (
+        <Link href="/admin" className={enlace}>
+          Admin
+        </Link>
+      ) : null}
       <form action={salir}>
         <button className={enlace} title={usuario.email}>
           Salir

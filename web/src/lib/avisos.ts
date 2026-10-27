@@ -131,3 +131,42 @@ export async function avisarReserva(reservaId: number, evento: Evento) {
     console.error("[avisos] No se pudo mandar el aviso", e);
   }
 }
+
+// Le avisa al comerciante que su comercio quedó publicado, o por qué no.
+export async function avisarRevision(comercioId: number) {
+  try {
+    const db = admin();
+    if (!db) {
+      console.info(`[avisos] Sin SUPABASE_SECRET_KEY: no se avisó la revisión del comercio ${comercioId}`);
+      return;
+    }
+    const { data: c } = await db.from("comercios").select("nombre, dueno_id, aprobado, motivo_rechazo").eq("id", comercioId).maybeSingle();
+    if (!c) return;
+    const { data: u } = await db.auth.admin.getUserById(c.dueno_id);
+    const mail = u.user?.email;
+    if (!mail) return;
+
+    const panel = { texto: "Abrir mi panel", url: `${sitio()}/comerciante` };
+    if (c.aprobado) {
+      const asunto = `¡${c.nombre} ya está en Vecired!`;
+      await enviar(
+        mail,
+        asunto,
+        plantilla(esc(asunto), `<p>Revisamos tu comercio y ya lo pueden encontrar los vecinos. Mantené precios y stock al día para recibir reservas.</p>`, panel),
+      );
+    } else {
+      const asunto = `Tu comercio necesita un cambio para publicarse`;
+      await enviar(
+        mail,
+        asunto,
+        plantilla(
+          esc(asunto),
+          `<p>Revisamos <b>${esc(c.nombre)}</b> y todavía no lo podemos publicar:</p><p><i>${esc(c.motivo_rechazo ?? "")}</i></p><p>Corregilo desde tu panel y lo volvemos a revisar.</p>`,
+          panel,
+        ),
+      );
+    }
+  } catch (e) {
+    console.error("[avisos] No se pudo mandar el aviso de revisión", e);
+  }
+}

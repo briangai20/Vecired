@@ -25,7 +25,9 @@ export type Database = {
           id: number
           lat: number | null
           lng: number | null
+          motivo_rechazo: string | null
           nombre: string
+          revisado_en: string | null
           rubro: string
           whatsapp: string | null
           zona_id: string
@@ -39,7 +41,9 @@ export type Database = {
           id?: never
           lat?: number | null
           lng?: number | null
+          motivo_rechazo?: string | null
           nombre: string
+          revisado_en?: string | null
           rubro: string
           whatsapp?: string | null
           zona_id: string
@@ -53,7 +57,9 @@ export type Database = {
           id?: never
           lat?: number | null
           lng?: number | null
+          motivo_rechazo?: string | null
           nombre?: string
+          revisado_en?: string | null
           rubro?: string
           whatsapp?: string | null
           zona_id?: string
@@ -445,6 +451,28 @@ export type Database = {
           zona_id: string
         }[]
       }
+      comercios_para_revisar: {
+        Args: never
+        Returns: {
+          aprobado: boolean
+          con_horario: boolean
+          creado_en: string
+          direccion: string
+          dueno_email: string
+          dueno_nombre: string
+          dueno_telefono: string | null
+          id: number
+          lat: number | null
+          lng: number | null
+          motivo_rechazo: string | null
+          nombre: string
+          productos: number
+          revisado_en: string | null
+          rubro: string
+          whatsapp: string | null
+          zona: string
+        }[]
+      }
       descontar_stock: {
         Args: { p_cantidad: number; p_producto: number }
         Returns: undefined
@@ -457,7 +485,12 @@ export type Database = {
         Args: { p_producto: number; p_reserva: number }
         Returns: undefined
       }
+      es_admin: { Args: never; Returns: boolean }
       es_cliente_mio: { Args: { p_perfil: string }; Returns: boolean }
+      revisar_comercio: {
+        Args: { p_aprobar: boolean; p_comercio: number; p_motivo?: string }
+        Returns: undefined
+      }
       es_comerciante: { Args: never; Returns: boolean }
       es_dueno: { Args: { p_comercio: number }; Returns: boolean }
       es_dueno_carpeta: { Args: { p_carpeta: string }; Returns: boolean }

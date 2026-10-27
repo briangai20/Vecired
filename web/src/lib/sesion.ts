@@ -9,6 +9,8 @@ export type Usuario = {
   email: string;
   nombre: string;
   rol: Enum<"rol_usuario">;
+  /** Administra Vecired: aprueba comercios en /admin. */
+  admin: boolean;
 };
 
 // Usuario con sesión iniciada, o null. Se lee una vez por pedido.
@@ -20,11 +22,15 @@ export const usuarioActual = cache(async (): Promise<Usuario | null> => {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return null;
-  const { data: perfil } = await supabase.from("perfiles").select("nombre, rol").eq("id", user.id).maybeSingle();
+  const [{ data: perfil }, { data: admin }] = await Promise.all([
+    supabase.from("perfiles").select("nombre, rol").eq("id", user.id).maybeSingle(),
+    supabase.rpc("es_admin"),
+  ]);
   return {
     id: user.id,
     email: user.email ?? "",
     nombre: perfil?.nombre ?? "",
     rol: perfil?.rol ?? "comprador",
+    admin: admin === true,
   };
 });

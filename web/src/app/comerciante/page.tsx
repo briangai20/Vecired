@@ -121,7 +121,15 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
           {errorAccion}
         </p>
       ) : null}
-      {!comercio.aprobado ? (
+      {!comercio.aprobado && comercio.motivo_rechazo ? (
+        <div role="alert" className="rounded-2xl border border-naranja bg-naranja/15 p-4 text-sm">
+          <p className="font-semibold">Todavía no pudimos publicar tu comercio.</p>
+          <p className="mt-1">{comercio.motivo_rechazo}</p>
+          <p className="mt-2">
+            Corregilo en <a href="#datos" className="underline">los datos del comercio</a> y guardá: lo volvemos a revisar.
+          </p>
+        </div>
+      ) : !comercio.aprobado ? (
         <p className="rounded-2xl border border-naranja bg-naranja/10 p-4 text-sm">
           <span className="font-semibold">Tu comercio está en revisión.</span> Mientras tanto podés cargar productos; los vecinos lo van a ver cuando lo publiquemos.
         </p>
