@@ -1,5 +1,5 @@
 -- =====================================================================
--- VECI · "actualizado_en" de productos (2026-10-23)
+-- Vecired · "actualizado_en" de productos (2026-10-23)
 -- Antes, cualquier cambio (hasta la descripción) marcaba el stock como
 -- recién verificado. Ahora solo cuenta si cambia stock, semáforo, precio,
 -- modo o si está activo, o si el comerciante toca "Sigue igual" (la app

@@ -1,7 +1,7 @@
 -- =====================================================================
--- VECI · Datos de prueba (los comercios y productos del prototipo)
+-- Vecired · Datos de prueba (los comercios y productos del prototipo)
 --
--- Crea 6 comerciantes y 5 compradores de mentira (mails @demo.veci.test,
+-- Crea 6 comerciantes y 5 compradores de mentira (mails @demo.vecired.test,
 -- sin contraseña: no se puede entrar con ellos), sus comercios aprobados,
 -- productos y 5 reseñas. Las reservas de las reseñas pasan por las mismas
 -- funciones que va a usar la app, así de paso se prueban.
@@ -20,7 +20,7 @@ declare
   r record;
   v_reserva bigint;
 begin
-  if exists (select 1 from auth.users where email like '%@demo.veci.test') then
+  if exists (select 1 from auth.users where email like '%@demo.vecired.test') then
     raise exception 'Los datos de prueba ya están cargados. Borralos antes con 04_borrar_datos_prueba.sql';
   end if;
 
@@ -34,17 +34,17 @@ begin
     '{"provider":"email","providers":["email"]}', jsonb_build_object('rol', u.rol, 'nombre', u.nombre), now(), now(),
     '', '', '', ''
   from (values
-    ('de300000-0000-4000-8000-000000000001', 'aguja@demo.veci.test',     'comerciante', 'Mercería La Aguja'),
-    ('de300000-0000-4000-8000-000000000002', 'tornillo@demo.veci.test',  'comerciante', 'Ferretería El Tornillo'),
-    ('de300000-0000-4000-8000-000000000003', 'solido@demo.veci.test',    'comerciante', 'Solido herrajes'),
-    ('de300000-0000-4000-8000-000000000004', 'mpacheco@demo.veci.test',  'comerciante', 'Mercería Pacheco'),
-    ('de300000-0000-4000-8000-000000000005', 'rueda@demo.veci.test',     'comerciante', 'Ferretería La Rueda'),
-    ('de300000-0000-4000-8000-000000000006', 'delta@demo.veci.test',     'comerciante', 'Herrajes del Delta'),
-    ('de300000-0000-4000-8000-000000000101', 'marta@demo.veci.test',     'comprador',   'Marta Rodríguez'),
-    ('de300000-0000-4000-8000-000000000102', 'julian@demo.veci.test',    'comprador',   'Julián Pérez'),
-    ('de300000-0000-4000-8000-000000000103', 'sofia@demo.veci.test',     'comprador',   'Sofía Torres'),
-    ('de300000-0000-4000-8000-000000000104', 'diego@demo.veci.test',     'comprador',   'Diego López'),
-    ('de300000-0000-4000-8000-000000000105', 'carla@demo.veci.test',     'comprador',   'Carla Sosa')
+    ('de300000-0000-4000-8000-000000000001', 'aguja@demo.vecired.test',     'comerciante', 'Mercería La Aguja'),
+    ('de300000-0000-4000-8000-000000000002', 'tornillo@demo.vecired.test',  'comerciante', 'Ferretería El Tornillo'),
+    ('de300000-0000-4000-8000-000000000003', 'solido@demo.vecired.test',    'comerciante', 'Solido herrajes'),
+    ('de300000-0000-4000-8000-000000000004', 'mpacheco@demo.vecired.test',  'comerciante', 'Mercería Pacheco'),
+    ('de300000-0000-4000-8000-000000000005', 'rueda@demo.vecired.test',     'comerciante', 'Ferretería La Rueda'),
+    ('de300000-0000-4000-8000-000000000006', 'delta@demo.vecired.test',     'comerciante', 'Herrajes del Delta'),
+    ('de300000-0000-4000-8000-000000000101', 'marta@demo.vecired.test',     'comprador',   'Marta Rodríguez'),
+    ('de300000-0000-4000-8000-000000000102', 'julian@demo.vecired.test',    'comprador',   'Julián Pérez'),
+    ('de300000-0000-4000-8000-000000000103', 'sofia@demo.vecired.test',     'comprador',   'Sofía Torres'),
+    ('de300000-0000-4000-8000-000000000104', 'diego@demo.vecired.test',     'comprador',   'Diego López'),
+    ('de300000-0000-4000-8000-000000000105', 'carla@demo.vecired.test',     'comprador',   'Carla Sosa')
   ) as u (id, email, rol, nombre);
 
   -- Comercios

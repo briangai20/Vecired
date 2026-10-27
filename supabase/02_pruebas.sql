@@ -1,5 +1,5 @@
 -- =====================================================================
--- VECI · Pruebas de las reglas de seguridad
+-- Vecired · Pruebas de las reglas de seguridad
 -- Correr DESPUÉS de 01_esquema.sql, en SQL Editor > New query > Run.
 --
 -- Crea 3 usuarios de prueba (un comerciante y dos compradores), recorre
@@ -11,9 +11,9 @@
 begin;
 
 insert into auth.users (instance_id, id, aud, role, email, raw_app_meta_data, raw_user_meta_data, created_at, updated_at) values
-  ('00000000-0000-0000-0000-000000000000', '11111111-1111-1111-1111-111111111111', 'authenticated', 'authenticated', 'comercio@prueba.veci', '{}', '{"rol":"comerciante","nombre":"Ana Comerciante"}', now(), now()),
-  ('00000000-0000-0000-0000-000000000000', '22222222-2222-2222-2222-222222222222', 'authenticated', 'authenticated', 'laura@prueba.veci', '{}', '{"rol":"comprador","nombre":"Laura Martínez"}', now(), now()),
-  ('00000000-0000-0000-0000-000000000000', '33333333-3333-3333-3333-333333333333', 'authenticated', 'authenticated', 'pedro@prueba.veci', '{}', '{"rol":"admin","nombre":"Pedro Gómez"}', now(), now());
+  ('00000000-0000-0000-0000-000000000000', '11111111-1111-1111-1111-111111111111', 'authenticated', 'authenticated', 'comercio@prueba.vecired', '{}', '{"rol":"comerciante","nombre":"Ana Comerciante"}', now(), now()),
+  ('00000000-0000-0000-0000-000000000000', '22222222-2222-2222-2222-222222222222', 'authenticated', 'authenticated', 'laura@prueba.vecired', '{}', '{"rol":"comprador","nombre":"Laura Martínez"}', now(), now()),
+  ('00000000-0000-0000-0000-000000000000', '33333333-3333-3333-3333-333333333333', 'authenticated', 'authenticated', 'pedro@prueba.vecired', '{}', '{"rol":"admin","nombre":"Pedro Gómez"}', now(), now());
 
 do $$ begin
   if (select rol from public.perfiles where id = '11111111-1111-1111-1111-111111111111') is distinct from 'comerciante' then
@@ -92,7 +92,7 @@ select id, 2, 'Mañana, 10:00 a 12:00', 'online' from public.productos where nom
 insert into public.reservas (producto_id, cantidad, retiro)
 select id, 1, 'Hoy, 16:00 a 18:00' from public.productos where nombre = 'Hilo blanco';
 -- Guardamos el número de una reserva de Laura para probar después con Pedro.
-select set_config('veci.reserva_laura', (select min(id)::text from public.reservas), true);
+select set_config('vecired.reserva_laura', (select min(id)::text from public.reservas), true);
 
 do $$
 declare ok boolean;
@@ -157,7 +157,7 @@ begin
     raise exception 'FALLA: Pedro ve perfiles ajenos';
   end if;
   begin
-    perform public.cancelar_reserva(current_setting('veci.reserva_laura')::bigint);
+    perform public.cancelar_reserva(current_setting('vecired.reserva_laura')::bigint);
   exception when others then ok := true;
   end;
   if not ok then raise exception 'FALLA: Pedro pudo cancelar una reserva ajena'; end if;
@@ -249,7 +249,7 @@ end $$;
 
 -- ---------- Limpieza ----------
 reset role;
-delete from auth.users where email like '%@prueba.veci';
+delete from auth.users where email like '%@prueba.vecired';
 commit;
 
 select 'Todas las pruebas pasaron. No quedó ningún dato de prueba guardado.' as resultado;

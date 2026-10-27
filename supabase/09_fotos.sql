@@ -1,5 +1,5 @@
 -- =====================================================================
--- VECI · Fotos de productos (2026-10-23)
+-- Vecired · Fotos de productos (2026-10-23)
 -- El bucket "productos" y sus reglas (solo el dueño sube, cambia o borra en
 -- la carpeta <id del comercio>/) están en 01_esquema.sql. Acá se le pone
 -- un límite de 5 MB y que acepte solo imágenes. La app además las achica a
