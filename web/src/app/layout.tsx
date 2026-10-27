@@ -49,6 +49,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           </div>
         </header>
         <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 lg:px-6">{children}</main>
+        <footer className="border-t border-marino/10">
+          <nav className="mx-auto flex max-w-7xl flex-wrap gap-x-6 gap-y-2 px-4 py-4 text-sm text-marino/80 lg:px-6" aria-label="Legales">
+            <Link href="/terminos" className="hover:underline">Términos y condiciones</Link>
+            <Link href="/privacidad" className="hover:underline">Política de privacidad</Link>
+          </nav>
+        </footer>
       </body>
     </html>
   );

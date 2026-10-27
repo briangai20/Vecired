@@ -65,6 +65,14 @@ export function FormularioCuenta({ siguiente, modoInicial }: { siguiente: string
           <Campo etiqueta="Tu nombre y apellido" name="nombre" autoComplete="name" defaultValue={estadoAlta.valores?.nombre} />
           <Campo etiqueta="Mail" name="email" type="email" autoComplete="email" defaultValue={estado.valores?.email} />
           <Campo etiqueta="Contraseña (mínimo 8 caracteres)" name="password" type="password" autoComplete="new-password" minLength={8} />
+          <label className="flex items-start gap-2 text-xs">
+            <input type="checkbox" name="acepto" required className="mt-0.5 accent-white" />
+            <span>
+              Soy mayor de 18 años y acepto los{" "}
+              <Link href="/terminos" target="_blank" className="underline">términos y condiciones</Link> y la{" "}
+              <Link href="/privacidad" target="_blank" className="underline">política de privacidad</Link>.
+            </span>
+          </label>
           <button disabled={creando} className="boton w-full rounded-xl px-4 py-3 text-sm font-semibold">
             {creando ? "Creando la cuenta…" : "Crear cuenta"}
           </button>

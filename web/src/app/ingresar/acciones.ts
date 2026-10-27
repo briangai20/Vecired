@@ -2,6 +2,7 @@
 
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { VIGENCIA } from "@/lib/legal";
 import { supabaseServidor } from "@/lib/supabase/servidor";
 
 // "valores" devuelve lo que escribió el usuario, para no borrarle el formulario si hay un error.
@@ -44,6 +45,7 @@ export async function registrarse(_: EstadoCuenta, datos: FormData): Promise<Est
   const valores = { nombre, email, rol };
   if (!nombre || !email || !password) return { error: "Completá todos los campos.", valores };
   if (password.length < 8) return { error: "La contraseña tiene que tener al menos 8 caracteres.", valores };
+  if (!datos.get("acepto")) return { error: "Para crear la cuenta tenés que aceptar los términos y la política de privacidad.", valores };
 
   const h = await headers();
   const origen = h.get("origin") ?? `https://${h.get("host")}`;
@@ -54,7 +56,8 @@ export async function registrarse(_: EstadoCuenta, datos: FormData): Promise<Est
     email,
     password,
     options: {
-      data: { nombre, rol },
+      // Queda guardado cuándo aceptó los términos y qué versión.
+      data: { nombre, rol, acepto_terminos: VIGENCIA, acepto_terminos_en: new Date().toISOString() },
       emailRedirectTo: `${origen}/auth/callback?siguiente=${encodeURIComponent(siguiente)}`,
     },
   });
