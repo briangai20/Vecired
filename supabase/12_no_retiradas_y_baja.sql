@@ -42,7 +42,7 @@ language plpgsql security definer set search_path = ''
 as $$
 declare
   n integer;
-  r public.reservas;
+  fila public.reservas;
 begin
   -- Sin respuesta: 2 horas de horario de atención.
   update public.reservas r
@@ -57,7 +57,7 @@ begin
 
   -- Aceptadas sin retirar: terminó el 5.º día abierto desde la reserva.
   -- (El filtro de 4 días corridos solo evita calcular de más.)
-  for r in
+  for fila in
     select * from public.reservas x
     where x.estado = 'aceptada'
       and x.creada_en < now() - interval '4 days'
@@ -68,8 +68,8 @@ begin
           ) >= 5
     for update
   loop
-    perform public.devolver_stock(r.producto_id, r.cantidad);
-    update public.reservas set estado = 'no_retirada', actualizada_en = now() where id = r.id;
+    perform public.devolver_stock(fila.producto_id, fila.cantidad);
+    update public.reservas set estado = 'no_retirada', actualizada_en = now() where id = fila.id;
     n := n + 1;
   end loop;
   return n;
