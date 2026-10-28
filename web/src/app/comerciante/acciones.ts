@@ -116,7 +116,10 @@ export async function guardarProducto(d: FormData) {
     await supabase.from("productos").update(datos).eq("id", id);
   } else {
     const comercioId = Number(texto(d, "comercio_id"));
-    await supabase.from("productos").insert({ ...datos, comercio_id: comercioId });
+    // La foto ya se subió desde el formulario; solo se acepta si está en la carpeta del comercio.
+    const foto = texto(d, "foto_url");
+    const carpeta = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/productos/${comercioId}/`;
+    await supabase.from("productos").insert({ ...datos, comercio_id: comercioId, foto_url: foto.startsWith(carpeta) ? foto : null });
   }
   refresh();
 }
