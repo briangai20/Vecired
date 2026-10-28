@@ -9,6 +9,7 @@ import { AvisoCierres } from "@/components/aviso-cierres";
 import { abiertoAhora, fechaAR, disponibilidad, horario, nota, plata, promedio } from "@/lib/formato";
 import { supabasePublico } from "@/lib/supabase/publico";
 import type { Tabla } from "@/lib/supabase/tipos";
+import { Catalogo, type ItemCatalogo } from "./catalogo";
 
 type Props = PageProps<"/comercio/[id]">;
 
@@ -44,18 +45,18 @@ async function Comercio({ params, searchParams }: Pick<Props, "params" | "search
   const { data: cierres } = await db.rpc("dias_cerrados", { p_comercio: c.id, p_desde: fechaAR(ahora), p_hasta: fechaAR(ahora, 21) });
   const cerrados = (cierres ?? []).map((x) => x.fecha);
   const prom = promedio((resenas ?? []).map((r) => r.estrellas));
-  const todos = productos ?? [];
-  const buscado = sinAcentos(q.trim());
-  const visibles = todos.filter(
-    (p) => !buscado || [p.nombre, p.descripcion, p.marca, p.grupo].some((v) => sinAcentos(v ?? "").includes(buscado)),
-  );
-
   // Los productos con el mismo "grupo" se muestran como una tarjeta con variantes.
   const grupos = new Map<string, Tabla<"productos">[]>();
-  for (const p of visibles) {
+  for (const p of productos ?? []) {
     const k = p.grupo || `#${p.id}`;
     grupos.set(k, [...(grupos.get(k) ?? []), p]);
   }
+  // El buscador filtra en el navegador; cada tarjeta lleva el texto donde buscar.
+  const items: ItemCatalogo[] = [...grupos].map(([clave, lista]) => ({
+    clave,
+    texto: sinAcentos(lista.flatMap((p) => [p.nombre, p.descripcion, p.marca, p.grupo]).filter(Boolean).join(" ")),
+    tarjeta: lista.length > 1 ? <TarjetaGrupo lista={lista} /> : <TarjetaProducto p={lista[0]} ahora={ahora} />,
+  }));
 
   return (
     <>
@@ -96,27 +97,7 @@ async function Comercio({ params, searchParams }: Pick<Props, "params" | "search
         </div>
       ) : null}
 
-      <form className="mt-6" role="search">
-        <label htmlFor="catq" className="sr-only">
-          Buscar un producto en {c.nombre}
-        </label>
-        <input id="catq" name="q" type="search" defaultValue={q} placeholder={`Buscar un producto en ${c.nombre}`} className="campo" />
-      </form>
-      <p className="mt-2 text-xs text-white/80">
-        {buscado ? `${grupos.size} resultado${grupos.size === 1 ? "" : "s"} en este local` : `${todos.length} productos en este local`}
-      </p>
-
-      {grupos.size === 0 ? (
-        <div className="mt-4 rounded-2xl border border-dashed border-white/30 p-8 text-center text-sm">
-          {buscado ? `No encontramos "${q.trim()}" en este local. Probá con otra palabra.` : "Este comercio todavía no cargó productos."}
-        </div>
-      ) : (
-        <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {[...grupos.values()].map((lista) =>
-            lista.length > 1 ? <TarjetaGrupo key={lista[0].grupo} lista={lista} /> : <TarjetaProducto key={lista[0].id} p={lista[0]} ahora={ahora} />,
-          )}
-        </div>
-      )}
+      <Catalogo comercio={c.nombre} items={items} inicial={q} />
 
       {resenas?.length ? (
         <section className="mt-10">
