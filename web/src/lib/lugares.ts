@@ -20,9 +20,12 @@ type Propiedades = {
   city?: string;
   county?: string;
   state?: string;
+  countrycode?: string;
 };
 
 function desdePhoton(p: Propiedades, lat: number, lng: number): Lugar | null {
+  // El rectángulo de búsqueda también toca países vecinos: solo Argentina.
+  if (p.countrycode && p.countrycode !== "AR") return null;
   const calle = p.street ? [p.street, p.housenumber].filter(Boolean).join(" ") : "";
   const nombre = p.name || calle;
   if (!nombre) return null;

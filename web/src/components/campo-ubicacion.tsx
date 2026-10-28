@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { buscarLugares, type Lugar } from "@/lib/lugares";
 
 type Zona = { id: string; nombre: string };
@@ -41,13 +41,28 @@ export function CampoUbicacion({
   const lugares = alDia?.lugares ?? [];
   const buscando = consulta.length >= 3 && !alDia;
 
+  // Enter apretado mientras se buscaba: se elige el primer resultado cuando llega.
+  const enterPendiente = useRef<string | null>(null);
+  const alElegir = useRef(onElegir);
+  useEffect(() => {
+    alElegir.current = onElegir;
+  });
+
   // Busca en el mapa cuando se deja de escribir (desde 3 letras).
   useEffect(() => {
     if (consulta.length < 3) return;
     const control = new AbortController();
     const t = setTimeout(() => {
       buscarLugares(consulta, cerca, control.signal)
-        .then((l) => setResultado({ consulta, lugares: l, fallo: false }))
+        .then((l) => {
+          setResultado({ consulta, lugares: l, fallo: false });
+          if (enterPendiente.current === consulta && l[0]) {
+            enterPendiente.current = null;
+            setAbierto(false);
+            setEscrito(null);
+            alElegir.current({ tipo: "lugar", lugar: l[0] });
+          }
+        })
         .catch((e) => {
           if (e.name !== "AbortError") setResultado({ consulta, lugares: [], fallo: true });
         });
@@ -60,13 +75,16 @@ export function CampoUbicacion({
   }, [consulta]);
 
   const zonasVisibles = consulta ? zonas.filter((z) => normalizar(z.nombre).includes(normalizar(consulta))) : zonas;
-  const opciones: Eleccion[] = [
-    { tipo: "yo" },
-    ...zonasVisibles.map((zona) => ({ tipo: "zona" as const, zona })),
-    ...lugares.map((lugar) => ({ tipo: "lugar" as const, lugar })),
-  ];
+  // Sin escribir: "mi ubicación" y las zonas. Escribiendo: primero lo que coincide
+  // con lo escrito, y "mi ubicación" al final (así Enter no la elige sin querer).
+  const zonasOpc = zonasVisibles.map((zona) => ({ tipo: "zona" as const, zona }));
+  const lugaresOpc = lugares.map((lugar) => ({ tipo: "lugar" as const, lugar }));
+  const opciones: Eleccion[] = consulta
+    ? [...lugaresOpc, ...zonasOpc, { tipo: "yo" }]
+    : [{ tipo: "yo" }, ...zonasOpc];
 
   function cerrar() {
+    enterPendiente.current = null;
     setAbierto(false);
     setEscrito(null);
   }
@@ -82,9 +100,11 @@ export function CampoUbicacion({
       setAbierto(true);
       const paso = ev.key === "ArrowDown" ? 1 : -1;
       setActiva((a) => (a + paso + opciones.length) % opciones.length);
-    } else if (ev.key === "Enter" && abierto && opciones[activa]) {
+    } else if (ev.key === "Enter") {
       ev.preventDefault();
-      elegir(opciones[activa]);
+      // Todavía buscando lo escrito: se elige el primer resultado apenas llegue.
+      if (buscando && activa === 0) enterPendiente.current = consulta;
+      else if (opciones[activa]) elegir(opciones[activa]);
     } else if (ev.key === "Escape") {
       cerrar();
     }
@@ -123,6 +143,15 @@ export function CampoUbicacion({
           role="listbox"
           className="absolute inset-x-0 top-full z-30 mt-1 max-h-80 overflow-y-auto rounded-xl border border-white/25 bg-marino-claro py-1 text-sm shadow-xl"
         >
+          {consulta.length >= 3 && (buscando || alDia?.fallo || !lugares.length) ? (
+            <li className="px-3 py-2 text-xs text-white/70" role="presentation">
+              {buscando ? "Buscando en el mapa…" : alDia?.fallo ? "No pudimos buscar en el mapa. Probá de nuevo." : "No encontramos ese lugar en el mapa."}
+            </li>
+          ) : consulta.length > 0 && consulta.length < 3 ? (
+            <li className="px-3 py-2 text-xs text-white/70" role="presentation">
+              Escribí al menos 3 letras para buscar calles y ciudades.
+            </li>
+          ) : null}
           {opciones.map((o, i) => (
             <li
               key={o.tipo === "yo" ? "yo" : o.tipo === "zona" ? `z-${o.zona.id}` : `l-${i}`}
@@ -149,15 +178,6 @@ export function CampoUbicacion({
               )}
             </li>
           ))}
-          {consulta.length >= 3 && (buscando || alDia?.fallo || !lugares.length) ? (
-            <li className="px-3 py-2 text-xs text-white/70" role="presentation">
-              {buscando ? "Buscando en el mapa…" : alDia?.fallo ? "No pudimos buscar en el mapa. Probá de nuevo." : "No encontramos ese lugar en el mapa."}
-            </li>
-          ) : consulta.length > 0 && consulta.length < 3 ? (
-            <li className="px-3 py-2 text-xs text-white/70" role="presentation">
-              Escribí al menos 3 letras para buscar calles y ciudades.
-            </li>
-          ) : null}
         </ul>
       ) : null}
     </div>
