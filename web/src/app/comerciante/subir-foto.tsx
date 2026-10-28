@@ -16,6 +16,17 @@ async function achicar(archivo: File): Promise<Blob> {
   return new Promise((ok, mal) => lienzo.toBlob((b) => (b ? ok(b) : mal(new Error("No se pudo procesar la foto"))), "image/jpeg", 0.82));
 }
 
+// Achica, sube a Storage y guarda la foto del producto.
+export async function subirFotoProducto(archivo: File, productoId: number, comercioId: number, refrescar = true) {
+  const foto = await achicar(archivo);
+  const ruta = `${comercioId}/${productoId}-${Date.now()}.jpg`;
+  const supabase = supabaseNavegador();
+  const { error } = await supabase.storage.from("productos").upload(ruta, foto, { contentType: "image/jpeg" });
+  if (error) throw error;
+  const { data } = supabase.storage.from("productos").getPublicUrl(ruta);
+  await guardarFoto(productoId, data.publicUrl, refrescar);
+}
+
 export function SubirFoto({ productoId, comercioId, tieneFoto }: { productoId: number; comercioId: number; tieneFoto: boolean }) {
   const entrada = useRef<HTMLInputElement>(null);
   const [estado, setEstado] = useState<"" | "subiendo" | "error">("");
@@ -23,13 +34,7 @@ export function SubirFoto({ productoId, comercioId, tieneFoto }: { productoId: n
   async function subir(archivo: File) {
     setEstado("subiendo");
     try {
-      const foto = await achicar(archivo);
-      const ruta = `${comercioId}/${productoId}-${Date.now()}.jpg`;
-      const supabase = supabaseNavegador();
-      const { error } = await supabase.storage.from("productos").upload(ruta, foto, { contentType: "image/jpeg" });
-      if (error) throw error;
-      const { data } = supabase.storage.from("productos").getPublicUrl(ruta);
-      await guardarFoto(productoId, data.publicUrl);
+      await subirFotoProducto(archivo, productoId, comercioId);
       setEstado("");
     } catch (e) {
       console.error("[fotos]", e);

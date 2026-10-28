@@ -9,6 +9,7 @@ import { agregarCierre, borrarCierre, cambiarReserva, ofrecerAlternativas } from
 
 const fechaCorta = (f: string) => `${Number(f.slice(8))}/${Number(f.slice(5, 7))}`;
 import { FormComercio } from "./form-comercio";
+import { FotosEnLote } from "./fotos-en-lote";
 import { ImportarProductos } from "./importar-productos";
 import { ProductoFila } from "./producto-fila";
 
@@ -266,6 +267,23 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
             <ImportarProductos comercioId={comercio.id} existentes={(productos ?? []).map((p) => ({ id: p.id, codigo: p.codigo, nombre: p.nombre }))} />
           </div>
         </details>
+        {(productos ?? []).length ? (
+          <details className="mt-4 rounded-2xl border border-white/20 p-4" id="fotos">
+            <summary className="cursor-pointer font-semibold">
+              Cargar fotos de varios productos
+              {(() => {
+                const sin = (productos ?? []).filter((p) => !p.foto_url).length;
+                return sin ? <span className="font-normal text-white/70"> · {sin} sin foto</span> : null;
+              })()}
+            </summary>
+            <div className="mt-3">
+              <FotosEnLote
+                comercioId={comercio.id}
+                productos={(productos ?? []).map((p) => ({ id: p.id, codigo: p.codigo, nombre: p.nombre, foto_url: p.foto_url }))}
+              />
+            </div>
+          </details>
+        ) : null}
         <div className="mt-4 space-y-3">
           <ProductoFila comercioId={comercio.id} ahora={ahora} />
           {(productos ?? []).map((p) => (

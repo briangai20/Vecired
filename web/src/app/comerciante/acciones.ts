@@ -189,7 +189,8 @@ export async function borrarCierre(d: FormData) {
 }
 
 // Guarda la foto recién subida a Storage y borra la anterior, si era nuestra.
-export async function guardarFoto(productoId: number, url: string) {
+// Al subir muchas juntas se refresca el panel solo con la última.
+export async function guardarFoto(productoId: number, url: string, refrescar = true) {
   const supabase = await comerciante();
   const { data: p } = await supabase.from("productos").select("comercio_id, foto_url").eq("id", productoId).single();
   if (!p) throw new Error("Producto no encontrado");
@@ -200,6 +201,12 @@ export async function guardarFoto(productoId: number, url: string) {
   if (error) throw new Error("No se pudo guardar la foto");
   const raiz = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/productos/`;
   if (p.foto_url?.startsWith(raiz)) await supabase.storage.from("productos").remove([p.foto_url.slice(raiz.length)]);
+  if (refrescar) refresh();
+}
+
+// Refresca el panel después de subir varias fotos.
+export async function refrescarPanel() {
+  await comerciante();
   refresh();
 }
 
