@@ -2,6 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
+import { CENTROS, ZONA_INICIAL } from "@/lib/zonas";
+import { CampoUbicacion } from "./campo-ubicacion";
 
 type Zona = { id: string; nombre: string };
 
@@ -11,6 +13,8 @@ export type ValoresFiltro = {
   radio: number;
   lat?: number;
   lng?: number;
+  /** Nombre del lugar elegido en el buscador (sin él, las coordenadas son "mi ubicación"). */
+  lugar?: string;
 };
 
 function armarUrl(v: ValoresFiltro) {
@@ -19,6 +23,7 @@ function armarUrl(v: ValoresFiltro) {
   if (v.lat != null && v.lng != null) {
     p.set("lat", v.lat.toFixed(5));
     p.set("lng", v.lng.toFixed(5));
+    if (v.lugar) p.set("lugar", v.lugar);
   } else {
     p.set("zona", v.zona);
   }
@@ -59,7 +64,7 @@ export function Filtros({ zonas, inicial }: { zonas: Zona[]; inicial: ValoresFil
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         setAviso("");
-        cambiar({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        cambiar({ lat: pos.coords.latitude, lng: pos.coords.longitude, lugar: undefined });
       },
       () => setAviso("No pudimos acceder a tu ubicación. Elegí una zona."),
       { enableHighAccuracy: false, timeout: 10_000 },
@@ -67,6 +72,10 @@ export function Filtros({ zonas, inicial }: { zonas: Zona[]; inicial: ValoresFil
   }
 
   const conUbicacion = v.lat != null && v.lng != null;
+  const etiqueta = conUbicacion
+    ? v.lugar || "Mi ubicación actual"
+    : (zonas.find((z) => z.id === v.zona)?.nombre ?? "");
+  const cerca = conUbicacion ? { lat: v.lat!, lng: v.lng! } : (CENTROS[v.zona] ?? CENTROS[ZONA_INICIAL]);
 
   return (
     <div className="tarjeta rounded-3xl p-5" aria-busy={pendiente}>
@@ -85,25 +94,20 @@ export function Filtros({ zonas, inicial }: { zonas: Zona[]; inicial: ValoresFil
         className="campo mt-1"
       />
 
-      <label htmlFor="zona" className="mt-4 block text-xs">
+      <label htmlFor="ubicacion" className="mt-4 block text-xs">
         Ubicación
       </label>
-      <select
-        id="zona"
-        value={conUbicacion ? "__yo" : v.zona}
-        onChange={(e) => {
-          if (e.target.value === "__yo") return usarUbicacion();
-          cambiar({ zona: e.target.value, lat: undefined, lng: undefined });
+      <CampoUbicacion
+        zonas={zonas}
+        etiqueta={etiqueta}
+        cerca={cerca}
+        onElegir={(e) => {
+          setAviso("");
+          if (e.tipo === "yo") usarUbicacion();
+          else if (e.tipo === "zona") cambiar({ zona: e.zona.id, lat: undefined, lng: undefined, lugar: undefined });
+          else cambiar({ lat: e.lugar.lat, lng: e.lugar.lng, lugar: e.lugar.nombre });
         }}
-        className="campo mt-1"
-      >
-        <option value="__yo">{conUbicacion ? "Mi ubicación actual" : "Usar mi ubicación actual"}</option>
-        {zonas.map((z) => (
-          <option key={z.id} value={z.id}>
-            {z.nombre}
-          </option>
-        ))}
-      </select>
+      />
       <p className="mt-2 min-h-5 text-xs text-white/80" role="status">
         {aviso}
       </p>

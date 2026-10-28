@@ -20,8 +20,10 @@ type Props = {
   comercios: PuntoComercio[];
   /** Dibuja el radio de búsqueda y el punto "Vos" en el centro. */
   radioKm?: number;
-  /** Comercio resaltado (en su propia página). */
+  /** Comercio resaltado (en su propia página o el elegido en el mapa). */
   seleccionado?: number;
+  /** Al tocar un pin, muestra ese comercio en la lista de resultados (?comercio=id) en vez del cartelito. */
+  elegirEnLista?: boolean;
   className?: string;
 };
 
@@ -54,7 +56,14 @@ function pin(texto: string, resaltado: boolean) {
   return el;
 }
 
-export function MapaComercios({ centro, comercios, radioKm, seleccionado, className = "h-[320px] sm:h-[420px]" }: Props) {
+export function MapaComercios({
+  centro,
+  comercios,
+  radioKm,
+  seleccionado,
+  elegirEnLista,
+  className = "h-[320px] sm:h-[420px]",
+}: Props) {
   const router = useRouter();
   const contenedor = useRef<HTMLDivElement>(null);
   const mapa = useRef<MapaMapLibre | null>(null);
@@ -118,6 +127,16 @@ export function MapaComercios({ centro, comercios, radioKm, seleccionado, classN
     for (const c of comercios) {
       const el = pin(iniciales(c.nombre) || c.nombre.charAt(0), c.id === seleccionado);
       el.setAttribute("aria-label", c.nombre);
+
+      if (elegirEnLista) {
+        el.onclick = () => {
+          const p = new URLSearchParams(window.location.search);
+          p.set("comercio", String(c.id));
+          router.replace(`/?${p}`, { scroll: false });
+        };
+        marcadores.current.push(new maplibregl.Marker({ element: el }).setLngLat([c.lng, c.lat]).addTo(m));
+        continue;
+      }
 
       const tarjeta = document.createElement("div");
       tarjeta.className = "text-marino";
