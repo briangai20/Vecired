@@ -28,6 +28,7 @@ const ESTADOS: Record<Enum<"estado_reserva">, string> = {
   alternativa: "Esperando al cliente",
   aceptada: "Aceptada: falta retirar",
   retirada: "Retirada",
+  no_retirada: "No retirada (volvió al stock)",
   rechazada: "Rechazada",
   cancelada: "Cancelada por el cliente",
   vencida: "Vencida",
@@ -167,7 +168,7 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
 
       <section id="reservas" className="tarjeta rounded-3xl p-6">
         <h2 className="text-lg font-semibold">Reservas</h2>
-        <p className="mt-1 text-sm text-white/80">Respondé cada reserva dentro de las 2 horas de tu horario de atención: si no, vence sola. Las que llegan con el local cerrado empiezan a contar cuando abrís.</p>
+        <p className="mt-1 text-sm text-white/80">Respondé cada reserva dentro de las 2 horas de tu horario de atención: si no, vence sola. Las que llegan con el local cerrado empiezan a contar cuando abrís. Las aceptadas que nadie retira vencen solas un día de atención después del último horario de retiro, y el producto vuelve a tu stock.</p>
         {abiertas.length === 0 ? (
           <p className="mt-3 text-sm text-white/80">No tenés reservas para responder. Aparecen acá en cuanto un vecino reserve.</p>
         ) : (

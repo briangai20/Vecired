@@ -106,7 +106,8 @@ export default function PaginaPrivacidad() {
 
       <Seccion titulo="8. Tus derechos">
         <p>
-          Podés pedir ver, corregir, actualizar o borrar tus datos escribiéndonos a {MAIL_CONTACTO} desde el mail de tu cuenta.
+          Podés borrar tu cuenta y tus datos cuando quieras desde <Link href="/cuenta">Mi cuenta</Link>. También podés pedir
+          ver, corregir, actualizar o borrar tus datos escribiéndonos a {MAIL_CONTACTO} desde el mail de tu cuenta.
           Tu nombre y teléfono los podés cambiar en cualquier momento. Respondemos los pedidos de acceso en un máximo de 10 días
           corridos y los de corrección o borrado en un máximo de 5 días hábiles.
         </p>

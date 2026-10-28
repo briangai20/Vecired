@@ -431,6 +431,7 @@ export type Database = {
         Returns: { fecha: string; motivo: string }[]
       }
       aceptar_reserva: { Args: { p_reserva: number }; Returns: undefined }
+      borrar_mi_cuenta: { Args: never; Returns: undefined }
       cancelar_reserva: { Args: { p_reserva: number }; Returns: undefined }
       comercios_cercanos: {
         Args: {
@@ -518,6 +519,7 @@ export type Database = {
         | "alternativa"
         | "aceptada"
         | "retirada"
+        | "no_retirada"
         | "rechazada"
         | "cancelada"
         | "vencida"

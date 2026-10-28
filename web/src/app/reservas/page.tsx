@@ -20,8 +20,12 @@ const ESTADOS: Record<Enum<"estado_reserva">, { texto: string; detalle: string }
     texto: "Te ofrecen otra opción",
     detalle: "El comercio no lo tiene, pero te ofrece estas alternativas. Elegí una dentro de las 2 horas (en horario del local) desde que te las ofreció.",
   },
-  aceptada: { texto: "Confirmada: pasá a retirar", detalle: "Ya te lo separaron. Pagás al retirar." },
+  aceptada: {
+    texto: "Confirmada: pasá a retirar",
+    detalle: "Ya te lo separaron. Pagás al retirar. Si no llegás en el horario que elegiste, te lo guardan un día de atención más; después la reserva vence.",
+  },
   retirada: { texto: "Retirada", detalle: "" },
+  no_retirada: { texto: "No la retiraste", detalle: "Pasó el plazo para retirarla y el producto volvió a estar disponible. No se cobró nada." },
   rechazada: { texto: "El comercio no la pudo confirmar", detalle: "No se cobró nada." },
   cancelada: { texto: "Cancelada", detalle: "" },
   vencida: { texto: "Vencida", detalle: "El comercio no respondió a tiempo. No se cobró nada." },

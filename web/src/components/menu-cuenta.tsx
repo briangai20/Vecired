@@ -33,6 +33,9 @@ export async function MenuCuenta() {
           Admin
         </Link>
       ) : null}
+      <Link href="/cuenta" className={enlace}>
+        Mi cuenta
+      </Link>
       <form action={salir}>
         <button className={enlace} title={usuario.email}>
           Salir
