@@ -69,6 +69,25 @@ export function MapaComercios({
   const mapa = useRef<MapaMapLibre | null>(null);
   const marcadores = useRef<Marker[]>([]);
   const [listo, setListo] = useState(false);
+  // Último encuadre aplicado: solo se vuelve a encuadrar si cambian el centro o el radio,
+  // así elegir un comercio no mueve el mapa que la persona acercó o corrió.
+  const encuadre = useRef("");
+  // Lo que necesita el clic en el mapa (se registra una sola vez y lee siempre lo último).
+  const actual = useRef<{ comercios: PuntoComercio[]; elegirEnLista?: boolean; elegir: (id: number) => void }>({
+    comercios,
+    elegirEnLista,
+    elegir: () => {},
+  });
+
+  function elegir(id: number) {
+    const p = new URLSearchParams(window.location.search);
+    p.set("comercio", String(id));
+    router.replace(`/?${p}`, { scroll: false });
+  }
+
+  useEffect(() => {
+    actual.current = { comercios, elegirEnLista, elegir };
+  });
 
   // Crea el mapa una sola vez.
   useEffect(() => {
@@ -82,9 +101,23 @@ export function MapaComercios({
         center: [centro.lng, centro.lat],
         zoom: 13,
         attributionControl: { compact: true },
+        clickTolerance: 8, // un clic con el pulso un poco movido sigue siendo clic, no arrastre
       });
       m.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
-      m.scrollZoom.disable(); // que la rueda siga moviendo la página; se acerca con los botones o con dos dedos
+
+      // Con el mapa alejado los pines quedan chicos y juntos: un clic cerca de
+      // uno (hasta 30 px) lo elige igual, el más cercano.
+      m.on("click", (e) => {
+        const { comercios, elegirEnLista, elegir } = actual.current;
+        if (!elegirEnLista) return;
+        let mejor: { id: number; d: number } | null = null;
+        for (const c of comercios) {
+          const p = m.project([c.lng, c.lat]);
+          const d = Math.hypot(p.x - e.point.x, p.y - e.point.y);
+          if (d <= 30 && (!mejor || d < mejor.d)) mejor = { id: c.id, d };
+        }
+        if (mejor) elegir(mejor.id);
+      });
       mapa.current = m;
       m.on("load", () => setListo(true));
     });
@@ -129,10 +162,12 @@ export function MapaComercios({
       el.setAttribute("aria-label", c.nombre);
 
       if (elegirEnLista) {
-        el.onclick = () => {
-          const p = new URLSearchParams(window.location.search);
-          p.set("comercio", String(c.id));
-          router.replace(`/?${p}`, { scroll: false });
+        // Apretar un pin no arrastra el mapa: el arrastre empieza en el mapa, no en los pines.
+        // (Solo acá: en la página del comercio el cartelito se abre con el clic del mapa.)
+        for (const tipo of ["mousedown", "touchstart", "pointerdown"]) el.addEventListener(tipo, (e) => e.stopPropagation());
+        el.onclick = (e) => {
+          e.stopPropagation(); // que no lo tome también el clic del mapa
+          elegir(c.id);
         };
         marcadores.current.push(new maplibregl.Marker({ element: el }).setLngLat([c.lng, c.lat]).addTo(m));
         continue;
@@ -168,6 +203,9 @@ export function MapaComercios({
     }
 
     // Encuadre: el radio completo, o el comercio y su zona.
+    const clave = `${centro.lat},${centro.lng},${radioKm ?? ""}`;
+    if (clave === encuadre.current) return;
+    encuadre.current = clave;
     if (radioKm) {
       const dLat = radioKm / 111.32;
       const dLng = radioKm / (111.32 * Math.cos((centro.lat * Math.PI) / 180));
