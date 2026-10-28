@@ -40,7 +40,7 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
   if (!usuario) {
     return (
       <div className="tarjeta mx-auto max-w-xl rounded-3xl p-8 text-center">
-        <h1 className="text-2xl font-bold">Sumá tu comercio a Vecired</h1>
+        <h1 className="text-2xl font-bold">Sumá tu comercio a VeciRed</h1>
         <p className="mt-2 text-sm text-white/85">
           Publicá tus productos con precio y stock, recibí reservas de vecinos de tu zona y que te retiren en el local. Los primeros 3 meses son gratis.
         </p>

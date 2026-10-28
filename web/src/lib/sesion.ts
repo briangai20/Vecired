@@ -9,7 +9,7 @@ export type Usuario = {
   email: string;
   nombre: string;
   rol: Enum<"rol_usuario">;
-  /** Administra Vecired: aprueba comercios en /admin. */
+  /** Administra VeciRed: aprueba comercios en /admin. */
   admin: boolean;
 };
 

@@ -1,6 +1,6 @@
 -- =====================================================================
--- Vecired · Panel de administración (2026-10-27)
--- Quién administra Vecired y cómo se aprueban o rechazan los comercios
+-- VeciRed · Panel de administración (2026-10-27)
+-- Quién administra VeciRed y cómo se aprueban o rechazan los comercios
 -- desde /admin, sin entrar a Supabase.
 -- Para sumar un administrador:
 --   insert into public.administradores (usuario_id)

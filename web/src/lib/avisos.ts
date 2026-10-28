@@ -8,7 +8,7 @@ import { plata } from "./formato";
 //   RESEND_API_KEY       clave de Resend (resend.com > API Keys)
 //   SUPABASE_SECRET_KEY  clave secreta de Supabase, para leer el mail de
 //                        cada usuario (Project Settings > API Keys > Secret)
-// Opcional: MAIL_REMITENTE, por ejemplo "Vecired <avisos@vecired.ar>".
+// Opcional: MAIL_REMITENTE, por ejemplo "VeciRed <avisos@vecired.ar>".
 // Si falta alguna, no se manda nada y la app sigue andando igual.
 
 export type Evento =
@@ -46,7 +46,7 @@ async function enviar(para: string, asunto: string, html: string) {
   const r = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { Authorization: `Bearer ${clave}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ from: process.env.MAIL_REMITENTE || "Vecired <onboarding@resend.dev>", to: [para], subject: asunto, html }),
+    body: JSON.stringify({ from: process.env.MAIL_REMITENTE || "VeciRed <onboarding@resend.dev>", to: [para], subject: asunto, html }),
   });
   if (!r.ok) console.error(`[avisos] Resend respondió ${r.status}: ${await r.text()}`);
 }
@@ -54,7 +54,7 @@ async function enviar(para: string, asunto: string, html: string) {
 function plantilla(titulo: string, cuerpo: string, boton: { texto: string; url: string }) {
   return `<div style="font-family:Arial,sans-serif;background:#FFF8EC;padding:24px">
   <div style="max-width:520px;margin:auto;background:#14213D;color:#fff;border-radius:16px;padding:24px">
-    <p style="margin:0;font-size:22px;font-weight:900">Vecired</p>
+    <p style="margin:0;font-size:22px;font-weight:900">Veci<span style="color:#FF6B2C">Red</span></p>
     <h1 style="font-size:18px;margin:16px 0 8px">${titulo}</h1>
     <div style="font-size:14px;line-height:1.5">${cuerpo}</div>
     <a href="${boton.url}" style="display:inline-block;margin-top:20px;background:#D9480F;color:#fff;text-decoration:none;padding:10px 18px;border-radius:10px;font-weight:bold">${boton.texto}</a>
@@ -148,7 +148,7 @@ export async function avisarRevision(comercioId: number) {
 
     const panel = { texto: "Abrir mi panel", url: `${sitio()}/comerciante` };
     if (c.aprobado) {
-      const asunto = `¡${c.nombre} ya está en Vecired!`;
+      const asunto = `¡${c.nombre} ya está en VeciRed!`;
       await enviar(
         mail,
         asunto,

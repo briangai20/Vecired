@@ -9,23 +9,23 @@ export default function PaginaTerminos() {
   return (
     <TextoLegal titulo="Términos y condiciones">
       <p>
-        Estos términos regulan el uso de Vecired. Al crear una cuenta o usar la app aceptás estos términos y la{" "}
-        <Link href="/privacidad">política de privacidad</Link>. Si no estás de acuerdo, no uses Vecired.
+        Estos términos regulan el uso de VeciRed. Al crear una cuenta o usar la app aceptás estos términos y la{" "}
+        <Link href="/privacidad">política de privacidad</Link>. Si no estás de acuerdo, no uses VeciRed.
       </p>
 
       <Seccion titulo="1. Quiénes somos">
         <p>
-          Vecired es operada por {TITULAR}, CUIT {CUIT}, con domicilio en {DOMICILIO}. Podés escribirnos a {MAIL_CONTACTO}.
+          VeciRed es operada por {TITULAR}, CUIT {CUIT}, con domicilio en {DOMICILIO}. Podés escribirnos a {MAIL_CONTACTO}.
         </p>
       </Seccion>
 
-      <Seccion titulo="2. Qué es Vecired">
+      <Seccion titulo="2. Qué es VeciRed">
         <p>
-          Vecired es una plataforma que conecta a personas que buscan productos (“compradores”) con comercios físicos de su zona
-          (“comercios”). En Vecired podés encontrar productos, reservarlos y retirarlos en el local.
+          VeciRed es una plataforma que conecta a personas que buscan productos (“compradores”) con comercios físicos de su zona
+          (“comercios”). En VeciRed podés encontrar productos, reservarlos y retirarlos en el local.
         </p>
         <p>
-          <strong>Vecired no vende los productos.</strong> Cada venta se hace directamente entre el comprador y el comercio. El
+          <strong>VeciRed no vende los productos.</strong> Cada venta se hace directamente entre el comprador y el comercio. El
           comercio es el vendedor y responde por el producto, su precio, su stock, la factura, la garantía y los cambios o
           devoluciones, según la ley de defensa del consumidor.
         </p>
@@ -87,12 +87,12 @@ export default function PaginaTerminos() {
             alcohol para menores, ni nada cuya venta esté prohibida o requiera autorizaciones que el comercio no tenga.
           </li>
           <li>
-            Los comercios usan Vecired sin costo durante los primeros 3 meses. Después, el uso tendrá una suscripción mensual. Te
+            Los comercios usan VeciRed sin costo durante los primeros 3 meses. Después, el uso tendrá una suscripción mensual. Te
             vamos a avisar el precio y las condiciones con al menos 30 días de anticipación, y vas a poder dar de baja el comercio
             sin costo antes de que empiece a cobrarse.
           </li>
           <li>
-            El comercio nos autoriza a mostrar en Vecired, y en la difusión de Vecired, su nombre, logo, fotos y productos mientras
+            El comercio nos autoriza a mostrar en VeciRed, y en la difusión de VeciRed, su nombre, logo, fotos y productos mientras
             esté publicado.
           </li>
         </ul>
@@ -108,17 +108,17 @@ export default function PaginaTerminos() {
 
       <Seccion titulo="7. Qué no está permitido">
         <ul>
-          <li>Usar Vecired para engañar, estafar o molestar a otras personas.</li>
+          <li>Usar VeciRed para engañar, estafar o molestar a otras personas.</li>
           <li>Hacer reservas falsas o publicar información falsa.</li>
           <li>Intentar acceder a cuentas o datos de otras personas, o afectar el funcionamiento de la app.</li>
-          <li>Copiar en forma masiva el contenido de Vecired con programas automáticos.</li>
+          <li>Copiar en forma masiva el contenido de VeciRed con programas automáticos.</li>
         </ul>
         <p>Si no se cumplen estos términos, podemos suspender o dar de baja la cuenta o el comercio.</p>
       </Seccion>
 
       <Seccion titulo="8. Responsabilidad">
         <p>
-          Vecired es un intermediario: no es parte de la venta y no garantiza que el comercio tenga el producto, ni su calidad o
+          VeciRed es un intermediario: no es parte de la venta y no garantiza que el comercio tenga el producto, ni su calidad o
           precio. Igualmente, si tenés un problema con un comercio, escribinos y vamos a intentar ayudarte.
         </p>
         <p>
@@ -129,7 +129,7 @@ export default function PaginaTerminos() {
 
       <Seccion titulo="9. Propiedad intelectual">
         <p>
-          La marca Vecired, el diseño y el software de la app son de su titular. El contenido que cargan los comercios y las
+          La marca VeciRed, el diseño y el software de la app son de su titular. El contenido que cargan los comercios y las
           reseñas siguen siendo de quienes los publicaron.
         </p>
       </Seccion>
@@ -137,7 +137,7 @@ export default function PaginaTerminos() {
       <Seccion titulo="10. Cambios en estos términos">
         <p>
           Podemos actualizar estos términos. Si el cambio es importante, te vamos a avisar por mail o en la app antes de que entre
-          en vigencia. Si seguís usando Vecired después, se entiende que aceptás la nueva versión.
+          en vigencia. Si seguís usando VeciRed después, se entiende que aceptás la nueva versión.
         </p>
       </Seccion>
 

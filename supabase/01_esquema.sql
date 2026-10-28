@@ -1,5 +1,5 @@
 -- =====================================================================
--- Vecired · Esquema inicial (paso 2 del plan)
+-- VeciRed · Esquema inicial (paso 2 del plan)
 -- Cuentas (comprador / comerciante), tablas y reglas de seguridad.
 --
 -- Cómo usarlo: en Supabase, SQL Editor > New query > pegar todo > Run.

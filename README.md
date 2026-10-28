@@ -1,4 +1,4 @@
-# Vecired
+# VeciRed
 
 App para encontrar productos en los comercios del barrio, reservarlos y retirarlos en el local (Click & Collect). Arranca en Ingeniero Maschwitz (partido de Escobar).
 

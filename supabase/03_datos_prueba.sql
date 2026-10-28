@@ -1,5 +1,5 @@
 -- =====================================================================
--- Vecired · Datos de prueba (los comercios y productos del prototipo)
+-- VeciRed · Datos de prueba (los comercios y productos del prototipo)
 --
 -- Crea 6 comerciantes y 5 compradores de mentira (mails @demo.vecired.test,
 -- sin contraseña: no se puede entrar con ellos), sus comercios aprobados,

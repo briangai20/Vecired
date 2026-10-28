@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-/* Colores del prototipo de Vecired */
+/* Colores del prototipo de VeciRed */
 @theme {
   --color-crema: #fff8ec;
   --color-marino: #14213d;
@@ -8,6 +8,7 @@
   --color-marino-hover: #22355e;
   --color-naranja: #d9480f;
   --color-naranja-hover: #bf3f0d;
+  --color-naranja-vivo: #ff6b2c; /* "Red" del logo sobre azul marino */
   --color-estrella: #ffc93c;
   --font-sans: var(--font-geist-sans);
 }

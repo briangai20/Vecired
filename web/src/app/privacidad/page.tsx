@@ -9,7 +9,7 @@ export default function PaginaPrivacidad() {
   return (
     <TextoLegal titulo="Política de privacidad">
       <p>
-        Esta política explica qué datos personales usa Vecired, para qué los usa y qué derechos tenés sobre ellos, según la Ley
+        Esta política explica qué datos personales usa VeciRed, para qué los usa y qué derechos tenés sobre ellos, según la Ley
         25.326 de Protección de Datos Personales. Complementa los <Link href="/terminos">términos y condiciones</Link>.
       </p>
 
@@ -24,7 +24,7 @@ export default function PaginaPrivacidad() {
         <ul>
           <li>
             <strong>Datos de tu cuenta:</strong> nombre y apellido, mail, contraseña (guardada cifrada: nadie puede leerla, ni
-            nosotros), si usás Vecired para comprar o para vender y, si lo cargás, tu teléfono.
+            nosotros), si usás VeciRed para comprar o para vender y, si lo cargás, tu teléfono.
           </li>
           <li>
             <strong>Reservas:</strong> qué producto reservaste, cantidad, precio, comercio, horario de retiro elegido y en qué
@@ -84,7 +84,7 @@ export default function PaginaPrivacidad() {
 
       <Seccion titulo="5. Dónde se guardan">
         <p>
-          Los datos se guardan en servidores de Supabase y Vercel ubicados en Estados Unidos. Al usar Vecired aceptás esta
+          Los datos se guardan en servidores de Supabase y Vercel ubicados en Estados Unidos. Al usar VeciRed aceptás esta
           transferencia internacional. Elegimos proveedores que aplican medidas de seguridad adecuadas, como cifrado de las
           comunicaciones y control de acceso a los datos.
         </p>
@@ -124,14 +124,14 @@ export default function PaginaPrivacidad() {
 
       <Seccion titulo="9. Seguridad">
         <p>
-          Las comunicaciones con Vecired viajan cifradas, las contraseñas se guardan cifradas y cada persona solo puede ver los
+          Las comunicaciones con VeciRed viajan cifradas, las contraseñas se guardan cifradas y cada persona solo puede ver los
           datos que le corresponden. Ningún sistema es infalible: si detectamos un problema de seguridad que afecte tus datos, te
           vamos a avisar.
         </p>
       </Seccion>
 
       <Seccion titulo="10. Menores de edad">
-        <p>Vecired es para mayores de 18 años. Si sabemos que una cuenta es de un menor, la damos de baja.</p>
+        <p>VeciRed es para mayores de 18 años. Si sabemos que una cuenta es de un menor, la damos de baja.</p>
       </Seccion>
 
       <Seccion titulo="11. Cambios en esta política">

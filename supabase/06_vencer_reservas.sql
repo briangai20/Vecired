@@ -1,5 +1,5 @@
 -- =====================================================================
--- Vecired · Vencimiento automático de reservas
+-- VeciRed · Vencimiento automático de reservas
 -- Cada 10 minutos pasa a "vencida" toda reserva que lleve 2 horas sin
 -- respuesta, contando SOLO el tiempo con el local abierto (hora argentina):
 --   - pendiente: desde que se hizo la reserva;

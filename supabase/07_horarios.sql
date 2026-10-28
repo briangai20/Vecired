@@ -1,5 +1,5 @@
 -- =====================================================================
--- Vecired · Horario de atención por día de la semana (2026-10-23)
+-- VeciRed · Horario de atención por día de la semana (2026-10-23)
 -- Cada comercio carga sus franjas por día (0 = domingo … 6 = sábado).
 -- Puede tener dos franjas el mismo día (por ejemplo 9 a 13 y 16 a 20).
 -- Un día sin franjas es un día cerrado.

@@ -1,4 +1,4 @@
--- Vecired arranca en Ingeniero Maschwitz en lugar de Belén de Escobar.
+-- VeciRed arranca en Ingeniero Maschwitz en lugar de Belén de Escobar.
 -- Escobar queda como zona inactiva para abrirla más adelante.
 -- Se puede correr más de una vez.
 

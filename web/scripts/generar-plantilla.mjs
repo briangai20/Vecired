@@ -9,7 +9,7 @@ const CREMA = "FFFFF8EC";
 const GRIS = "FF6B7280";
 
 const libro = new ExcelJS.Workbook();
-libro.creator = "Vecired";
+libro.creator = "VeciRed";
 
 // ---------- Hoja 1: Productos ----------
 const hoja = libro.addWorksheet("Productos", { views: [{ state: "frozen", ySplit: 1 }] });
@@ -43,7 +43,7 @@ NOTAS.forEach((nota, i) => {
   hoja.getCell(1, i + 1).note = { texts: [{ text: nota }], margins: { insetmode: "auto" } };
 });
 
-// Ejemplos: empiezan con "Ejemplo:" y Vecired los saltea al cargar, así que no hace falta borrarlos.
+// Ejemplos: empiezan con "Ejemplo:" y VeciRed los saltea al cargar, así que no hace falta borrarlos.
 const EJEMPLOS = [
   ["T-440", "Ejemplo: Tornillos 4x40 mm (caja x100)", "Fischer", 2300, 20, "Acero galvanizado"],
   ["CI-20", "Ejemplo: Cinta aisladora 20 m negra", "3M", 1100.5, "poco", ""],
@@ -87,7 +87,7 @@ ayuda.addRow([]);
 const pasos = [
   ["1.", "Completá la hoja \"Productos\": una fila por producto. Solo el nombre es obligatorio."],
   ["2.", "Las filas grises que empiezan con \"Ejemplo:\" no se cargan. Podés dejarlas o borrarlas."],
-  ["3.", "Guardá el archivo y subilo desde tu panel de Vecired, en Productos > Cargar o actualizar desde Excel."],
+  ["3.", "Guardá el archivo y subilo desde tu panel de VeciRed, en Productos > Cargar o actualizar desde Excel."],
   ["4.", "Antes de cargar te mostramos cómo quedó cada producto para que lo revises."],
 ];
 pasos.forEach((p) => {

@@ -111,7 +111,7 @@ async function Producto({ params }: Pick<Props, "params">) {
           )}
           {c.whatsapp ? (
             <a
-              href={`https://wa.me/${c.whatsapp.replace(/\D/g, "")}?text=${encodeURIComponent(`Hola, vi en Vecired "${p.nombre}". ¿Lo tienen disponible?`)}`}
+              href={`https://wa.me/${c.whatsapp.replace(/\D/g, "")}?text=${encodeURIComponent(`Hola, vi en VeciRed "${p.nombre}". ¿Lo tienen disponible?`)}`}
               target="_blank"
               rel="noopener noreferrer"
               className="mt-3 block w-full rounded-xl border border-white/30 px-4 py-3 text-center text-sm transition hover:bg-white/10"

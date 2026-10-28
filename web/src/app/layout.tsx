@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist } from "next/font/google";
 import Link from "next/link";
 import { Suspense } from "react";
+import { LogoVeciRed } from "@/components/logo";
 import { MenuCuenta } from "@/components/menu-cuenta";
 import "./globals.css";
 
@@ -12,8 +13,8 @@ const geistSans = Geist({
 
 export const metadata: Metadata = {
   title: {
-    default: "Vecired | Conectá con el comercio de tu barrio",
-    template: "%s | Vecired",
+    default: "VeciRed | Conectá con el comercio de tu barrio",
+    template: "%s | VeciRed",
   },
   description:
     "Encontrá productos en los comercios de tu barrio, reservalos y retiralos en el local.",
@@ -30,11 +31,13 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <header className="sticky top-0 z-40 border-b border-white/10 bg-marino shadow-lg shadow-black/30">
           <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-4 px-4 py-3 lg:px-6">
             <Link href="/" className="mr-auto flex items-center gap-3">
-              <span className="grid h-11 w-11 place-items-center rounded-2xl border border-white/30 text-lg font-black text-white">
-                V
+              <span className="grid h-11 w-11 place-items-center rounded-2xl border border-white/30">
+                <LogoVeciRed className="h-9 w-9" />
               </span>
               <span>
-                <span className="block text-2xl leading-none font-black tracking-tight text-white">Vecired</span>
+                <span className="block text-2xl leading-none font-black tracking-tight text-white">
+                  Veci<span className="text-naranja-vivo">Red</span>
+                </span>
                 <span className="mt-1 block text-xs text-white">Conectá con el comercio de tu barrio</span>
               </span>
             </Link>

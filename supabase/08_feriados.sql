@@ -1,5 +1,5 @@
 -- =====================================================================
--- Vecired · Feriados y cierres puntuales (2026-10-23)
+-- VeciRed · Feriados y cierres puntuales (2026-10-23)
 -- - feriados: nacionales (fuente: api.argentinadatos.com). Hay que sumar
 --   cada año nuevo, y los que decrete el gobierno durante el año.
 --   Los "puente" (no laborables) no cierran el comercio; solo cuentan los

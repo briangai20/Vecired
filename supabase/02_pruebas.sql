@@ -1,5 +1,5 @@
 -- =====================================================================
--- Vecired · Pruebas de las reglas de seguridad
+-- VeciRed · Pruebas de las reglas de seguridad
 -- Correr DESPUÉS de 01_esquema.sql, en SQL Editor > New query > Run.
 --
 -- Crea 3 usuarios de prueba (un comerciante y dos compradores), recorre
