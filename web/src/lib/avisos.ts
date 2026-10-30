@@ -29,6 +29,9 @@ function sitio() {
 
 const esc = (v: string) => v.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 
+// Los errores de la conexión pueden traer la clave adentro: nunca llega a los registros.
+const sinClaves = (texto: string) => texto.replace(/(sb_secret_|re_)[^"']*/g, "[clave oculta]");
+
 function admin() {
   const clave = process.env.SUPABASE_SECRET_KEY;
   if (!clave) return null;
@@ -77,7 +80,7 @@ export async function avisarReserva(reservaId: number, evento: Evento) {
       .eq("id", reservaId)
       .maybeSingle();
     if (!r?.comercio) {
-      console.error(`[avisos] No se pudo leer la reserva ${reservaId}: ${errorReserva?.message ?? "no existe"}`);
+      console.error(`[avisos] No se pudo leer la reserva ${reservaId}: ${sinClaves(errorReserva?.message ?? "no existe")}`);
       return;
     }
 
@@ -86,7 +89,7 @@ export async function avisarReserva(reservaId: number, evento: Evento) {
     const { data: u, error: errorUsuario } = await db.auth.admin.getUserById(destinatario);
     const mail = u.user?.email;
     if (!mail) {
-      console.error(`[avisos] Sin mail para "${evento}" de la reserva ${reservaId}: ${errorUsuario?.message ?? "usuario sin mail"}`);
+      console.error(`[avisos] Sin mail para "${evento}" de la reserva ${reservaId}: ${sinClaves(errorUsuario?.message ?? "usuario sin mail")}`);
       return;
     }
 
@@ -134,7 +137,7 @@ export async function avisarReserva(reservaId: number, evento: Evento) {
     const [asunto, cuerpo, boton] = mensajes[evento];
     await enviar(mail, asunto, plantilla(esc(asunto), cuerpo, boton));
   } catch (e) {
-    console.error("[avisos] No se pudo mandar el aviso", e);
+    console.error(`[avisos] No se pudo mandar el aviso: ${sinClaves(String(e))}`);
   }
 }
 
@@ -148,13 +151,13 @@ export async function avisarRevision(comercioId: number) {
     }
     const { data: c, error: errorComercio } = await db.from("comercios").select("nombre, dueno_id, aprobado, motivo_rechazo").eq("id", comercioId).maybeSingle();
     if (!c) {
-      console.error(`[avisos] No se pudo leer el comercio ${comercioId}: ${errorComercio?.message ?? "no existe"}`);
+      console.error(`[avisos] No se pudo leer el comercio ${comercioId}: ${sinClaves(errorComercio?.message ?? "no existe")}`);
       return;
     }
     const { data: u, error: errorUsuario } = await db.auth.admin.getUserById(c.dueno_id);
     const mail = u.user?.email;
     if (!mail) {
-      console.error(`[avisos] Sin mail para la revisión del comercio ${comercioId}: ${errorUsuario?.message ?? "usuario sin mail"}`);
+      console.error(`[avisos] Sin mail para la revisión del comercio ${comercioId}: ${sinClaves(errorUsuario?.message ?? "usuario sin mail")}`);
       return;
     }
 
@@ -179,6 +182,6 @@ export async function avisarRevision(comercioId: number) {
       );
     }
   } catch (e) {
-    console.error("[avisos] No se pudo mandar el aviso de revisión", e);
+    console.error(`[avisos] No se pudo mandar el aviso de revisión: ${sinClaves(String(e))}`);
   }
 }
