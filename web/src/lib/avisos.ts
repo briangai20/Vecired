@@ -33,7 +33,8 @@ const esc = (v: string) => v.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&
 const sinClaves = (texto: string) => texto.replace(/(sb_secret_|re_)[^"']*/g, "[clave oculta]");
 
 function admin() {
-  const clave = process.env.SUPABASE_SECRET_KEY;
+  // Al pegarla puede colarse un salto de línea, que la vuelve inválida.
+  const clave = process.env.SUPABASE_SECRET_KEY?.replace(/\s/g, "");
   if (!clave) return null;
   return createClient<Database>(process.env.NEXT_PUBLIC_SUPABASE_URL!, clave, {
     auth: { persistSession: false, autoRefreshToken: false },
