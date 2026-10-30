@@ -71,18 +71,24 @@ export async function avisarReserva(reservaId: number, evento: Evento) {
       console.info(`[avisos] Sin SUPABASE_SECRET_KEY: no se avisó "${evento}" de la reserva ${reservaId}`);
       return;
     }
-    const { data: r } = await db
+    const { data: r, error: errorReserva } = await db
       .from("reservas")
       .select("*, comercio:comercios(nombre, direccion, dueno_id), comprador:perfiles!reservas_comprador_id_fkey(nombre)")
       .eq("id", reservaId)
       .maybeSingle();
-    if (!r?.comercio) return;
+    if (!r?.comercio) {
+      console.error(`[avisos] No se pudo leer la reserva ${reservaId}: ${errorReserva?.message ?? "no existe"}`);
+      return;
+    }
 
     const alComercio = AL_COMERCIO.includes(evento);
     const destinatario = alComercio ? r.comercio.dueno_id : r.comprador_id;
-    const { data: u } = await db.auth.admin.getUserById(destinatario);
+    const { data: u, error: errorUsuario } = await db.auth.admin.getUserById(destinatario);
     const mail = u.user?.email;
-    if (!mail) return;
+    if (!mail) {
+      console.error(`[avisos] Sin mail para "${evento}" de la reserva ${reservaId}: ${errorUsuario?.message ?? "usuario sin mail"}`);
+      return;
+    }
 
     const producto = `${esc(r.producto_nombre)} × ${r.cantidad}`;
     const total = plata(r.precio_unitario == null ? null : r.precio_unitario * r.cantidad);
@@ -140,11 +146,17 @@ export async function avisarRevision(comercioId: number) {
       console.info(`[avisos] Sin SUPABASE_SECRET_KEY: no se avisó la revisión del comercio ${comercioId}`);
       return;
     }
-    const { data: c } = await db.from("comercios").select("nombre, dueno_id, aprobado, motivo_rechazo").eq("id", comercioId).maybeSingle();
-    if (!c) return;
-    const { data: u } = await db.auth.admin.getUserById(c.dueno_id);
+    const { data: c, error: errorComercio } = await db.from("comercios").select("nombre, dueno_id, aprobado, motivo_rechazo").eq("id", comercioId).maybeSingle();
+    if (!c) {
+      console.error(`[avisos] No se pudo leer el comercio ${comercioId}: ${errorComercio?.message ?? "no existe"}`);
+      return;
+    }
+    const { data: u, error: errorUsuario } = await db.auth.admin.getUserById(c.dueno_id);
     const mail = u.user?.email;
-    if (!mail) return;
+    if (!mail) {
+      console.error(`[avisos] Sin mail para la revisión del comercio ${comercioId}: ${errorUsuario?.message ?? "usuario sin mail"}`);
+      return;
+    }
 
     const panel = { texto: "Abrir mi panel", url: `${sitio()}/comerciante` };
     if (c.aprobado) {
