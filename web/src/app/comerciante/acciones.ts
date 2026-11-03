@@ -3,7 +3,7 @@
 import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
-import { avisarReserva, type Evento } from "@/lib/avisos";
+import { avisarParaRevisar, avisarReserva, type Evento } from "@/lib/avisos";
 import { usuarioActual } from "@/lib/sesion";
 import { supabaseServidor } from "@/lib/supabase/servidor";
 import { emparejar, MAX_FILAS, type FilaProducto } from "@/lib/importar";
@@ -72,14 +72,20 @@ export async function guardarComercio(_: Estado, d: FormData): Promise<Estado> {
   if ("error" in horario) return { error: horario.error };
 
   let comercioId = id;
+  // Un comercio nuevo, o uno rechazado que se corrige, queda para revisar: se avisa a los administradores.
+  let paraRevisar: "nuevo" | "corregido" | null = null;
   if (id) {
+    const { data: antes } = await supabase.from("comercios").select("motivo_rechazo").eq("id", id).maybeSingle();
     const { error } = await supabase.from("comercios").update(datos).eq("id", id);
     if (error) return { error: "No pudimos guardar los datos. Probá de nuevo." };
+    if (antes?.motivo_rechazo) paraRevisar = "corregido";
   } else {
     const { data, error } = await supabase.from("comercios").insert(datos).select("id").single();
     if (error) return { error: "No pudimos guardar los datos. Probá de nuevo." };
     comercioId = data.id;
+    paraRevisar = "nuevo";
   }
+  if (paraRevisar) after(() => avisarParaRevisar(comercioId!, paraRevisar === "corregido"));
 
   // El horario se reemplaza entero.
   const { error: errorBorrar } = await supabase.from("horarios").delete().eq("comercio_id", comercioId!);

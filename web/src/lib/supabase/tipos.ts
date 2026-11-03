@@ -15,6 +15,12 @@ export type Database = {
   }
   public: {
     Tables: {
+      administradores: {
+        Row: { usuario_id: string }
+        Insert: { usuario_id: string }
+        Update: { usuario_id?: string }
+        Relationships: []
+      }
       comercios: {
         Row: {
           abre_feriados: boolean

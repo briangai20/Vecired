@@ -142,6 +142,38 @@ export async function avisarReserva(reservaId: number, evento: Evento) {
   }
 }
 
+// Les avisa a los administradores que hay un comercio para revisar en /admin:
+// recién cargado, o corregido después de un rechazo.
+export async function avisarParaRevisar(comercioId: number, corregido: boolean) {
+  try {
+    const db = admin();
+    if (!db) {
+      console.info(`[avisos] Sin SUPABASE_SECRET_KEY: no se avisó a los administradores del comercio ${comercioId}`);
+      return;
+    }
+    const [{ data: c, error: errorComercio }, { data: admins, error: errorAdmins }] = await Promise.all([
+      db.from("comercios").select("nombre, rubro, direccion, dueno:perfiles!comercios_dueno_id_fkey(nombre)").eq("id", comercioId).maybeSingle(),
+      db.from("administradores").select("usuario_id"),
+    ]);
+    if (!c || !admins?.length) {
+      console.error(`[avisos] No se pudo avisar a los administradores del comercio ${comercioId}: ${sinClaves(errorComercio?.message ?? errorAdmins?.message ?? "sin comercio o sin administradores")}`);
+      return;
+    }
+
+    const asunto = corregido ? `${c.nombre} corrigió su comercio` : `Comercio nuevo para revisar: ${c.nombre}`;
+    const cuerpo = `<p><b>${esc(c.nombre)}</b> (${esc(c.rubro)}) ${corregido ? "corrigió lo que le pediste y volvió a revisión" : "se sumó a VeciRed y espera tu aprobación"}.</p><p>${esc(c.direccion)}${c.dueno?.nombre ? ` · ${esc(c.dueno.nombre)}` : ""}</p><p>Revisalo pronto: mientras no lo apruebes, los vecinos no lo ven.</p>`;
+    const html = plantilla(esc(asunto), cuerpo, { texto: "Revisar en el panel", url: `${sitio()}/admin` });
+
+    for (const { usuario_id } of admins) {
+      const { data: u, error: errorUsuario } = await db.auth.admin.getUserById(usuario_id);
+      if (u.user?.email) await enviar(u.user.email, asunto, html);
+      else console.error(`[avisos] Administrador sin mail: ${sinClaves(errorUsuario?.message ?? "usuario sin mail")}`);
+    }
+  } catch (e) {
+    console.error(`[avisos] No se pudo avisar a los administradores: ${sinClaves(String(e))}`);
+  }
+}
+
 // Le avisa al comerciante que su comercio quedó publicado, o por qué no.
 export async function avisarRevision(comercioId: number) {
   try {
