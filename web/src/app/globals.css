@@ -13,10 +13,20 @@
   --font-sans: var(--font-geist-sans);
 }
 
+html {
+  /* Que el celular no agrande las letras por su cuenta al girar o acercar. */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
 body {
   background: var(--color-crema);
   color: var(--color-marino);
+  /* Nada se sale de costado: sin scroll horizontal ni palabras cortadas. */
+  overflow-x: clip;
+  overflow-wrap: break-word;
 }
+
 
 /* Tarjeta azul marino de todo el prototipo */
 @utility tarjeta {
@@ -56,6 +66,12 @@ body {
     outline: none;
     border-color: #fff;
     box-shadow: 0 0 0 2px rgb(255 255 255 / 0.3);
+  }
+  /* Campo que está mal: recuadro rojo bien visible (ver components/error-campo.tsx). */
+  &[aria-invalid="true"] {
+    border: 2px solid #ff6b6b;
+    background: rgb(255 107 107 / 0.12);
+    box-shadow: 0 0 0 3px rgb(255 107 107 / 0.25);
   }
 }
 

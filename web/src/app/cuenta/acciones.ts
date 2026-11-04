@@ -1,5 +1,6 @@
 "use server";
 
+import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
 import { usuarioActual } from "@/lib/sesion";
 import { supabaseServidor } from "@/lib/supabase/servidor";
@@ -37,10 +38,61 @@ export async function borrarCuenta(_: EstadoBaja, d: FormData): Promise<EstadoBa
     if (fotos?.length) await supabase.storage.from("productos").remove(fotos.map((f) => `${id}/${f.name}`));
   }
 
+  // Foto de perfil: carpeta <id del usuario> en el bucket "perfiles".
+  const { data: fotosPerfil } = await supabase.storage.from("perfiles").list(usuario.id, { limit: 100 });
+  if (fotosPerfil?.length) await supabase.storage.from("perfiles").remove(fotosPerfil.map((f) => `${usuario.id}/${f.name}`));
+
   const { error } = await supabase.rpc("borrar_mi_cuenta");
   if (error) {
     return { error: error.code === "P0001" ? error.message : "No pudimos borrar la cuenta. Probá de nuevo en un rato." };
   }
   await supabase.auth.signOut();
   redirect("/");
+}
+
+export type EstadoPerfil = { error?: string; ok?: string; campos?: Record<string, string> };
+
+// Nombre y teléfono del perfil.
+export async function guardarPerfil(_: EstadoPerfil, d: FormData): Promise<EstadoPerfil> {
+  const usuario = await usuarioActual();
+  if (!usuario) redirect("/ingresar?siguiente=/cuenta");
+  const nombre = String(d.get("nombre") ?? "").trim();
+  const telefono = String(d.get("telefono") ?? "").trim();
+  const campos: Record<string, string> = {};
+  if (!nombre) campos.nombre = "Escribí tu nombre y apellido: es lo que ve el comercio cuando reservás.";
+  else if (nombre.length > 80) campos.nombre = "El nombre es demasiado largo (hasta 80 letras).";
+  const digitos = telefono.replace(/\D/g, "");
+  if (telefono && digitos.length < 10) {
+    campos.telefono = `El teléfono tiene ${digitos.length} números y tienen que ser al menos 10: código de área + número, por ejemplo 11 2345 6789.`;
+  }
+  if (Object.keys(campos).length) return { campos, error: "Revisá los datos marcados en rojo." };
+
+  const supabase = await supabaseServidor();
+  const { error } = await supabase.from("perfiles").update({ nombre, telefono: telefono || null }).eq("id", usuario.id);
+  if (error) {
+    console.error("[perfil]", error.code, error.message);
+    return { error: "No pudimos guardar tus datos. Revisá tu conexión y probá de nuevo." };
+  }
+  refresh();
+  return { ok: "Tus datos quedaron guardados." };
+}
+
+// Foto de perfil ya subida a Storage (perfiles/<id>/…), o null para quitarla.
+export async function guardarFotoPerfil(url: string | null): Promise<{ error?: string }> {
+  const usuario = await usuarioActual();
+  if (!usuario) redirect("/ingresar?siguiente=/cuenta");
+  const carpeta = `/storage/v1/object/public/perfiles/${usuario.id}/`;
+  if (url && !url.startsWith(`${process.env.NEXT_PUBLIC_SUPABASE_URL}${carpeta}`)) return { error: "Esa foto no es tuya." };
+  const supabase = await supabaseServidor();
+  const { error } = await supabase.from("perfiles").update({ foto_url: url }).eq("id", usuario.id);
+  if (error) {
+    console.error("[foto perfil]", error.code, error.message);
+    return {
+      error: error.message.includes("foto_url")
+        ? "La foto de perfil todavía no está activada en VeciRed. Probá más tarde."
+        : "No pudimos guardar la foto. Probá de nuevo.",
+    };
+  }
+  refresh();
+  return {};
 }

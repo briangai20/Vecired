@@ -4,7 +4,11 @@ import { notFound, redirect } from "next/navigation";
 import { Suspense } from "react";
 import { usuarioActual } from "@/lib/sesion";
 import { supabaseServidor } from "@/lib/supabase/servidor";
+import Image from "next/image";
+import { LogoComercio } from "@/components/logo-comercio";
+import { enlaceWhatsapp } from "@/lib/whatsapp";
 import { revisarComercio } from "./acciones";
+import { chequeos, CONTROLES, distanciaDireccionPin, enlacesVerificacion, MOTIVOS, type Chequeo, type Control } from "./verificar";
 
 export const metadata: Metadata = { title: "Administración", robots: { index: false } };
 
@@ -40,13 +44,23 @@ async function Panel({ searchParams }: Pick<PageProps<"/admin">, "searchParams">
   const vistaDe = (c: (typeof todos)[number]): Vista => (c.aprobado ? "publicados" : c.motivo_rechazo ? "rechazados" : "pendientes");
   const lista = todos.filter((c) => vistaDe(c) === ver);
   const cuantos = (v: Vista) => todos.filter((c) => vistaDe(c) === v).length;
+  // Dónde queda la dirección escrita respecto del pin (solo los que hay que revisar).
+  const metros = new Map(
+    await Promise.all(
+      lista.map(
+        async (c) =>
+          [c.id, ver === "publicados" || c.lat == null || c.lng == null ? null : await distanciaDireccionPin(c.direccion, c.zona, { lat: c.lat, lng: c.lng })] as const,
+      ),
+    ),
+  );
 
   return (
     <div className="space-y-6">
       <div className="tarjeta rounded-3xl p-6">
         <h1 className="text-2xl font-bold">Administración</h1>
         <p className="mt-1 text-sm text-white/80">
-          Revisá cada comercio antes de publicarlo: que exista, que la dirección y el pin coincidan y que el rubro sea el que dice.
+          Revisá cada comercio antes de publicarlo. En cada uno ves las comprobaciones automáticas; usá los links para buscarlo en Google, verlo
+          en Street View o escribirle al dueño, y marcá lo que confirmaste.
         </p>
         <nav className="mt-4 flex flex-wrap gap-1 rounded-2xl border border-white/20 p-1 sm:inline-flex" aria-label="Estado">
           {(Object.keys(VISTAS) as Vista[]).map((v) => (
@@ -79,15 +93,38 @@ async function Panel({ searchParams }: Pick<PageProps<"/admin">, "searchParams">
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
           {lista.map((c) => (
-            <article key={c.id} className="tarjeta rounded-3xl p-5">
+            <article key={c.id} id={`c${c.id}`} className="tarjeta min-w-0 rounded-3xl p-5">
               <div className="flex items-start justify-between gap-3">
-                <div>
-                  <h2 className="text-lg font-bold">{c.nombre}</h2>
+                <div className="flex min-w-0 items-center gap-3">
+                  <LogoComercio url={c.logo_url} nombre={c.nombre} />
+                  <div className="min-w-0">
+                    <h2 className="text-lg font-bold break-words">{c.nombre}</h2>
                   <p className="text-sm text-white/80">
                     {c.rubro} · {c.zona}
                   </p>
+                  </div>
                 </div>
                 <span className="shrink-0 text-xs text-white/70">Alta {fecha(c.creado_en)}</span>
+              </div>
+
+              <Chequeos lista={chequeos({ ...c, metros: metros.get(c.id) })} />
+
+              {c.foto_local_url ? (
+                <a href={c.foto_local_url} target="_blank" rel="noreferrer" className="relative mt-3 block aspect-video overflow-hidden rounded-2xl border border-white/20">
+                  <Image src={c.foto_local_url} alt={`Frente de ${c.nombre}`} fill sizes="(min-width: 768px) 40vw, 90vw" className="object-cover" />
+                  <span className="absolute bottom-2 left-2 rounded-full bg-marino/90 px-2.5 py-0.5 text-[11px]">Foto del frente que subió el dueño</span>
+                </a>
+              ) : null}
+
+              <div className="mt-3">
+                <p className="text-xs text-white/70">Buscalo por afuera de VeciRed:</p>
+                <div className="mt-1.5 flex flex-wrap gap-1.5">
+                  {enlacesVerificacion(c).map((e) => (
+                    <a key={e.texto} href={e.href} target="_blank" rel="noreferrer" className="rounded-full border border-white/30 px-3 py-1 text-xs hover:bg-white/10">
+                      {e.texto} ↗
+                    </a>
+                  ))}
+                </div>
               </div>
 
               <dl className="mt-4 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-sm">
@@ -117,20 +154,22 @@ async function Panel({ searchParams }: Pick<PageProps<"/admin">, "searchParams">
                   <>
                     <dt className="text-white/70">WhatsApp</dt>
                     <dd>
-                      <a href={`https://wa.me/${c.whatsapp.replace(/\D/g, "")}`} target="_blank" rel="noreferrer" className="underline">
+                      <a href={enlaceWhatsapp(c.whatsapp) ?? "#"} target="_blank" rel="noreferrer" className="underline">
                         {c.whatsapp}
                       </a>
                     </dd>
                   </>
                 ) : null}
-                <dt className="text-white/70">Productos</dt>
-                <dd>{c.productos}</dd>
-                <dt className="text-white/70">Horario</dt>
-                <dd>{c.con_horario ? "Cargado" : <span className="text-[#ffb4a2]">Sin cargar</span>}</dd>
                 {c.revisado_en ? (
                   <>
                     <dt className="text-white/70">Revisado</dt>
                     <dd>{fecha(c.revisado_en)}</dd>
+                  </>
+                ) : null}
+                {c.aprobado && c.controles?.length ? (
+                  <>
+                    <dt className="text-white/70">Controles</dt>
+                    <dd>{c.controles.map((k) => CONTROLES[k as Control]?.split(" (")[0] ?? k).join(" · ")}</dd>
                   </>
                 ) : null}
               </dl>
@@ -144,9 +183,21 @@ async function Panel({ searchParams }: Pick<PageProps<"/admin">, "searchParams">
 
               <div className="mt-4 space-y-3">
                 {!c.aprobado ? (
-                  <form action={revisarComercio}>
+                  <form action={revisarComercio} className="space-y-2">
                     <input type="hidden" name="comercio" value={c.id} />
                     <input type="hidden" name="ver" value={ver} />
+                    <fieldset className="space-y-1.5 rounded-2xl border border-white/20 p-3">
+                      <legend className="px-1 text-xs font-semibold">Lo que confirmaste</legend>
+                      {(Object.keys(CONTROLES) as Control[]).map((k) => (
+                        <label key={k} className="flex items-start gap-2 text-xs">
+                          <input type="checkbox" name="control" value={k} required={k === "existe"} className="mt-0.5 h-4 w-4 shrink-0 accent-white" />
+                          <span>
+                            {CONTROLES[k]}
+                            {k === "existe" ? <span className="text-white/70"> (obligatorio)</span> : null}
+                          </span>
+                        </label>
+                      ))}
+                    </fieldset>
                     <button name="accion" value="aprobar" className="boton w-full rounded-xl py-2.5 text-sm font-semibold">
                       {c.motivo_rechazo ? "Aprobar igual y publicar" : "Aprobar y publicar"}
                     </button>
@@ -158,9 +209,18 @@ async function Panel({ searchParams }: Pick<PageProps<"/admin">, "searchParams">
                     <form action={revisarComercio} className="mt-2 space-y-2">
                       <input type="hidden" name="comercio" value={c.id} />
                       <input type="hidden" name="ver" value={ver} />
+                      <fieldset className="space-y-1.5">
+                        <legend className="text-xs">Motivo (lo ve el comerciante)</legend>
+                        {MOTIVOS.map((m, i) => (
+                          <label key={m} className="flex items-start gap-2 text-xs">
+                            <input type="radio" name="motivo_rapido" value={m} defaultChecked={i === 0} className="mt-0.5 h-4 w-4 shrink-0 accent-white" />
+                            <span>{m}</span>
+                          </label>
+                        ))}
+                      </fieldset>
                       <label className="block text-xs">
-                        Motivo (lo ve el comerciante)
-                        <textarea name="motivo" required maxLength={500} rows={3} className="campo mt-1" placeholder="Ej.: el pin no coincide con la dirección. Movelo a la puerta del local." />
+                        U otro motivo (si lo escribís, se usa este)
+                        <textarea name="motivo" maxLength={500} rows={2} className="campo mt-1" placeholder="Ej.: el rubro no coincide con lo que vende." />
                       </label>
                       <button name="accion" value="rechazar" className="w-full rounded-xl border border-white/40 py-2 text-sm hover:bg-white/10">
                         {c.aprobado ? "Despublicar" : "Rechazar"}
@@ -173,6 +233,27 @@ async function Panel({ searchParams }: Pick<PageProps<"/admin">, "searchParams">
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+function Chequeos({ lista }: { lista: Chequeo[] }) {
+  const bien = lista.filter((x) => x.ok === true).length;
+  return (
+    <div className="mt-4 rounded-2xl border border-white/20 p-3">
+      <p className="text-xs font-semibold">
+        Comprobaciones automáticas: {bien} de {lista.length} bien
+      </p>
+      <ul className="mt-2 grid gap-1 text-xs sm:grid-cols-2">
+        {lista.map((x) => (
+          <li key={x.texto} className="flex gap-1.5">
+            <span aria-hidden className={x.ok === true ? "text-[#8ce99a]" : x.ok === false ? "text-[#ffb4a2]" : "text-white/50"}>
+              {x.ok === true ? "✔" : x.ok === false ? "✖" : "•"}
+            </span>
+            <span className={x.ok === false ? "text-[#ffb4a2]" : ""}>{x.texto}</span>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

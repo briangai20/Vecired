@@ -39,7 +39,7 @@ export async function reservar(_: EstadoReserva, d: FormData): Promise<EstadoRes
   const { data, error } = await supabase.from("reservas").insert(fila).select("id").single();
   if (error) return { error: mensaje(error) };
   after(() => avisarReserva(data.id, "nueva"));
-  redirect("/reservas?nueva=1");
+  redirect(`/reservas?nueva=${data.id}`);
 }
 
 export async function cancelar(d: FormData) {

@@ -13,6 +13,7 @@ export type PuntoComercio = {
   direccion: string;
   lat: number;
   lng: number;
+  logo_url?: string | null;
 };
 
 type Props = {
@@ -46,13 +47,22 @@ function circulo(lat: number, lng: number, km: number, pasos = 64) {
   };
 }
 
-function pin(texto: string, resaltado: boolean) {
+// Pin redondo con el logo del comercio, o sus iniciales si no tiene logo.
+function pin(texto: string, resaltado: boolean, logo?: string | null) {
   const el = document.createElement("button");
   el.type = "button";
-  el.textContent = texto;
   el.className =
-    "grid h-10 w-10 cursor-pointer place-items-center rounded-full border-2 border-white bg-marino text-xs font-black text-white shadow-lg transition-transform hover:scale-110" +
+    "grid h-11 w-11 cursor-pointer place-items-center overflow-hidden rounded-full border-2 border-white bg-marino text-xs font-black text-white shadow-lg transition-transform hover:scale-110" +
     (resaltado ? " ring-4 ring-naranja" : "");
+  if (logo) {
+    const img = document.createElement("img");
+    img.src = logo;
+    img.alt = "";
+    img.className = "h-full w-full bg-white object-contain";
+    // Si el logo no carga, quedan las iniciales.
+    img.onerror = () => img.replaceWith(texto);
+    el.append(img);
+  } else el.textContent = texto;
   return el;
 }
 
@@ -102,6 +112,14 @@ export function MapaComercios({
         zoom: 13,
         attributionControl: { compact: true },
         clickTolerance: 8, // un clic con el pulso un poco movido sigue siendo clic, no arrastre
+        // En el celular, un dedo baja por la página y dos mueven o acercan el mapa
+        // (si no, el mapa se queda con el gesto y la página no se puede mover).
+        cooperativeGestures: window.matchMedia("(pointer: coarse)").matches,
+        locale: {
+          "CooperativeGesturesHandler.MobileHelpText": "Usá dos dedos para mover el mapa",
+          "CooperativeGesturesHandler.WindowsHelpText": "Usá Ctrl + rueda del mouse para acercar el mapa",
+          "CooperativeGesturesHandler.MacHelpText": "Usá ⌘ + rueda del mouse para acercar el mapa",
+        },
       });
       m.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
 
@@ -158,7 +176,7 @@ export function MapaComercios({
     }
 
     for (const c of comercios) {
-      const el = pin(iniciales(c.nombre) || c.nombre.charAt(0), c.id === seleccionado);
+      const el = pin(iniciales(c.nombre) || c.nombre.charAt(0), c.id === seleccionado, c.logo_url);
       el.setAttribute("aria-label", c.nombre);
 
       if (elegirEnLista) {

@@ -8,10 +8,18 @@ import type { Enum } from "@/lib/supabase/tipos";
 import { agregarCierre, borrarCierre, cambiarReserva, ofrecerAlternativas } from "./acciones";
 
 const fechaCorta = (f: string) => `${Number(f.slice(8))}/${Number(f.slice(5, 7))}`;
+
+// El panel se divide en pestañas (?seccion=): lo del día a día (reservas)
+// queda separado de la configuración del comercio.
+const SECCIONES = { reservas: "Reservas", productos: "Productos", configuracion: "Configuración del comercio" } as const;
+type Seccion = keyof typeof SECCIONES;
 import { FormComercio } from "./form-comercio";
 import { FotosEnLote } from "./fotos-en-lote";
 import { ImportarProductos } from "./importar-productos";
 import { ProductoFila } from "./producto-fila";
+import { ListaConMas } from "@/components/lista-con-mas";
+import { LogoComercio } from "@/components/logo-comercio";
+import { numeroWhatsapp } from "@/lib/whatsapp";
 
 export const metadata: Metadata = { title: "Panel del comerciante" };
 
@@ -36,7 +44,8 @@ const ESTADOS: Record<Enum<"estado_reserva">, string> = {
 
 async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchParams">) {
   const usuario = await usuarioActual();
-  const { error: errorAccion } = await searchParams;
+  const { error: errorAccion, seccion: seccionParam } = await searchParams;
+  const seccion: Seccion = typeof seccionParam === "string" && seccionParam in SECCIONES ? (seccionParam as Seccion) : "reservas";
 
   if (!usuario) {
     return (
@@ -85,7 +94,7 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
   }
 
   const ahora = new Date();
-  const [{ data: productos }, { data: reservas }, { data: stats }, { data: franjas }, { data: cierres }, { data: feriados }] = await Promise.all([
+  const [{ data: productos }, { data: reservas }, { data: stats }, { data: franjas }, { data: cierres }, { data: feriados }, { data: verificacion }] = await Promise.all([
     supabase.from("productos").select("*").eq("comercio_id", comercio.id).order("nombre"),
     supabase
       .from("reservas")
@@ -97,6 +106,7 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
     supabase.from("horarios").select("*").eq("comercio_id", comercio.id),
     supabase.from("cierres").select("*").eq("comercio_id", comercio.id).gte("hasta", fechaAR(ahora)).order("desde"),
     supabase.from("feriados").select("*").neq("tipo", "puente").gte("fecha", fechaAR(ahora)).lte("fecha", fechaAR(ahora, 90)).order("fecha"),
+    supabase.from("verificaciones_comercio").select("*").eq("comercio_id", comercio.id).maybeSingle(),
   ]);
   const s = stats?.[0];
   const enCurso = (e: string) => e === "pendiente" || e === "alternativa" || e === "aceptada";
@@ -128,7 +138,7 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
           <p className="font-semibold">Todavía no pudimos publicar tu comercio.</p>
           <p className="mt-1">{comercio.motivo_rechazo}</p>
           <p className="mt-2">
-            Corregilo en <a href="#datos" className="underline">los datos del comercio</a> y guardá: lo volvemos a revisar.
+            Corregilo en <Link href="/comerciante?seccion=configuracion#datos" className="underline">los datos del comercio</Link> y guardá: lo volvemos a revisar.
           </p>
         </div>
       ) : !comercio.aprobado ? (
@@ -136,14 +146,26 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
           <span className="font-semibold">Tu comercio está en revisión.</span> Mientras tanto podés cargar productos; los vecinos lo van a ver cuando lo publiquemos.
         </p>
       ) : null}
+      {!numeroWhatsapp(comercio.whatsapp) ? (
+        <p role="alert" className="rounded-2xl border border-naranja bg-naranja/10 p-4 text-sm">
+          <span className="font-semibold">Falta tu WhatsApp.</span> Sin él, los vecinos no pueden consultarte antes de reservar.{" "}
+          <Link href="/comerciante?seccion=configuracion#datos" className="underline">
+            Cargalo en la configuración del comercio
+          </Link>
+          .
+        </p>
+      ) : null}
 
       <div className="tarjeta rounded-3xl p-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-bold">Panel de {comercio.nombre}</h1>
+          <div className="flex min-w-0 items-center gap-3">
+            <LogoComercio url={comercio.logo_url} nombre={comercio.nombre} className="h-14 w-14 text-base" />
+            <div className="min-w-0">
+            <h1 className="text-2xl font-bold break-words">Panel de {comercio.nombre}</h1>
             <p className="text-sm text-white/80">
               {productos?.length ?? 0} productos · {comercio.direccion}
             </p>
+            </div>
           </div>
           {comercio.aprobado ? (
             <Link href={`/comercio/${comercio.id}`} className="rounded-xl border border-white/40 px-4 py-2 text-sm hover:bg-white/10">
@@ -164,8 +186,39 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
             </div>
           ))}
         </div>
+        <nav className="mt-6 grid grid-cols-3 gap-1 rounded-2xl border border-white/20 p-1" aria-label="Secciones del panel">
+          {(Object.keys(SECCIONES) as Seccion[]).map((k) => {
+            const pendientes = k === "reservas" ? abiertas.filter((r) => r.estado === "pendiente").length : 0;
+            return (
+              <Link
+                key={k}
+                href={`/comerciante?seccion=${k}`}
+                scroll={false}
+                aria-current={k === seccion ? "page" : undefined}
+                className={`flex items-center justify-center gap-2 rounded-xl px-2 py-2.5 text-center text-sm font-medium leading-tight transition ${k === seccion ? "bg-white text-marino" : "hover:bg-white/10"}`}
+              >
+                {k === "configuracion" ? (
+                  <>
+                    <span className="sm:hidden">Configuración</span>
+                    <span className="hidden sm:inline">{SECCIONES[k]}</span>
+                  </>
+                ) : (
+                  SECCIONES[k]
+                )}
+                {pendientes ? (
+                  <span className="grid h-5 min-w-5 place-items-center rounded-full bg-naranja px-1.5 text-[11px] font-bold text-white" aria-label={`${pendientes} para responder`}>
+                    {pendientes}
+                  </span>
+                ) : k === "productos" ? (
+                  <span className="text-xs opacity-70">({productos?.length ?? 0})</span>
+                ) : null}
+              </Link>
+            );
+          })}
+        </nav>
       </div>
 
+      {seccion === "reservas" ? (
       <section id="reservas" className="tarjeta rounded-3xl p-6">
         <h2 className="text-lg font-semibold">Reservas</h2>
         <p className="mt-1 text-sm text-white/80">Respondé cada reserva dentro de las 2 horas de tu horario de atención: si no, vence sola. Las que llegan con el local cerrado empiezan a contar cuando abrís. Las aceptadas que nadie retira vencen solas un día de atención después del último horario de retiro, y el producto vuelve a tu stock.</p>
@@ -256,7 +309,9 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
           </details>
         ) : null}
       </section>
+      ) : null}
 
+      {seccion === "productos" ? (
       <section id="productos" className="tarjeta rounded-3xl p-6">
         <h2 className="text-lg font-semibold">Productos</h2>
         <p className="mt-1 text-sm text-white/80">
@@ -287,10 +342,21 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
         ) : null}
         <div className="mt-4 space-y-3">
           <ProductoFila comercioId={comercio.id} ahora={ahora} />
-          {(productos ?? []).map((p) => (
-            <ProductoFila key={p.id} p={p} comercioId={comercio.id} ahora={ahora} />
-          ))}
+          <ListaConMas deA={15} que="productos" className="space-y-3">
+            {(productos ?? []).map((p) => (
+              <ProductoFila key={p.id} p={p} comercioId={comercio.id} ahora={ahora} />
+            ))}
+          </ListaConMas>
         </div>
+      </section>
+      ) : null}
+
+      {seccion === "configuracion" ? (
+      <>
+      <section id="datos" className="tarjeta rounded-3xl p-6">
+        <h2 className="mb-1 text-lg font-semibold">Datos del comercio</h2>
+        <p className="mb-4 text-sm text-white/80">Nombre, dirección, WhatsApp, logo, verificación, horario de atención y ubicación en el mapa.</p>
+        <FormComercio comercio={comercio} zonas={zonas ?? []} franjas={franjas ?? []} verificacion={verificacion} />
       </section>
 
       <section id="cierres" className="tarjeta rounded-3xl p-6">
@@ -336,11 +402,8 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
           {(feriados ?? []).map((f) => `${fechaCorta(f.fecha)} ${f.nombre}`).join(" · ") || "no hay en los próximos 3 meses"}.
         </p>
       </section>
-
-      <section id="datos" className="tarjeta rounded-3xl p-6">
-        <h2 className="mb-4 text-lg font-semibold">Datos del comercio</h2>
-        <FormComercio comercio={comercio} zonas={zonas ?? []} franjas={franjas ?? []} />
-      </section>
+      </>
+      ) : null}
     </div>
   );
 }

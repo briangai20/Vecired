@@ -42,7 +42,8 @@ export default function PaginaReservas({ searchParams }: PageProps<"/reservas">)
 async function Reservas({ searchParams }: Pick<PageProps<"/reservas">, "searchParams">) {
   const usuario = await usuarioActual();
   if (!usuario) redirect("/ingresar?siguiente=/reservas");
-  const { nueva, error } = await searchParams;
+  const { nueva: nuevaParam, error } = await searchParams;
+  const nueva = typeof nuevaParam === "string" ? nuevaParam : undefined;
 
   const supabase = await supabaseServidor();
   const { data: reservas } = await supabase
@@ -64,11 +65,7 @@ async function Reservas({ searchParams }: Pick<PageProps<"/reservas">, "searchPa
           {error}
         </p>
       ) : null}
-      {nueva ? (
-        <p className="mb-4 rounded-2xl border border-naranja bg-naranja/10 p-4 text-sm">
-          <span className="font-semibold">¡Listo, reservaste!</span> El comercio la tiene que confirmar; vas a ver el estado acá.
-        </p>
-      ) : null}
+      {nueva ? <ReservaNueva reserva={lista.find((r) => String(r.id) === nueva)} /> : null}
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold">Mis reservas</h1>
@@ -183,5 +180,34 @@ async function Reservas({ searchParams }: Pick<PageProps<"/reservas">, "searchPa
         </div>
       )}
     </>
+  );
+}
+
+// Cartel que se ve apenas se hace una reserva, con el camino para seguir
+// comprando en el mismo comercio o volver al inicio.
+function ReservaNueva({ reserva }: { reserva?: { producto_nombre: string; cantidad: number; retiro: string; comercio: { id: number; nombre: string } | null } }) {
+  return (
+    <div role="status" className="mb-6 rounded-3xl border-2 border-[#8ce99a] bg-white p-5 text-marino shadow-lg">
+      <p className="text-lg font-bold">✔ ¡Listo, reservaste!</p>
+      {reserva ? (
+        <p className="mt-1 text-sm">
+          {reserva.producto_nombre} × {reserva.cantidad} en <span className="font-semibold">{reserva.comercio?.nombre ?? "el comercio"}</span> · Retiro:{" "}
+          {reserva.retiro}
+        </p>
+      ) : null}
+      <p className="mt-2 text-sm text-marino/80">
+        Ahora el comercio tiene que confirmar que lo tiene. Te avisamos por mail y vas a ver el estado acá abajo. Pagás en el local al retirar.
+      </p>
+      <div className="mt-4 flex flex-wrap gap-2">
+        {reserva?.comercio ? (
+          <Link href={`/comercio/${reserva.comercio.id}`} className="boton rounded-xl px-4 py-2.5 text-sm font-semibold">
+            ‹ Volver a {reserva.comercio.nombre}
+          </Link>
+        ) : null}
+        <Link href="/" className="rounded-xl border border-marino/30 px-4 py-2.5 text-sm font-semibold hover:bg-marino/5">
+          Ir al inicio
+        </Link>
+      </div>
+    </div>
   );
 }

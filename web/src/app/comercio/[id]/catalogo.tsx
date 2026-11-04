@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import { ListaConMas } from "@/components/lista-con-mas";
 
 export type ItemCatalogo = { clave: string; texto: string; tarjeta: ReactNode };
 
@@ -53,13 +54,14 @@ export function Catalogo({ comercio, items, inicial }: { comercio: string; items
           {palabras.length ? `No encontramos "${q.trim()}" en este local. Probá con otra palabra.` : "Este comercio todavía no cargó productos."}
         </div>
       ) : (
-        <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        // Al cambiar la búsqueda vuelve a mostrar solo los primeros.
+        <ListaConMas key={palabras.join(" ")} deA={12} que="productos" className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {visibles.map((i) => (
             <div key={i.clave} className="contents">
               {i.tarjeta}
             </div>
           ))}
-        </div>
+        </ListaConMas>
       )}
     </>
   );

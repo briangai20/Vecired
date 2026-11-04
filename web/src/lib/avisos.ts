@@ -1,6 +1,5 @@
 import "server-only";
-import { createClient } from "@supabase/supabase-js";
-import type { Database } from "./supabase/tipos";
+import { supabaseAdmin } from "./supabase/admin";
 import { plata } from "./formato";
 
 // Avisos por mail con Resend. Necesitan dos variables SOLO de servidor
@@ -32,14 +31,7 @@ const esc = (v: string) => v.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&
 // Los errores de la conexión pueden traer la clave adentro: nunca llega a los registros.
 const sinClaves = (texto: string) => texto.replace(/(sb_secret_|re_)[^"']*/g, "[clave oculta]");
 
-function admin() {
-  // Al pegarla puede colarse un salto de línea, que la vuelve inválida.
-  const clave = process.env.SUPABASE_SECRET_KEY?.replace(/\s/g, "");
-  if (!clave) return null;
-  return createClient<Database>(process.env.NEXT_PUBLIC_SUPABASE_URL!, clave, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-}
+const admin = supabaseAdmin;
 
 async function enviar(para: string, asunto: string, html: string) {
   const clave = process.env.RESEND_API_KEY;

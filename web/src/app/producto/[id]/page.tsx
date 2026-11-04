@@ -9,6 +9,7 @@ import { abiertoAhora, fechaAR, disponibilidad, franjasRetiro, horario, nota, pl
 import { usuarioActual } from "@/lib/sesion";
 import { FormReserva } from "./form-reserva";
 import { supabasePublico } from "@/lib/supabase/publico";
+import { enlaceWhatsapp } from "@/lib/whatsapp";
 
 type Props = PageProps<"/producto/[id]">;
 
@@ -53,7 +54,9 @@ async function Producto({ params }: Pick<Props, "params">) {
   const d = disponibilidad(p, ahora);
   const prom = promedio((resenas ?? []).map((r) => r.estrellas));
   const masProductos = (otros ?? []).filter((o) => !hermanos?.some((h) => h.id === o.id)).slice(0, 4);
-  const textoBoton = !d.sePuede ? d.texto : d.requiereConfirmacion ? "Pedir reserva (requiere confirmación)" : "Reservar (Click & Collect)";
+  // El botón dice lo mismo en todos los comercios; si hace falta que el comercio confirme, lo aclara el aviso de arriba.
+  const textoBoton = d.sePuede ? "Reservar" : d.texto;
+  const whatsapp = enlaceWhatsapp(c.whatsapp, `Hola, vi en VeciRed "${p.nombre}". ¿Lo tienen disponible?`);
   const fila = (k: string, v: string) => (
     <div className="flex justify-between gap-4 border-b border-white/10 py-2.5 text-sm">
       <dt className="text-white/70">{k}</dt>
@@ -90,7 +93,11 @@ async function Producto({ params }: Pick<Props, "params">) {
             <Abierto abierto={abiertoAhora(franjas ?? [], ahora, cerrados)} />
           </div>
           {d.requiereConfirmacion ? (
-            <p className="mt-2 text-xs text-white/85">Este producto necesita confirmación del comercio antes de tu retiro.</p>
+            <p className="mt-2 text-xs text-white/85">
+              {d.texto === "Sin verificar"
+                ? "El comercio no actualizó el stock en los últimos días: al reservar, te confirma si lo tiene antes de que vayas."
+                : "El comercio te confirma la reserva antes de que vayas a retirar."}
+            </p>
           ) : null}
           <p className="mt-4 text-3xl font-black">{plata(p.precio)}</p>
 
@@ -109,16 +116,20 @@ async function Producto({ params }: Pick<Props, "params">) {
               {textoBoton}
             </button>
           )}
-          {c.whatsapp ? (
+          {whatsapp ? (
             <a
-              href={`https://wa.me/${c.whatsapp.replace(/\D/g, "")}?text=${encodeURIComponent(`Hola, vi en VeciRed "${p.nombre}". ¿Lo tienen disponible?`)}`}
+              href={whatsapp}
               target="_blank"
               rel="noopener noreferrer"
               className="mt-3 block w-full rounded-xl border border-white/30 px-4 py-3 text-center text-sm transition hover:bg-white/10"
             >
               Consultar por WhatsApp
             </a>
-          ) : null}
+          ) : (
+            <p className="mt-3 rounded-xl border border-dashed border-white/30 px-4 py-3 text-center text-xs text-white/75">
+              Este comercio todavía no cargó su WhatsApp para consultas.
+            </p>
+          )}
 
           <div className="mt-6 rounded-2xl border border-white/20 p-4">
             <p className="text-sm font-semibold">Retirás en el local</p>

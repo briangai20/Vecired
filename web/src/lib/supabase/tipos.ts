@@ -31,6 +31,8 @@ export type Database = {
           id: number
           lat: number | null
           lng: number | null
+          logo_url: string | null
+          controles: string[] | null
           motivo_rechazo: string | null
           nombre: string
           revisado_en: string | null
@@ -47,6 +49,8 @@ export type Database = {
           id?: never
           lat?: number | null
           lng?: number | null
+          logo_url?: string | null
+          controles?: string[] | null
           motivo_rechazo?: string | null
           nombre: string
           revisado_en?: string | null
@@ -63,6 +67,8 @@ export type Database = {
           id?: never
           lat?: number | null
           lng?: number | null
+          logo_url?: string | null
+          controles?: string[] | null
           motivo_rechazo?: string | null
           nombre?: string
           revisado_en?: string | null
@@ -131,6 +137,7 @@ export type Database = {
       perfiles: {
         Row: {
           creado_en: string
+          foto_url: string | null
           id: string
           nombre: string
           rol: Database["public"]["Enums"]["rol_usuario"]
@@ -138,6 +145,7 @@ export type Database = {
         }
         Insert: {
           creado_en?: string
+          foto_url?: string | null
           id: string
           nombre?: string
           rol?: Database["public"]["Enums"]["rol_usuario"]
@@ -145,6 +153,7 @@ export type Database = {
         }
         Update: {
           creado_en?: string
+          foto_url?: string | null
           id?: string
           nombre?: string
           rol?: Database["public"]["Enums"]["rol_usuario"]
@@ -213,6 +222,7 @@ export type Database = {
       }
       resenas: {
         Row: {
+          autor_foto_url: string | null
           autor_id: string
           autor_nombre: string
           comercio_id: number
@@ -223,6 +233,7 @@ export type Database = {
           texto: string | null
         }
         Insert: {
+          autor_foto_url?: string | null
           autor_id?: string
           autor_nombre: string
           comercio_id: number
@@ -233,6 +244,7 @@ export type Database = {
           texto?: string | null
         }
         Update: {
+          autor_foto_url?: string | null
           autor_id?: string
           autor_nombre?: string
           comercio_id?: number
@@ -373,6 +385,20 @@ export type Database = {
           },
         ]
       }
+      verificaciones_comercio: {
+        Row: { actualizado_en: string; comercio_id: number; cuit: string | null; foto_local_url: string | null; redes: string | null }
+        Insert: { actualizado_en?: string; comercio_id: number; cuit?: string | null; foto_local_url?: string | null; redes?: string | null }
+        Update: { actualizado_en?: string; comercio_id?: number; cuit?: string | null; foto_local_url?: string | null; redes?: string | null }
+        Relationships: [
+          {
+            foreignKeyName: "verificaciones_comercio_comercio_id_fkey"
+            columns: ["comercio_id"]
+            isOneToOne: true
+            referencedRelation: "comercios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vistas: {
         Row: {
           comercio_id: number
@@ -452,6 +478,7 @@ export type Database = {
           id: number
           lat: number
           lng: number
+          logo_url: string | null
           nombre: string
           rubro: string
           whatsapp: string
@@ -478,6 +505,12 @@ export type Database = {
           rubro: string
           whatsapp: string | null
           zona: string
+          logo_url: string | null
+          cuit: string | null
+          redes: string | null
+          foto_local_url: string | null
+          controles: string[] | null
+          mail_confirmado: boolean
         }[]
       }
       descontar_stock: {
@@ -495,7 +528,7 @@ export type Database = {
       es_admin: { Args: never; Returns: boolean }
       es_cliente_mio: { Args: { p_perfil: string }; Returns: boolean }
       revisar_comercio: {
-        Args: { p_aprobar: boolean; p_comercio: number; p_motivo?: string }
+        Args: { p_aprobar: boolean; p_comercio: number; p_motivo?: string; p_controles?: string[] }
         Returns: undefined
       }
       es_comerciante: { Args: never; Returns: boolean }

@@ -2,6 +2,8 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { Filtros, type ValoresFiltro } from "@/components/filtros";
 import { Abierto, Estrellas } from "@/components/insignias";
+import { ListaConMas } from "@/components/lista-con-mas";
+import { LogoComercio } from "@/components/logo-comercio";
 import { MapaComercios } from "@/components/mapa-comercios";
 import { abiertoAhora, fechaAR, horario, km, nota, promedio, viaje } from "@/lib/formato";
 import { supabasePublico } from "@/lib/supabase/publico";
@@ -115,7 +117,7 @@ async function Resultados({ searchParams }: { searchParams: Params }) {
           radioKm={f.radio}
           seleccionado={elegido?.id}
           elegirEnLista
-          comercios={lista.map((c) => ({ id: c.id, nombre: c.nombre, rubro: c.rubro, direccion: c.direccion, lat: c.lat, lng: c.lng }))}
+          comercios={lista.map((c) => ({ id: c.id, nombre: c.nombre, rubro: c.rubro, direccion: c.direccion, lat: c.lat, lng: c.lng, logo_url: c.logo_url }))}
         />
       </div>
 
@@ -160,7 +162,9 @@ async function Resultados({ searchParams }: { searchParams: Params }) {
             : `Todavía no hay comercios cargados dentro de ${f.radio} km. Estamos sumando locales de a uno.`}
         </Vacio>
       ) : (
-        <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{lista.map(tarjeta)}</div>
+        <ListaConMas deA={9} que="comercios" className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {lista.map(tarjeta)}
+        </ListaConMas>
       )}
     </>
   );
@@ -174,9 +178,10 @@ async function Resultados({ searchParams }: { searchParams: Params }) {
         href={`/comercio/${c.id}`}
         className="block rounded-2xl border border-white/20 p-4 transition hover:-translate-y-0.5 hover:border-white/60"
       >
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <p className="truncate font-semibold">{c.nombre}</p>
+        <div className="flex items-start gap-3">
+          <LogoComercio url={c.logo_url} nombre={c.nombre} />
+          <div className="min-w-0 flex-1">
+            <p className="font-semibold leading-snug break-words">{c.nombre}</p>
             <p className="text-xs text-white/80">{c.rubro}</p>
           </div>
           <Abierto abierto={abiertoAhora(franjasDe(c.id), ahora, cerradosHoy.has(c.id) ? [fechaAR(ahora)] : [])} />
@@ -191,7 +196,7 @@ async function Resultados({ searchParams }: { searchParams: Params }) {
             A pie {t.aPie} min · En auto {t.enAuto} min
           </span>
         </div>
-        <p className="mt-2 truncate text-xs text-white/70">{c.direccion}</p>
+        <p className="mt-2 text-xs break-words text-white/70">{c.direccion}</p>
         <p className="mt-1 text-xs text-white/70">Horario {horario(franjasDe(c.id))}</p>
       </Link>
     );

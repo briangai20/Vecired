@@ -1,13 +1,16 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
+import { FotoPerfil } from "@/components/foto-perfil";
 import { FotoProducto } from "@/components/foto-producto";
+import { LogoComercio } from "@/components/logo-comercio";
 import { Abierto, Estrellas, Stock } from "@/components/insignias";
 import { MapaComercios } from "@/components/mapa-comercios";
 import { RegistrarVista } from "@/components/registrar-vista";
 import { AvisoCierres } from "@/components/aviso-cierres";
 import { abiertoAhora, fechaAR, disponibilidad, horario, nota, plata, promedio } from "@/lib/formato";
 import { supabasePublico } from "@/lib/supabase/publico";
+import { enlaceWhatsapp } from "@/lib/whatsapp";
 import type { Tabla } from "@/lib/supabase/tipos";
 import { Catalogo, type ItemCatalogo } from "./catalogo";
 
@@ -36,7 +39,7 @@ async function Comercio({ params, searchParams }: Pick<Props, "params" | "search
   const [{ data: c }, { data: productos }, { data: resenas }, { data: franjas }] = await Promise.all([
     db.from("comercios").select("*").eq("id", comercioId).eq("aprobado", true).maybeSingle(),
     db.from("productos").select("*").eq("comercio_id", comercioId).eq("activo", true).order("nombre"),
-    db.from("resenas").select("estrellas, texto, autor_nombre, creada_en").eq("comercio_id", comercioId).order("creada_en", { ascending: false }),
+    db.from("resenas").select("estrellas, texto, autor_nombre, autor_foto_url, creada_en").eq("comercio_id", comercioId).order("creada_en", { ascending: false }),
     db.from("horarios").select("*").eq("comercio_id", comercioId),
   ]);
   if (!c) notFound();
@@ -64,9 +67,12 @@ async function Comercio({ params, searchParams }: Pick<Props, "params" | "search
       <Link href="/" className="text-sm text-white/80 transition hover:text-white">
         ‹ Volver a la búsqueda
       </Link>
-      <div className="mt-3 flex flex-wrap items-center gap-2">
-        <h1 className="text-xl font-bold">{c.nombre}</h1>
-        <Abierto abierto={abiertoAhora(franjas ?? [], ahora, cerrados)} />
+      <div className="mt-3 flex items-center gap-3">
+        <LogoComercio url={c.logo_url} nombre={c.nombre} className="h-16 w-16 text-lg" />
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <h1 className="text-xl font-bold break-words">{c.nombre}</h1>
+          <Abierto abierto={abiertoAhora(franjas ?? [], ahora, cerrados)} />
+        </div>
       </div>
       <p className="mt-1 text-sm text-white/80">
         {c.rubro} · {c.direccion} · Horario {horario(franjas ?? [])}
@@ -83,7 +89,7 @@ async function Comercio({ params, searchParams }: Pick<Props, "params" | "search
           <MapaComercios
             centro={{ lat: c.lat, lng: c.lng }}
             seleccionado={c.id}
-            comercios={[{ id: c.id, nombre: c.nombre, rubro: c.rubro, direccion: c.direccion, lat: c.lat, lng: c.lng }]}
+            comercios={[{ id: c.id, nombre: c.nombre, rubro: c.rubro, direccion: c.direccion, lat: c.lat, lng: c.lng, logo_url: c.logo_url }]}
             className="h-56"
           />
           <a
@@ -94,6 +100,16 @@ async function Comercio({ params, searchParams }: Pick<Props, "params" | "search
           >
             Cómo llegar
           </a>
+          {enlaceWhatsapp(c.whatsapp) ? (
+            <a
+              href={enlaceWhatsapp(c.whatsapp, `Hola, los encontré en VeciRed. Quería hacerles una consulta.`)!}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-2 ml-4 inline-block text-sm text-white/85 underline hover:text-white"
+            >
+              Consultar por WhatsApp
+            </a>
+          ) : null}
         </div>
       ) : null}
 
@@ -105,12 +121,17 @@ async function Comercio({ params, searchParams }: Pick<Props, "params" | "search
           <div className="mt-3 grid gap-3 md:grid-cols-2">
             {resenas.slice(0, 6).map((r, i) => (
               <article key={i} className="rounded-2xl border border-white/20 p-4">
-                <div className="flex items-center justify-between gap-2">
-                  <Estrellas valor={r.estrellas} />
-                  <span className="text-xs text-white/70">{new Date(r.creada_en).toLocaleDateString("es-AR")}</span>
+                <div className="flex items-center gap-3">
+                  <FotoPerfil url={r.autor_foto_url} nombre={r.autor_nombre} />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold">{r.autor_nombre}</p>
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <Estrellas valor={r.estrellas} />
+                      <span className="text-xs text-white/70">{new Date(r.creada_en).toLocaleDateString("es-AR")}</span>
+                    </div>
+                  </div>
                 </div>
-                {r.texto ? <p className="mt-2 text-sm">{r.texto}</p> : null}
-                <p className="mt-2 text-xs text-white/70">{r.autor_nombre}</p>
+                {r.texto ? <p className="mt-3 text-sm">{r.texto}</p> : null}
               </article>
             ))}
           </div>
@@ -136,7 +157,7 @@ function TarjetaProducto({ p, ahora }: { p: Tabla<"productos">; ahora: Date }) {
         <p className="mt-1 line-clamp-2 min-h-10 text-xs text-white/75">{p.descripcion}</p>
         <p className="mt-3 text-xl font-black">{plata(p.precio)}</p>
         <span className="boton mt-4 block w-full rounded-xl px-4 py-2.5 text-center text-sm font-semibold">
-          {!d.sePuede ? d.texto : d.requiereConfirmacion ? "Pedir reserva" : "Ver y reservar"}
+          {d.sePuede ? "Ver y reservar" : d.texto}
         </span>
       </div>
     </Link>

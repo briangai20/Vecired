@@ -7,9 +7,35 @@ import { avisarParaRevisar, avisarReserva, type Evento } from "@/lib/avisos";
 import { usuarioActual } from "@/lib/sesion";
 import { supabaseServidor } from "@/lib/supabase/servidor";
 import { emparejar, MAX_FILAS, type FilaProducto } from "@/lib/importar";
+import { cuitValido, soloDigitos } from "@/lib/cuit";
+import { errorWhatsapp, numeroWhatsapp } from "@/lib/whatsapp";
 import type { Enum, TablesInsert, TablesUpdate } from "@/lib/supabase/tipos";
 
-export type Estado = { error?: string; ok?: string };
+// "campos": qué campo está mal y por qué (el formulario los marca en rojo).
+export type Estado = { error?: string; ok?: string; campos?: Record<string, string> };
+
+// Traduce lo que responde la base a algo que el comerciante entienda.
+function explicarError(error: { message: string; code?: string }, que: string) {
+  const m = error.message.toLowerCase();
+  console.error(`[guardar ${que}]`, error.code, error.message);
+  if (error.code === "P0001") return error.message;
+  // Columna o tabla que todavía no existe (falta aplicar supabase/13_logo_y_verificacion.sql).
+  if (["42703", "PGRST204", "42P01", "PGRST205"].includes(error.code ?? "") || m.includes("logo_url") || m.includes("verificaciones_comercio")) {
+    return `No pudimos guardar ${que}: la carga del logo y de los datos de verificación todavía no está activada en VeciRed. Ya estamos trabajando en eso; mientras tanto, quitá el logo y la foto, y dejá vacíos el CUIT y las redes para guardar el resto.`;
+  }
+  if (error.code === "42501" || m.includes("permission") || m.includes("row-level security")) {
+    return `No pudimos guardar ${que} porque tu sesión no tiene permiso sobre este comercio. Salí y volvé a ingresar con la cuenta del dueño.`;
+  }
+  if (error.code === "23514") {
+    if (m.includes("cuit")) return "El CUIT tiene que tener exactamente 11 números.";
+    if (m.includes("nombre")) return "El nombre del comercio no puede quedar vacío.";
+    return `Algún dato de ${que} no tiene el formato correcto. Revisalo y probá de nuevo.`;
+  }
+  if (m.includes("fetch failed") || m.includes("network") || m.includes("timeout")) {
+    return `No pudimos guardar ${que} porque se cortó la conexión. Revisá tu internet y apretá Guardar de nuevo.`;
+  }
+  return `No pudimos guardar ${que}. Probá de nuevo en un rato; si sigue pasando, escribinos y contanos este detalle: "${error.message}".`;
+}
 
 const texto = (d: FormData, k: string) => String(d.get(k) ?? "").trim();
 const opcional = (d: FormData, k: string) => texto(d, k) || null;
@@ -46,7 +72,7 @@ function leerHorario(d: FormData): { franjas: { dia: number; abre: string; cierr
       franjas.push({ dia, abre: a2, cierra: c2 });
     }
   }
-  if (!franjas.length) return { error: "Marcá al menos un día en que abre tu comercio." };
+  if (!franjas.length) return { error: "Marcá al menos un día en que abre tu comercio (tildá el casillero del día y poné el horario)." };
   return { franjas };
 }
 
@@ -64,12 +90,40 @@ export async function guardarComercio(_: Estado, d: FormData): Promise<Estado> {
     abre_feriados: d.get("abre_feriados") === "on",
     lat,
     lng,
+    // El logo se sube cuando el comercio ya existe (va en su carpeta). Solo se
+    // manda si cambió, así un problema con el logo no frena el resto.
+    ...(d.has("logo_url") && texto(d, "logo_url") !== texto(d, "logo_url_antes") ? { logo_url: opcional(d, "logo_url") } : {}),
   };
-  if (!datos.nombre || !datos.rubro || !datos.direccion || !datos.zona_id) return { error: "Completá nombre, rubro, dirección y zona." };
-  if (lat == null || lng == null || Number.isNaN(lat) || Number.isNaN(lng)) return { error: "Marcá en el mapa dónde está tu local." };
-  if (datos.whatsapp && datos.whatsapp.replace(/\D/g, "").length < 10) return { error: "Revisá el WhatsApp: poné el número con código de área, por ejemplo 11 2345 6789." };
+  const verificacion = {
+    cuit: soloDigitos(texto(d, "cuit")) || null,
+    redes: opcional(d, "redes")?.slice(0, 200) ?? null,
+    ...(d.has("foto_local_url") ? { foto_local_url: opcional(d, "foto_local_url") } : {}),
+  };
+  // Se revisa todo de una vez, para marcar juntos todos los campos que están mal.
+  const campos: Record<string, string> = {};
+  if (!datos.nombre) campos.nombre = "Escribí el nombre del comercio, tal como figura en el cartel.";
+  if (!datos.rubro) campos.rubro = "Escribí qué vendés, por ejemplo Ferretería o Kiosco.";
+  if (!datos.direccion) campos.direccion = "Escribí la calle y el número del local, por ejemplo San Martín 780.";
+  else if (!/\d/.test(datos.direccion)) campos.direccion = "Falta el número de la calle, por ejemplo San Martín 780.";
+  if (!datos.zona_id) campos.zona_id = "Elegí la zona donde está el local.";
+  if (!numeroWhatsapp(datos.whatsapp)) campos.whatsapp = errorWhatsapp(datos.whatsapp ?? "");
+  const cuit = verificacion.cuit ?? "";
+  if (cuit && cuit.length !== 11) {
+    campos.cuit = `El CUIT tiene que tener 11 números y escribiste ${cuit.length}. Copialo de tu constancia de ARCA (ex AFIP), por ejemplo 20-12345678-9.`;
+  } else if (cuit && !cuitValido(cuit)) {
+    campos.cuit = "Ese CUIT no existe: el último número (el dígito verificador) no coincide con los anteriores. Revisá que no falte ni sobre ningún número.";
+  }
+  if (lat == null || lng == null || Number.isNaN(lat) || Number.isNaN(lng)) campos.ubicacion = "Tocá el mapa en la puerta de tu local para marcar dónde está.";
   const horario = leerHorario(d);
-  if ("error" in horario) return { error: horario.error };
+  if ("error" in horario) campos.horario = horario.error;
+  const cuantos = Object.keys(campos).length;
+  if (cuantos) {
+    return {
+      campos,
+      error: cuantos === 1 ? Object.values(campos)[0] : `Hay ${cuantos} datos para corregir. Los marcamos en rojo: cada uno dice qué falta.`,
+    };
+  }
+  if ("error" in horario) return { error: horario.error }; // (para TypeScript: ya se revisó arriba)
 
   let comercioId = id;
   // Un comercio nuevo, o uno rechazado que se corrige, queda para revisar: se avisa a los administradores.
@@ -77,23 +131,40 @@ export async function guardarComercio(_: Estado, d: FormData): Promise<Estado> {
   if (id) {
     const { data: antes } = await supabase.from("comercios").select("motivo_rechazo").eq("id", id).maybeSingle();
     const { error } = await supabase.from("comercios").update(datos).eq("id", id);
-    if (error) return { error: "No pudimos guardar los datos. Probá de nuevo." };
+    if (error) {
+      const delLogo = "logo_url" in datos && error.message.includes("logo_url");
+      return { error: explicarError(error, delLogo ? "el logo" : "los datos del comercio"), campos: delLogo ? { logo: "El logo no se guardó." } : undefined };
+    }
     if (antes?.motivo_rechazo) paraRevisar = "corregido";
   } else {
     const { data, error } = await supabase.from("comercios").insert(datos).select("id").single();
-    if (error) return { error: "No pudimos guardar los datos. Probá de nuevo." };
+    if (error) return { error: explicarError(error, "tu comercio") };
     comercioId = data.id;
     paraRevisar = "nuevo";
   }
   if (paraRevisar) after(() => avisarParaRevisar(comercioId!, paraRevisar === "corregido"));
+
+  // CUIT, redes y foto del frente: solo los ven el dueño y los administradores.
+  // Si no cargó ninguno (ni antes ni ahora), no hay nada que guardar.
+  const hayVerificacion = !!(verificacion.cuit || verificacion.redes || verificacion.foto_local_url || d.get("hay_verificacion"));
+  const { error: errorVerificacion } = hayVerificacion
+    ? await supabase.from("verificaciones_comercio").upsert({ comercio_id: comercioId!, ...verificacion, actualizado_en: new Date().toISOString() })
+    : { error: null };
 
   // El horario se reemplaza entero.
   const { error: errorBorrar } = await supabase.from("horarios").delete().eq("comercio_id", comercioId!);
   const { error: errorHorario } = errorBorrar
     ? { error: errorBorrar }
     : await supabase.from("horarios").insert(horario.franjas.map((f) => ({ ...f, comercio_id: comercioId! })));
-  if (errorHorario) return { error: "Guardamos los datos, pero no el horario. Probá guardar de nuevo." };
+  if (errorHorario) return { error: `Guardamos los datos, pero no el horario. ${explicarError(errorHorario, "el horario")}`, campos: { horario: "Este horario no se guardó." } };
   refresh();
+  // El comercio ya quedó guardado; si falló solo la verificación, se avisa cuál.
+  if (errorVerificacion) {
+    return {
+      error: `Guardamos los datos del comercio, pero no el CUIT, las redes ni la foto del frente. ${explicarError(errorVerificacion, "esos datos")}`,
+      campos: { verificacion: "Estos datos no se guardaron." },
+    };
+  }
   return { ok: id ? "Datos guardados." : "¡Listo! Ya podés cargar tus productos. Publicamos tu comercio cuando lo revisemos." };
 }
 
@@ -182,19 +253,19 @@ export async function agregarCierre(d: FormData) {
   const hasta = texto(d, "hasta") || desde;
   const fecha = /^\d{4}-\d{2}-\d{2}$/;
   if (!fecha.test(desde) || !fecha.test(hasta) || hasta < desde) {
-    redirect(`/comerciante?error=${encodeURIComponent("Revisá las fechas del cierre: la fecha final no puede ser anterior a la inicial.")}#cierres`);
+    redirect(`/comerciante?seccion=configuracion&error=${encodeURIComponent("Revisá las fechas del cierre: la fecha final no puede ser anterior a la inicial.")}#cierres`);
   }
   const { error } = await supabase
     .from("cierres")
     .insert({ comercio_id: comercio, desde, hasta, motivo: opcional(d, "motivo")?.slice(0, 80) ?? null });
-  if (error) redirect(`/comerciante?error=${encodeURIComponent("No pudimos guardar el cierre. Probá de nuevo.")}#cierres`);
-  redirect("/comerciante#cierres");
+  if (error) redirect(`/comerciante?seccion=configuracion&error=${encodeURIComponent("No pudimos guardar el cierre. Probá de nuevo.")}#cierres`);
+  redirect("/comerciante?seccion=configuracion#cierres");
 }
 
 export async function borrarCierre(d: FormData) {
   const supabase = await comerciante();
   await supabase.from("cierres").delete().eq("id", Number(texto(d, "id")));
-  redirect("/comerciante#cierres");
+  redirect("/comerciante?seccion=configuracion#cierres");
 }
 
 // Guarda la foto recién subida a Storage y borra la anterior, si era nuestra.
