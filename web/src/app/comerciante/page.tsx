@@ -19,7 +19,9 @@ import { ImportarProductos } from "./importar-productos";
 import { ProductoFila } from "./producto-fila";
 import { ListaConMas } from "@/components/lista-con-mas";
 import { LogoComercio } from "@/components/logo-comercio";
-import { numeroWhatsapp } from "@/lib/whatsapp";
+import { BotonEnviar } from "@/components/boton-enviar";
+import { FotoPerfil } from "@/components/foto-perfil";
+import { enlaceWhatsapp, numeroWhatsapp } from "@/lib/whatsapp";
 
 export const metadata: Metadata = { title: "Panel del comerciante" };
 
@@ -98,7 +100,7 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
     supabase.from("productos").select("*").eq("comercio_id", comercio.id).order("nombre"),
     supabase
       .from("reservas")
-      .select("*, comprador:perfiles!reservas_comprador_id_fkey(nombre, telefono), alternativas:reserva_alternativas(producto:productos(nombre))")
+      .select("*, comprador:perfiles!reservas_comprador_id_fkey(nombre, telefono, foto_url), alternativas:reserva_alternativas(producto:productos(nombre))")
       .eq("comercio_id", comercio.id)
       .order("creada_en", { ascending: false })
       .limit(30),
@@ -234,11 +236,12 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
                       {r.producto_nombre} × {r.cantidad}
                     </p>
                     <p className="text-xs text-white/75">
-                      {r.comprador?.nombre || "Cliente"} · Retira: {r.retiro} · {r.medio_pago === "online" ? "Pagó online" : "Paga en el local"}
+                      Retira: {r.retiro} · {r.medio_pago === "online" ? "Pagó online" : "Paga en el local"}
                     </p>
                   </div>
-                  <span className="rounded-full border border-white/40 px-2.5 py-0.5 text-[11px] font-semibold">{ESTADOS[r.estado]}</span>
+                  <span className="shrink-0 rounded-full border border-white/40 px-2.5 py-0.5 text-[11px] font-semibold">{ESTADOS[r.estado]}</span>
                 </div>
+                <Cliente comprador={r.comprador} producto={r.producto_nombre} comercio={comercio.nombre} />
                 <p className="mt-2 text-sm">Total: {plata(r.precio_unitario == null ? null : r.precio_unitario * r.cantidad)}</p>
                 {r.estado === "alternativa" ? (
                   <p className="mt-2 text-xs text-white/85">
@@ -249,21 +252,21 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
                   <input type="hidden" name="reserva" value={r.id} />
                   {r.estado === "pendiente" ? (
                     <>
-                      <button name="accion" value="aceptar" className="boton flex-1 rounded-xl py-2 text-sm font-semibold">
+                      <BotonEnviar name="accion" value="aceptar" enviando="Aceptando…" className="boton flex-1 rounded-xl py-2 text-sm font-semibold">
                         Aceptar
-                      </button>
-                      <button name="accion" value="rechazar" className="flex-1 rounded-xl border border-white/40 py-2 text-sm hover:bg-white/10">
+                      </BotonEnviar>
+                      <BotonEnviar name="accion" value="rechazar" enviando="Rechazando…" className="flex-1 rounded-xl border border-white/40 py-2 text-sm hover:bg-white/10 disabled:cursor-wait disabled:opacity-60">
                         Rechazar
-                      </button>
+                      </BotonEnviar>
                     </>
                   ) : r.estado === "alternativa" ? (
-                    <button name="accion" value="rechazar" className="flex-1 rounded-xl border border-white/40 py-2 text-sm hover:bg-white/10">
+                    <BotonEnviar name="accion" value="rechazar" enviando="Rechazando…" className="flex-1 rounded-xl border border-white/40 py-2 text-sm hover:bg-white/10 disabled:cursor-wait disabled:opacity-60">
                       Rechazar
-                    </button>
+                    </BotonEnviar>
                   ) : (
-                    <button name="accion" value="retirada" className="flex-1 rounded-xl border border-white/60 py-2 text-sm font-semibold hover:bg-white/10">
+                    <BotonEnviar name="accion" value="retirada" enviando="Guardando…" className="flex-1 rounded-xl border border-white/60 py-2 text-sm font-semibold hover:bg-white/10 disabled:cursor-wait disabled:opacity-60">
                       Ya lo retiró
-                    </button>
+                    </BotonEnviar>
                   )}
                 </form>
                 {r.estado === "pendiente" ? (
@@ -282,7 +285,9 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
                             </label>
                           ))}
                         </div>
-                        <button className="boton w-full rounded-xl py-2 text-sm font-semibold">Ofrecer al cliente</button>
+                        <BotonEnviar enviando="Enviando…" className="boton w-full rounded-xl py-2 text-sm font-semibold">
+                          Ofrecer al cliente
+                        </BotonEnviar>
                       </form>
                     ) : (
                       <p className="mt-2 text-xs text-white/75">No tenés otros productos con stock para ofrecer. Podés rechazar la reserva.</p>
@@ -375,7 +380,9 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
                 </span>
                 <form action={borrarCierre}>
                   <input type="hidden" name="id" value={ci.id} />
-                  <button className="text-xs underline">Quitar</button>
+                  <BotonEnviar enviando="Quitando…" className="text-xs underline">
+                    Quitar
+                  </BotonEnviar>
                 </form>
               </li>
             ))}
@@ -395,7 +402,9 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
             Motivo (opcional)
             <input name="motivo" maxLength={80} placeholder="Vacaciones" className="campo mt-1" />
           </label>
-          <button className="boton self-end rounded-xl px-4 py-2.5 text-sm font-semibold">Agregar cierre</button>
+          <BotonEnviar enviando="Agregando…" className="boton self-end rounded-xl px-4 py-2.5 text-sm font-semibold">
+            Agregar cierre
+          </BotonEnviar>
         </form>
         <p className="mt-4 text-xs text-white/75">
           Próximos feriados nacionales{comercio.abre_feriados ? " (marcaste que abrís los feriados)" : " (figurás cerrado; si abrís, marcalo en el horario)"}:{" "}
@@ -404,6 +413,45 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
       </section>
       </>
       ) : null}
+    </div>
+  );
+}
+
+// Quién hizo la reserva: foto, nombre y cómo contactarlo.
+function Cliente({
+  comprador,
+  producto,
+  comercio,
+}: {
+  comprador: { nombre: string; telefono: string | null; foto_url: string | null } | null;
+  producto: string;
+  comercio: string;
+}) {
+  const nombre = comprador?.nombre || "Cliente";
+  const whatsapp = enlaceWhatsapp(comprador?.telefono, `Hola ${nombre.split(" ")[0]}, te escribimos de ${comercio} por tu reserva de "${producto}" en VeciRed.`);
+  return (
+    <div className="mt-3 flex items-center gap-3 rounded-xl bg-white/5 p-3">
+      <FotoPerfil url={comprador?.foto_url} nombre={nombre} className="h-12 w-12 text-base" />
+      <div className="min-w-0 flex-1">
+        <p className="font-semibold break-words">{nombre}</p>
+        {comprador?.telefono ? (
+          <p className="text-xs text-white/80">
+            {comprador.telefono}
+            {" · "}
+            {whatsapp ? (
+              <a href={whatsapp} target="_blank" rel="noopener noreferrer" className="underline">
+                WhatsApp
+              </a>
+            ) : null}
+            {whatsapp ? " · " : null}
+            <a href={`tel:${comprador.telefono.replace(/[^\d+]/g, "")}`} className="underline">
+              Llamar
+            </a>
+          </p>
+        ) : (
+          <p className="text-xs text-white/70">No cargó teléfono</p>
+        )}
+      </div>
     </div>
   );
 }

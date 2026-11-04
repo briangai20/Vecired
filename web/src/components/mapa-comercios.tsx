@@ -48,11 +48,17 @@ function circulo(lat: number, lng: number, km: number, pasos = 64) {
 }
 
 // Pin redondo con el logo del comercio, o sus iniciales si no tiene logo.
+// El botón de afuera lo ubica MapLibre moviéndolo con "transform": no se le
+// puede poner ningún efecto que también use transform (como agrandarse con el
+// mouse), porque pisa la ubicación y el pin salta de lugar. El efecto va en el
+// círculo de adentro.
 function pin(texto: string, resaltado: boolean, logo?: string | null) {
   const el = document.createElement("button");
   el.type = "button";
-  el.className =
-    "grid h-11 w-11 cursor-pointer place-items-center overflow-hidden rounded-full border-2 border-white bg-marino text-xs font-black text-white shadow-lg transition-transform hover:scale-110" +
+  el.className = "group grid h-11 w-11 cursor-pointer place-items-center rounded-full border-0 bg-transparent p-0";
+  const circulo = document.createElement("span");
+  circulo.className =
+    "grid h-full w-full place-items-center overflow-hidden rounded-full border-2 border-white bg-marino text-xs font-black text-white shadow-lg transition-transform group-hover:scale-110" +
     (resaltado ? " ring-4 ring-naranja" : "");
   if (logo) {
     const img = document.createElement("img");
@@ -61,8 +67,9 @@ function pin(texto: string, resaltado: boolean, logo?: string | null) {
     img.className = "h-full w-full bg-white object-contain";
     // Si el logo no carga, quedan las iniciales.
     img.onerror = () => img.replaceWith(texto);
-    el.append(img);
-  } else el.textContent = texto;
+    circulo.append(img);
+  } else circulo.textContent = texto;
+  el.append(circulo);
   return el;
 }
 

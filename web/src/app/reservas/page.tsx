@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Suspense } from "react";
+import { Fragment, Suspense } from "react";
 import { Estrellas } from "@/components/insignias";
 import { plata } from "@/lib/formato";
 import { usuarioActual } from "@/lib/sesion";
@@ -161,14 +161,17 @@ async function Reservas({ searchParams }: Pick<PageProps<"/reservas">, "searchPa
                     <form action={dejarResena} className="mt-4 space-y-2 rounded-xl border border-white/25 p-3">
                       <input type="hidden" name="reserva" value={r.id} />
                       <p className="text-sm font-semibold">¿Cómo te atendieron?</p>
-                      <div className="flex gap-3 text-sm">
-                        {[1, 2, 3, 4, 5].map((n) => (
-                          <label key={n} className="flex items-center gap-1">
-                            <input type="radio" name="estrellas" value={n} required className="accent-white" />
-                            {n}★
-                          </label>
+                      <fieldset className="calificar" aria-label="Calificación de 1 a 5 estrellas">
+                        {/* Van de 5 a 1: la hoja de estilos las da vuelta y pinta la elegida y las anteriores. */}
+                        {[5, 4, 3, 2, 1].map((n) => (
+                          <Fragment key={n}>
+                            <input type="radio" id={`e${r.id}-${n}`} name="estrellas" value={n} required />
+                            <label htmlFor={`e${r.id}-${n}`} title={`${n} ${n === 1 ? "estrella" : "estrellas"}`}>
+                              ★<span className="sr-only">{n} {n === 1 ? "estrella" : "estrellas"}</span>
+                            </label>
+                          </Fragment>
                         ))}
-                      </div>
+                      </fieldset>
                       <textarea name="texto" rows={2} maxLength={1000} placeholder="Contá tu experiencia (opcional)" className="campo" />
                       <button className="boton rounded-lg px-4 py-2 text-sm font-semibold">Publicar reseña</button>
                     </form>

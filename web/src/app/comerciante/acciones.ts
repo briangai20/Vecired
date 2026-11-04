@@ -1,6 +1,7 @@
 "use server";
 
 import { refresh } from "next/cache";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
 import { avisarParaRevisar, avisarReserva, type Evento } from "@/lib/avisos";
@@ -229,7 +230,17 @@ export async function cambiarReserva(d: FormData) {
   volverConError(error);
   const evento: Evento = accion === "aceptar" ? "aceptada" : accion === "rechazar" ? "rechazada" : "retirada";
   after(() => avisarReserva(reserva, evento));
-  redirect("/comerciante#reservas"); // vuelve sin el cartel de error, si había uno
+  await listo();
+}
+
+// Después de una acción que salió bien: actualiza el panel en el lugar. Si
+// había un cartel de error en la dirección, vuelve a la pestaña sin él.
+// (Antes redirigía siempre a la misma dirección, y eso no recargaba los
+// datos hasta el clic siguiente.)
+async function listo(seccion = "reservas") {
+  const desde = (await headers()).get("referer") ?? "";
+  if (desde.includes("error=")) redirect(`/comerciante?seccion=${seccion}`);
+  refresh();
 }
 
 // "No lo tengo": le ofrece al cliente otros productos del catálogo.
@@ -242,7 +253,7 @@ export async function ofrecerAlternativas(d: FormData) {
   const { error } = await supabase.rpc("ofrecer_alternativas", { p_reserva: reserva, p_productos: productos });
   volverConError(error);
   after(() => avisarReserva(reserva, "alternativa"));
-  redirect("/comerciante#reservas"); // vuelve sin el cartel de error, si había uno
+  await listo();
 }
 
 // Días que el comercio cierra por su cuenta (vacaciones, inventario...).
@@ -259,13 +270,13 @@ export async function agregarCierre(d: FormData) {
     .from("cierres")
     .insert({ comercio_id: comercio, desde, hasta, motivo: opcional(d, "motivo")?.slice(0, 80) ?? null });
   if (error) redirect(`/comerciante?seccion=configuracion&error=${encodeURIComponent("No pudimos guardar el cierre. Probá de nuevo.")}#cierres`);
-  redirect("/comerciante?seccion=configuracion#cierres");
+  await listo("configuracion");
 }
 
 export async function borrarCierre(d: FormData) {
   const supabase = await comerciante();
   await supabase.from("cierres").delete().eq("id", Number(texto(d, "id")));
-  redirect("/comerciante?seccion=configuracion#cierres");
+  await listo("configuracion");
 }
 
 // Guarda la foto recién subida a Storage y borra la anterior, si era nuestra.

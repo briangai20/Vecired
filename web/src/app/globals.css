@@ -75,6 +75,41 @@ body {
   }
 }
 
+/* Calificar con estrellas (reseñas): se pintan de amarillo la elegida y las
+   anteriores, y al pasar el mouse. Las estrellas van de 5 a 1 en el HTML. */
+.calificar {
+  display: inline-flex;
+  flex-direction: row-reverse;
+  justify-content: flex-end;
+  gap: 0.25rem;
+}
+.calificar input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+}
+.calificar label {
+  cursor: pointer;
+  font-size: 2rem;
+  line-height: 1;
+  color: rgb(255 255 255 / 0.3);
+  transition: color 0.15s ease, transform 0.15s ease;
+}
+.calificar input:checked ~ label,
+.calificar label:hover,
+.calificar label:hover ~ label {
+  color: var(--color-estrella);
+}
+.calificar label:hover {
+  transform: scale(1.15);
+}
+.calificar input:focus-visible + label {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+  border-radius: 0.25rem;
+}
+
 input[type="range"] {
   accent-color: #fff;
 }
