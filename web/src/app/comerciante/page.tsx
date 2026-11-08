@@ -20,6 +20,7 @@ import { ProductoFila } from "./producto-fila";
 import { ListaConMas } from "@/components/lista-con-mas";
 import { LogoComercio } from "@/components/logo-comercio";
 import { BotonEnviar } from "@/components/boton-enviar";
+import { BotonesReserva, EstadoReserva, ReservaEnVivo, SiEstado } from "./reserva-en-vivo";
 import { FotoPerfil } from "@/components/foto-perfil";
 import { enlaceWhatsapp, numeroWhatsapp } from "@/lib/whatsapp";
 
@@ -229,7 +230,8 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
         ) : (
           <div className="mt-4 grid gap-3 md:grid-cols-2">
             {abiertas.map((r) => (
-              <article key={r.id} className="rounded-2xl border border-white/20 p-4">
+              <ReservaEnVivo key={r.id} reserva={r.id} estado={r.estado} etiquetas={ESTADOS} accion={cambiarReserva}>
+              <article className="rounded-2xl border border-white/20 p-4">
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     <p className="font-semibold">
@@ -239,7 +241,7 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
                       Retira: {r.retiro} · {r.medio_pago === "online" ? "Pagó online" : "Paga en el local"}
                     </p>
                   </div>
-                  <span className="shrink-0 rounded-full border border-white/40 px-2.5 py-0.5 text-[11px] font-semibold">{ESTADOS[r.estado]}</span>
+                  <EstadoReserva />
                 </div>
                 <Cliente comprador={r.comprador} producto={r.producto_nombre} comercio={comercio.nombre} />
                 <p className="mt-2 text-sm">Total: {plata(r.precio_unitario == null ? null : r.precio_unitario * r.cantidad)}</p>
@@ -248,28 +250,8 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
                     Le ofreciste: {r.alternativas.map((a) => a.producto?.nombre).filter(Boolean).join(", ")}. Si no elige, podés rechazarla.
                   </p>
                 ) : null}
-                <form action={cambiarReserva} className="mt-3 flex gap-2">
-                  <input type="hidden" name="reserva" value={r.id} />
-                  {r.estado === "pendiente" ? (
-                    <>
-                      <BotonEnviar name="accion" value="aceptar" enviando="Aceptando…" className="boton flex-1 rounded-xl py-2 text-sm font-semibold">
-                        Aceptar
-                      </BotonEnviar>
-                      <BotonEnviar name="accion" value="rechazar" enviando="Rechazando…" className="flex-1 rounded-xl border border-white/40 py-2 text-sm hover:bg-white/10 disabled:cursor-wait disabled:opacity-60">
-                        Rechazar
-                      </BotonEnviar>
-                    </>
-                  ) : r.estado === "alternativa" ? (
-                    <BotonEnviar name="accion" value="rechazar" enviando="Rechazando…" className="flex-1 rounded-xl border border-white/40 py-2 text-sm hover:bg-white/10 disabled:cursor-wait disabled:opacity-60">
-                      Rechazar
-                    </BotonEnviar>
-                  ) : (
-                    <BotonEnviar name="accion" value="retirada" enviando="Guardando…" className="flex-1 rounded-xl border border-white/60 py-2 text-sm font-semibold hover:bg-white/10 disabled:cursor-wait disabled:opacity-60">
-                      Ya lo retiró
-                    </BotonEnviar>
-                  )}
-                </form>
-                {r.estado === "pendiente" ? (
+                <BotonesReserva />
+                <SiEstado es="pendiente">
                   <details className="mt-3 text-sm">
                     <summary className="cursor-pointer text-white/85">No lo tengo: ofrecer otra cosa</summary>
                     {opciones(r.producto_id, r.cantidad).length ? (
@@ -293,8 +275,9 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
                       <p className="mt-2 text-xs text-white/75">No tenés otros productos con stock para ofrecer. Podés rechazar la reserva.</p>
                     )}
                   </details>
-                ) : null}
+                </SiEstado>
               </article>
+              </ReservaEnVivo>
             ))}
           </div>
         )}
