@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
@@ -9,9 +10,40 @@ import { abiertoAhora, fechaAR, disponibilidad, franjasRetiro, horario, nota, pl
 import { usuarioActual } from "@/lib/sesion";
 import { FormReserva } from "./form-reserva";
 import { supabasePublico } from "@/lib/supabase/publico";
+import { vistaPrevia } from "@/lib/sitio";
 import { enlaceWhatsapp } from "@/lib/whatsapp";
 
 type Props = PageProps<"/producto/[id]">;
+
+// Título, descripción y vista previa (con la foto del producto) al compartir el
+// link o al aparecer en Google.
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const productoId = Number((await params).id);
+  if (!Number.isInteger(productoId) || productoId <= 0) return {};
+  const { data: p } = await supabasePublico()
+    .from("productos")
+    .select("nombre, precio, foto_url, comercio:comercios!inner(nombre, direccion, logo_url, aprobado)")
+    .eq("id", productoId)
+    .eq("activo", true)
+    .eq("comercio.aprobado", true)
+    .maybeSingle();
+  if (!p) return { title: "Producto no encontrado" };
+  const c = p.comercio;
+  const precio = p.precio == null ? "" : ` a ${plata(p.precio)}`;
+  const descripcion = `${p.nombre}${precio} en ${c.nombre}, ${c.direccion}. Reservalo en VeciRed y retiralo en el local.`;
+  return {
+    title: `${p.nombre} en ${c.nombre}`,
+    description: descripcion,
+    alternates: { canonical: `/producto/${productoId}` },
+    openGraph: vistaPrevia({
+      titulo: `${p.nombre}${precio}`,
+      descripcion,
+      ruta: `/producto/${productoId}`,
+      foto: p.foto_url ?? c.logo_url,
+      alt: p.nombre,
+    }),
+  };
+}
 
 export default function PaginaProducto({ params }: Props) {
   return (

@@ -5,6 +5,7 @@ import { Suspense } from "react";
 import { LogoVeciRed } from "@/components/logo";
 import { MenuCuenta } from "@/components/menu-cuenta";
 import { MenuMovil } from "@/components/menu-movil";
+import { DESCRIPCION_SITIO, SITIO } from "@/lib/sitio";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -13,12 +14,20 @@ const geistSans = Geist({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(SITIO),
   title: {
     default: "VeciRed | Conectá con el comercio de tu barrio",
     template: "%s | VeciRed",
   },
-  description:
-    "Encontrá productos en los comercios de tu barrio, reservalos y retiralos en el local.",
+  description: DESCRIPCION_SITIO,
+  openGraph: {
+    siteName: "VeciRed",
+    locale: "es_AR",
+    type: "website",
+    title: "VeciRed | Conectá con el comercio de tu barrio",
+    description: DESCRIPCION_SITIO,
+  },
+  twitter: { card: "summary_large_image" },
 };
 
 export const viewport: Viewport = {

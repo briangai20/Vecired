@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
@@ -10,11 +11,34 @@ import { RegistrarVista } from "@/components/registrar-vista";
 import { AvisoCierres } from "@/components/aviso-cierres";
 import { abiertoAhora, fechaAR, disponibilidad, horario, nota, plata, promedio } from "@/lib/formato";
 import { supabasePublico } from "@/lib/supabase/publico";
+import { SITIO, vistaPrevia } from "@/lib/sitio";
 import { enlaceWhatsapp } from "@/lib/whatsapp";
 import type { Tabla } from "@/lib/supabase/tipos";
 import { Catalogo, type ItemCatalogo } from "./catalogo";
 
 type Props = PageProps<"/comercio/[id]">;
+
+// Título, descripción y vista previa al compartir el link del comercio o al
+// aparecer en Google.
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const comercioId = Number((await params).id);
+  if (!Number.isInteger(comercioId) || comercioId <= 0) return {};
+  const { data: c } = await supabasePublico()
+    .from("comercios")
+    .select("nombre, rubro, direccion, logo_url")
+    .eq("id", comercioId)
+    .eq("aprobado", true)
+    .maybeSingle();
+  if (!c) return { title: "Comercio no encontrado" };
+  const titulo = `${c.nombre}: ${c.rubro} en ${c.direccion}`;
+  const descripcion = `${c.rubro} en ${c.direccion}. Mirá sus productos con precio y stock, reservalos en VeciRed y retiralos en el local.`;
+  return {
+    title: titulo,
+    description: descripcion,
+    alternates: { canonical: `/comercio/${comercioId}` },
+    openGraph: vistaPrevia({ titulo: c.nombre, descripcion, ruta: `/comercio/${comercioId}`, foto: c.logo_url, alt: c.nombre }),
+  };
+}
 
 const sinAcentos = (v: string) => v.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
 
@@ -61,8 +85,20 @@ async function Comercio({ params, searchParams }: Pick<Props, "params" | "search
     tarjeta: lista.length > 1 ? <TarjetaGrupo lista={lista} /> : <TarjetaProducto p={lista[0]} ahora={ahora} />,
   }));
 
+  // Datos del comercio en el formato que entiende Google (ficha de negocio local).
+  const fichaGoogle = {
+    "@context": "https://schema.org",
+    "@type": "Store",
+    name: c.nombre,
+    url: `${SITIO}/comercio/${c.id}`,
+    address: { "@type": "PostalAddress", streetAddress: c.direccion, addressCountry: "AR" },
+    ...(c.lat != null && c.lng != null ? { geo: { "@type": "GeoCoordinates", latitude: c.lat, longitude: c.lng } } : {}),
+    ...(c.logo_url ? { image: c.logo_url } : {}),
+  };
+
   return (
     <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(fichaGoogle).replace(/</g, "\\u003c") }} />
       <RegistrarVista comercioId={c.id} />
       <Link href="/" className="text-sm text-white/80 transition hover:text-white">
         ‹ Volver a la búsqueda
