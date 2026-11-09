@@ -203,9 +203,15 @@ async function Panel({ searchParams }: Pick<PageProps<"/admin">, "searchParams">
                     </button>
                   </form>
                 ) : null}
-                {!c.motivo_rechazo ? (
-                  <details className="text-sm">
-                    <summary className="cursor-pointer text-white/85">{c.aprobado ? "Despublicar" : "Rechazar"}</summary>
+                <div className="rounded-2xl border border-[#ffb4a2]/50 p-3 text-sm">
+                  <p className="font-semibold">
+                    {c.aprobado ? "Rechazar y despublicar" : c.motivo_rechazo ? "Rechazar de nuevo (cambiar el motivo)" : "Rechazar"}
+                  </p>
+                  <p className="mt-0.5 text-xs text-white/75">
+                    {c.aprobado
+                      ? "Deja de verse en VeciRed. Le avisamos el motivo al comerciante; cuando lo corrija, vuelve a Pendientes."
+                      : "No se publica. Le avisamos el motivo al comerciante; cuando lo corrija, vuelve a Pendientes."}
+                  </p>
                     <form action={revisarComercio} className="mt-2 space-y-2">
                       <input type="hidden" name="comercio" value={c.id} />
                       <input type="hidden" name="ver" value={ver} />
@@ -222,12 +228,11 @@ async function Panel({ searchParams }: Pick<PageProps<"/admin">, "searchParams">
                         U otro motivo (si lo escribís, se usa este)
                         <textarea name="motivo" maxLength={500} rows={2} className="campo mt-1" placeholder="Ej.: el rubro no coincide con lo que vende." />
                       </label>
-                      <button name="accion" value="rechazar" className="w-full rounded-xl border border-white/40 py-2 text-sm hover:bg-white/10">
-                        {c.aprobado ? "Despublicar" : "Rechazar"}
+                      <button name="accion" value="rechazar" className="w-full rounded-xl border border-[#ffb4a2] py-2 text-sm font-semibold hover:bg-[#ffb4a2]/15">
+                        {c.aprobado ? "Rechazar y despublicar" : "Rechazar comercio"}
                       </button>
                     </form>
-                  </details>
-                ) : null}
+                </div>
               </div>
             </article>
           ))}

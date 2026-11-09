@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Conversacion } from "@/components/conversacion";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Fragment, Suspense } from "react";
@@ -49,7 +50,7 @@ async function Reservas({ searchParams }: Pick<PageProps<"/reservas">, "searchPa
   const { data: reservas } = await supabase
     .from("reservas")
     .select(
-      "*, comercio:comercios(id, nombre, direccion, lat, lng), alternativas:reserva_alternativas(producto:productos(id, nombre, precio)), resena:resenas(estrellas, texto)",
+      "*, comercio:comercios(id, nombre, direccion, lat, lng), alternativas:reserva_alternativas(producto:productos(id, nombre, precio)), resena:resenas(estrellas, texto, respuesta), mensajes(id, autor_id, texto, creado_en)",
     )
     .eq("comprador_id", usuario.id)
     .order("creada_en", { ascending: false });
@@ -93,7 +94,7 @@ async function Reservas({ searchParams }: Pick<PageProps<"/reservas">, "searchPa
             const e = ESTADOS[r.estado];
             const c = r.comercio;
             return (
-              <article key={r.id} className="tarjeta rounded-2xl p-5">
+              <article key={r.id} id={`reserva-${r.id}`} className="tarjeta scroll-mt-24 rounded-2xl p-5">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="text-xs text-white/75">{c?.nombre}</p>
@@ -143,6 +144,14 @@ async function Reservas({ searchParams }: Pick<PageProps<"/reservas">, "searchPa
                   </div>
                 ) : null}
 
+                <Conversacion
+                  reserva={r.id}
+                  yo={usuario.id}
+                  otro="el comercio"
+                  iniciales={r.mensajes}
+                  abierta={["pendiente", "alternativa", "aceptada"].includes(r.estado)}
+                />
+
                 {["pendiente", "alternativa", "aceptada"].includes(r.estado) ? (
                   <form action={cancelar} className="mt-4">
                     <input type="hidden" name="reserva" value={r.id} />
@@ -156,6 +165,12 @@ async function Reservas({ searchParams }: Pick<PageProps<"/reservas">, "searchPa
                       <p className="text-xs text-white/75">Tu reseña</p>
                       <Estrellas valor={r.resena.estrellas} />
                       {r.resena.texto ? <p className="mt-1">{r.resena.texto}</p> : null}
+                      {r.resena.respuesta ? (
+                        <div className="mt-2 rounded-lg border-l-2 border-naranja-vivo bg-white/5 p-2">
+                          <p className="text-xs font-semibold text-white/80">Respuesta de {c?.nombre}</p>
+                          <p className="mt-0.5">{r.resena.respuesta}</p>
+                        </div>
+                      ) : null}
                     </div>
                   ) : (
                     <form action={dejarResena} className="mt-4 space-y-2 rounded-xl border border-white/25 p-3">

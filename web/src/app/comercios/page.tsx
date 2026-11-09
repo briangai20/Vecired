@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { PLANTILLA_EXCEL, PLANTILLA_GOOGLE } from "@/components/planilla-modelo";
 import { Preguntas, type Pregunta } from "@/components/preguntas";
 import { MAIL_CONTACTO } from "@/lib/legal";
 import { vistaPrevia } from "@/lib/sitio";
@@ -79,7 +80,15 @@ const PREGUNTAS: Pregunta[] = [
           Excel, la completás y la subís: se cargan todos juntos. Las fotos también se pueden subir todas de una vez.
         </p>
         <p>
-          <a href="/plantilla-productos-vecired.xlsx">Descargar la planilla de ejemplo</a>
+          <a href={PLANTILLA_EXCEL}>Descargar la planilla para Excel</a>
+          {PLANTILLA_GOOGLE ? (
+            <>
+              {" · "}
+              <a href={PLANTILLA_GOOGLE} target="_blank" rel="noopener noreferrer">
+                Abrirla en Google Sheets
+              </a>
+            </>
+          ) : null}
         </p>
       </>
     ),

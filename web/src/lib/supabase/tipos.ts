@@ -134,6 +134,21 @@ export type Database = {
           },
         ]
       }
+      mensajes: {
+        Row: { autor_id: string; creado_en: string; id: number; reserva_id: number; texto: string }
+        Insert: { autor_id?: string; creado_en?: string; id?: never; reserva_id: number; texto: string }
+        Update: { autor_id?: string; creado_en?: string; id?: never; reserva_id?: number; texto?: string }
+        Relationships: [
+          { foreignKeyName: "mensajes_reserva_id_fkey"; columns: ["reserva_id"]; isOneToOne: false; referencedRelation: "reservas"; referencedColumns: ["id"] },
+          { foreignKeyName: "mensajes_autor_id_fkey"; columns: ["autor_id"]; isOneToOne: false; referencedRelation: "perfiles"; referencedColumns: ["id"] },
+        ]
+      }
+      notificaciones: {
+        Row: { creada_en: string; cuerpo: string | null; enlace: string | null; id: number; leida_en: string | null; titulo: string; usuario_id: string }
+        Insert: { creada_en?: string; cuerpo?: string | null; enlace?: string | null; id?: never; leida_en?: string | null; titulo: string; usuario_id: string }
+        Update: { creada_en?: string; cuerpo?: string | null; enlace?: string | null; id?: never; leida_en?: string | null; titulo?: string; usuario_id?: string }
+        Relationships: []
+      }
       perfiles: {
         Row: {
           creado_en: string
@@ -230,6 +245,8 @@ export type Database = {
           estrellas: number
           id: number
           reserva_id: number
+          respondida_en: string | null
+          respuesta: string | null
           texto: string | null
         }
         Insert: {
@@ -241,6 +258,8 @@ export type Database = {
           estrellas: number
           id?: never
           reserva_id: number
+          respondida_en?: string | null
+          respuesta?: string | null
           texto?: string | null
         }
         Update: {
@@ -252,6 +271,8 @@ export type Database = {
           estrellas?: number
           id?: never
           reserva_id?: number
+          respondida_en?: string | null
+          respuesta?: string | null
           texto?: string | null
         }
         Relationships: [
@@ -458,6 +479,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      responder_resena: { Args: { p_resena: number; p_texto: string }; Returns: undefined }
       dias_cerrados: {
         Args: { p_comercio: number; p_desde: string; p_hasta: string }
         Returns: { fecha: string; motivo: string }[]

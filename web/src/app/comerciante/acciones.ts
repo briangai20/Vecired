@@ -386,3 +386,13 @@ export async function importarProductos(comercioId: number, filas: FilaProducto[
   refresh();
   return { agregados: nuevos.length, actualizados };
 }
+
+// Responder (o cambiar, o borrar con texto vacío) la respuesta a una reseña.
+export async function responderResena(d: FormData) {
+  const supabase = await comerciante();
+  const resena = Number(texto(d, "resena"));
+  if (!resena) return;
+  const { error } = await supabase.rpc("responder_resena", { p_resena: resena, p_texto: texto(d, "respuesta").slice(0, 1000) });
+  if (error) redirect(`/comerciante?seccion=resenas&error=${encodeURIComponent(error.code === "P0001" ? error.message : "No pudimos guardar la respuesta. Probá de nuevo.")}`);
+  await listo("resenas");
+}

@@ -63,7 +63,7 @@ async function Comercio({ params, searchParams }: Pick<Props, "params" | "search
   const [{ data: c }, { data: productos }, { data: resenas }, { data: franjas }] = await Promise.all([
     db.from("comercios").select("*").eq("id", comercioId).eq("aprobado", true).maybeSingle(),
     db.from("productos").select("*").eq("comercio_id", comercioId).eq("activo", true).order("nombre"),
-    db.from("resenas").select("estrellas, texto, autor_nombre, autor_foto_url, creada_en").eq("comercio_id", comercioId).order("creada_en", { ascending: false }),
+    db.from("resenas").select("estrellas, texto, autor_nombre, autor_foto_url, creada_en, respuesta").eq("comercio_id", comercioId).order("creada_en", { ascending: false }),
     db.from("horarios").select("*").eq("comercio_id", comercioId),
   ]);
   if (!c) notFound();
@@ -153,7 +153,7 @@ async function Comercio({ params, searchParams }: Pick<Props, "params" | "search
       <Catalogo comercio={c.nombre} items={items} inicial={q} />
 
       {resenas?.length ? (
-        <section className="mt-10">
+        <section id="resenas" className="mt-10 scroll-mt-24">
           <h2 className="text-lg font-semibold">Reseñas</h2>
           <div className="mt-3 grid gap-3 md:grid-cols-2">
             {resenas.slice(0, 6).map((r, i) => (
@@ -169,6 +169,12 @@ async function Comercio({ params, searchParams }: Pick<Props, "params" | "search
                   </div>
                 </div>
                 {r.texto ? <p className="mt-3 text-sm">{r.texto}</p> : null}
+                {r.respuesta ? (
+                  <div className="mt-3 rounded-xl border-l-2 border-naranja-vivo bg-white/5 p-3 text-sm">
+                    <p className="text-xs font-semibold text-white/80">Respuesta de {c.nombre}</p>
+                    <p className="mt-1">{r.respuesta}</p>
+                  </div>
+                ) : null}
               </article>
             ))}
           </div>

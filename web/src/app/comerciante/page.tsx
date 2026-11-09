@@ -5,13 +5,13 @@ import { disponibilidad, fechaAR, plata } from "@/lib/formato";
 import { usuarioActual } from "@/lib/sesion";
 import { supabaseServidor } from "@/lib/supabase/servidor";
 import type { Enum } from "@/lib/supabase/tipos";
-import { agregarCierre, borrarCierre, cambiarReserva, ofrecerAlternativas } from "./acciones";
+import { agregarCierre, borrarCierre, cambiarReserva, ofrecerAlternativas, responderResena } from "./acciones";
 
 const fechaCorta = (f: string) => `${Number(f.slice(8))}/${Number(f.slice(5, 7))}`;
 
 // El panel se divide en pestañas (?seccion=): lo del día a día (reservas)
 // queda separado de la configuración del comercio.
-const SECCIONES = { reservas: "Reservas", productos: "Productos", configuracion: "Configuración del comercio" } as const;
+const SECCIONES = { reservas: "Reservas", productos: "Productos", resenas: "Reseñas", configuracion: "Configuración del comercio" } as const;
 type Seccion = keyof typeof SECCIONES;
 import { FormComercio } from "./form-comercio";
 import { FotosEnLote } from "./fotos-en-lote";
@@ -20,8 +20,10 @@ import { ProductoFila } from "./producto-fila";
 import { ListaConMas } from "@/components/lista-con-mas";
 import { LogoComercio } from "@/components/logo-comercio";
 import { BotonEnviar } from "@/components/boton-enviar";
+import { Conversacion } from "@/components/conversacion";
 import { BotonesReserva, EstadoReserva, ReservaEnVivo, SiEstado } from "./reserva-en-vivo";
 import { FotoPerfil } from "@/components/foto-perfil";
+import { Estrellas } from "@/components/insignias";
 import { enlaceWhatsapp, numeroWhatsapp } from "@/lib/whatsapp";
 
 export const metadata: Metadata = { title: "Panel del comerciante" };
@@ -100,11 +102,11 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
   }
 
   const ahora = new Date();
-  const [{ data: productos }, { data: reservas }, { data: stats }, { data: franjas }, { data: cierres }, { data: feriados }, { data: verificacion }] = await Promise.all([
+  const [{ data: productos }, { data: reservas }, { data: stats }, { data: franjas }, { data: cierres }, { data: feriados }, { data: verificacion }, { data: resenas }] = await Promise.all([
     supabase.from("productos").select("*").eq("comercio_id", comercio.id).order("nombre"),
     supabase
       .from("reservas")
-      .select("*, comprador:perfiles!reservas_comprador_id_fkey(nombre, telefono, foto_url), alternativas:reserva_alternativas(producto:productos(nombre))")
+      .select("*, comprador:perfiles!reservas_comprador_id_fkey(nombre, telefono, foto_url), alternativas:reserva_alternativas(producto:productos(nombre)), mensajes(id, autor_id, texto, creado_en)")
       .eq("comercio_id", comercio.id)
       .order("creada_en", { ascending: false })
       .limit(30),
@@ -113,7 +115,14 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
     supabase.from("cierres").select("*").eq("comercio_id", comercio.id).gte("hasta", fechaAR(ahora)).order("desde"),
     supabase.from("feriados").select("*").neq("tipo", "puente").gte("fecha", fechaAR(ahora)).lte("fecha", fechaAR(ahora, 90)).order("fecha"),
     supabase.from("verificaciones_comercio").select("*").eq("comercio_id", comercio.id).maybeSingle(),
+    supabase
+      .from("resenas")
+      .select("id, estrellas, texto, autor_nombre, autor_foto_url, creada_en, respuesta")
+      .eq("comercio_id", comercio.id)
+      .order("creada_en", { ascending: false })
+      .limit(50),
   ]);
+  const sinResponder = (resenas ?? []).filter((r) => !r.respuesta).length;
   const s = stats?.[0];
   const enCurso = (e: string) => e === "pendiente" || e === "alternativa" || e === "aceptada";
   const abiertas = (reservas ?? []).filter((r) => enCurso(r.estado));
@@ -192,9 +201,9 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
             </div>
           ))}
         </div>
-        <nav className="mt-6 grid grid-cols-3 gap-1 rounded-2xl border border-white/20 p-1" aria-label="Secciones del panel">
+        <nav className="mt-6 grid grid-cols-2 gap-1 sm:grid-cols-4 rounded-2xl border border-white/20 p-1" aria-label="Secciones del panel">
           {(Object.keys(SECCIONES) as Seccion[]).map((k) => {
-            const pendientes = k === "reservas" ? abiertas.filter((r) => r.estado === "pendiente").length : 0;
+            const pendientes = k === "reservas" ? abiertas.filter((r) => r.estado === "pendiente").length : k === "resenas" ? sinResponder : 0;
             return (
               <Link
                 key={k}
@@ -234,7 +243,7 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
           <div className="mt-4 grid gap-3 md:grid-cols-2">
             {abiertas.map((r) => (
               <ReservaEnVivo key={r.id} reserva={r.id} estado={r.estado} etiquetas={ESTADOS} accion={cambiarReserva}>
-              <article className="rounded-2xl border border-white/20 p-4">
+              <article id={`reserva-${r.id}`} className="scroll-mt-24 rounded-2xl border border-white/20 p-4">
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     <p className="font-semibold">
@@ -254,6 +263,7 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
                   </p>
                 ) : null}
                 <BotonesReserva />
+                <Conversacion reserva={r.id} yo={usuario.id} otro="el cliente" iniciales={r.mensajes} abierta />
                 <SiEstado es="pendiente">
                   <details className="mt-3 text-sm">
                     <summary className="cursor-pointer text-white/85">No lo tengo: ofrecer otra cosa</summary>
@@ -339,6 +349,46 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
             ))}
           </ListaConMas>
         </div>
+      </section>
+      ) : null}
+
+      {seccion === "resenas" ? (
+      <section id="resenas" className="tarjeta rounded-3xl p-6">
+        <h2 className="text-lg font-semibold">Reseñas</h2>
+        <p className="mt-1 text-sm text-white/80">
+          Lo que opinan tus clientes después de retirar. Respondé con amabilidad: tu respuesta se ve en tu página, debajo de la reseña, y le avisamos al cliente.
+        </p>
+        {resenas?.length ? (
+          <div className="mt-4 grid gap-3 md:grid-cols-2">
+            {resenas.map((r) => (
+              <article key={r.id} className="rounded-2xl border border-white/20 p-4">
+                <div className="flex items-center gap-3">
+                  <FotoPerfil url={r.autor_foto_url} nombre={r.autor_nombre} />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold">{r.autor_nombre}</p>
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <Estrellas valor={r.estrellas} />
+                      <span className="text-xs text-white/70">{new Date(r.creada_en).toLocaleDateString("es-AR")}</span>
+                    </div>
+                  </div>
+                </div>
+                {r.texto ? <p className="mt-3 text-sm">{r.texto}</p> : <p className="mt-3 text-sm text-white/60">Sin comentario.</p>}
+                <form action={responderResena} className="mt-3 space-y-2">
+                  <input type="hidden" name="resena" value={r.id} />
+                  <label className="block text-xs text-white/80">
+                    {r.respuesta ? "Tu respuesta (podés cambiarla o borrarla)" : "Tu respuesta"}
+                    <textarea name="respuesta" maxLength={1000} rows={2} defaultValue={r.respuesta ?? ""} className="campo mt-1" placeholder="¡Gracias por venir! Te esperamos de nuevo." />
+                  </label>
+                  <BotonEnviar enviando="Guardando…" className="boton rounded-xl px-4 py-2 text-sm font-semibold">
+                    {r.respuesta ? "Guardar respuesta" : "Responder"}
+                  </BotonEnviar>
+                </form>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <p className="mt-3 text-sm text-white/80">Todavía no tenés reseñas. Aparecen cuando un cliente retira su reserva y califica tu comercio.</p>
+        )}
       </section>
       ) : null}
 

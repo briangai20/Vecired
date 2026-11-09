@@ -1,5 +1,6 @@
 "use client";
 
+import { PlanillaModelo } from "@/components/planilla-modelo";
 import { useState, useTransition } from "react";
 import { useListo } from "@/components/use-listo";
 import { plata } from "@/lib/formato";
@@ -155,11 +156,9 @@ export function ImportarProductos({ comercioId, existentes }: { comercioId: numb
             }}
           />
         </label>
-        <a href="/plantilla-productos-vecired.xlsx" download className="rounded-xl border border-white/40 px-4 py-2 text-sm hover:bg-white/10">
-          Descargar planilla modelo
-        </a>
         {archivo ? <span className="text-xs text-white/70">{archivo}</span> : null}
       </div>
+      <PlanillaModelo className="mt-3" />
       <p role="status" className="mt-2 min-h-5 text-sm">
         {aviso}
         {resultado?.error ? <span className="text-[#ffb4a2]">{resultado.error}</span> : null}

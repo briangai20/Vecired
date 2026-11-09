@@ -5,6 +5,7 @@ import { Suspense } from "react";
 import { LogoVeciRed } from "@/components/logo";
 import { MenuCuenta } from "@/components/menu-cuenta";
 import { MenuMovil } from "@/components/menu-movil";
+import { Avisos } from "@/components/avisos";
 import { DESCRIPCION_SITIO, SITIO } from "@/lib/sitio";
 import { CUIT, MAIL_CONTACTO, TITULAR } from "@/lib/legal";
 import "./globals.css";
@@ -60,6 +61,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
                 <MenuCuenta />
               </Suspense>
             </nav>
+            <Suspense fallback={null}>
+              <Avisos />
+            </Suspense>
             <Suspense fallback={null}>
               <MenuMovil>
                 <Link href="/" className="rounded-xl px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10">
