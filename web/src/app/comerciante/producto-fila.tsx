@@ -104,7 +104,7 @@ export function ProductoFila({ p, comercioId, ahora }: { p?: Tabla<"productos">;
 
       <div className="mt-4 flex flex-wrap gap-2">
         <button className="boton rounded-xl px-4 py-2 text-sm font-semibold">{p ? "Guardar" : "Agregar producto"}</button>
-        {p && d?.texto === "Sin verificar" ? (
+        {p && d?.texto === "Stock sin confirmar" ? (
           <button formAction={confirmarStock} className="rounded-xl border border-white/40 px-4 py-2 text-sm hover:bg-white/10">
             El stock sigue igual
           </button>

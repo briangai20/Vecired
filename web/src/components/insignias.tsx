@@ -21,6 +21,19 @@ export function Abierto({ abierto }: { abierto: boolean | null }) {
   );
 }
 
+// Solo se publican comercios que revisamos (ver /admin), así que la insignia va
+// en todos los que se ven.
+export function Verificado() {
+  return (
+    <span
+      className="shrink-0 rounded-full bg-white px-2.5 py-0.5 text-[11px] font-semibold text-marino"
+      title="Revisamos que este comercio exista antes de publicarlo"
+    >
+      ✓ Comercio verificado
+    </span>
+  );
+}
+
 const BORDE: Record<Disponibilidad["tono"], string> = {
   ok: "border-white",
   poco: "border-white/70",

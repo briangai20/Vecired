@@ -6,4 +6,4 @@ export const DOMICILIO = "Ituzaingó 1789, Ingeniero Maschwitz, Partido de Escob
 export const MAIL_CONTACTO = "briangai20@gmail.com";
 
 // Fecha de la última versión. Cambiarla cada vez que se modifiquen los textos.
-export const VIGENCIA = "27 de octubre de 2026";
+export const VIGENCIA = "8 de noviembre de 2026";

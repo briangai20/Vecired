@@ -6,6 +6,7 @@ import { LogoVeciRed } from "@/components/logo";
 import { MenuCuenta } from "@/components/menu-cuenta";
 import { MenuMovil } from "@/components/menu-movil";
 import { DESCRIPCION_SITIO, SITIO } from "@/lib/sitio";
+import { CUIT, MAIL_CONTACTO, TITULAR } from "@/lib/legal";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -72,11 +73,30 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           </div>
         </header>
         <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 lg:px-6">{children}</main>
-        <footer className="border-t border-marino/10">
-          <nav className="mx-auto flex max-w-7xl flex-wrap gap-x-6 gap-y-2 px-4 py-4 text-sm text-marino/80 lg:px-6" aria-label="Legales">
-            <Link href="/terminos" className="hover:underline">Términos y condiciones</Link>
-            <Link href="/privacidad" className="hover:underline">Política de privacidad</Link>
-          </nav>
+        <footer className="mt-6 bg-marino text-white">
+          <div className="mx-auto grid max-w-7xl gap-6 px-4 py-8 text-sm sm:grid-cols-3 lg:px-6">
+            <div>
+              <Link href="/" className="flex items-center gap-2">
+                <LogoVeciRed className="h-8 w-8" />
+                <span className="text-xl font-black tracking-tight">
+                  Veci<span className="text-naranja-vivo">Red</span>
+                </span>
+              </Link>
+              <p className="mt-2 text-white/75">Conectá con el comercio de tu barrio.</p>
+            </div>
+            <nav className="flex flex-col gap-2" aria-label="VeciRed">
+              <Link href="/comercios" className="hover:underline">Sumá tu comercio</Link>
+              <Link href="/preguntas" className="hover:underline">Preguntas frecuentes</Link>
+              <a href={`mailto:${MAIL_CONTACTO}`} className="hover:underline">Contacto: {MAIL_CONTACTO}</a>
+            </nav>
+            <nav className="flex flex-col gap-2" aria-label="Legales">
+              <Link href="/terminos" className="hover:underline">Términos y condiciones</Link>
+              <Link href="/privacidad" className="hover:underline">Política de privacidad</Link>
+            </nav>
+          </div>
+          <p className="border-t border-white/10 px-4 py-4 text-center text-xs text-white/60">
+            VeciRed™ · {TITULAR} · CUIT {CUIT}
+          </p>
         </footer>
       </body>
     </html>

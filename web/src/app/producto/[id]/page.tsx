@@ -126,7 +126,7 @@ async function Producto({ params }: Pick<Props, "params">) {
           </div>
           {d.requiereConfirmacion ? (
             <p className="mt-2 text-xs text-white/85">
-              {d.texto === "Sin verificar"
+              {d.texto === "Stock sin confirmar"
                 ? "El comercio no actualizó el stock en los últimos días: al reservar, te confirma si lo tiene antes de que vayas."
                 : "El comercio te confirma la reserva antes de que vayas a retirar."}
             </p>

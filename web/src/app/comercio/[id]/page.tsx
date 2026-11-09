@@ -5,7 +5,7 @@ import { Suspense } from "react";
 import { FotoPerfil } from "@/components/foto-perfil";
 import { FotoProducto } from "@/components/foto-producto";
 import { LogoComercio } from "@/components/logo-comercio";
-import { Abierto, Estrellas, Stock } from "@/components/insignias";
+import { Abierto, Estrellas, Stock, Verificado } from "@/components/insignias";
 import { MapaComercios } from "@/components/mapa-comercios";
 import { RegistrarVista } from "@/components/registrar-vista";
 import { AvisoCierres } from "@/components/aviso-cierres";
@@ -108,6 +108,7 @@ async function Comercio({ params, searchParams }: Pick<Props, "params" | "search
         <div className="flex min-w-0 flex-wrap items-center gap-2">
           <h1 className="text-xl font-bold break-words">{c.nombre}</h1>
           <Abierto abierto={abiertoAhora(franjas ?? [], ahora, cerrados)} />
+          <Verificado />
         </div>
       </div>
       <p className="mt-1 text-sm text-white/80">

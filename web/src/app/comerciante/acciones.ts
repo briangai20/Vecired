@@ -202,7 +202,7 @@ export async function guardarProducto(d: FormData) {
   refresh();
 }
 
-// "Sigue igual": confirma el stock sin cambiarlo, para que no aparezca "Sin verificar".
+// "Sigue igual": confirma el stock sin cambiarlo, para que no aparezca "Stock sin confirmar".
 export async function confirmarStock(d: FormData) {
   const supabase = await comerciante();
   const id = Number(texto(d, "id"));

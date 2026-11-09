@@ -36,7 +36,10 @@ export default function PaginaTerminos() {
           <li>Para reservar o publicar un comercio necesitás una cuenta. Tenés que ser mayor de 18 años.</li>
           <li>Los datos que cargues tienen que ser verdaderos y estar actualizados.</li>
           <li>Tu contraseña es personal. Sos responsable de lo que se haga con tu cuenta. Si creés que alguien la usó sin tu permiso, avisanos.</li>
-          <li>Podés pedir la baja de tu cuenta cuando quieras escribiéndonos a {MAIL_CONTACTO}.</li>
+          <li>
+            Podés borrar tu cuenta cuando quieras desde “Mi perfil”, con la opción “Borrar mi cuenta”, o pedirlo escribiéndonos a{" "}
+            {MAIL_CONTACTO}.
+          </li>
         </ul>
       </Seccion>
 

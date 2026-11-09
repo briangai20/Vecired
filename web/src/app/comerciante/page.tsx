@@ -65,6 +65,9 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
             Ya tengo cuenta
           </Link>
         </div>
+        <Link href="/comercios" className="mt-4 inline-block text-sm text-white/85 underline">
+          Conocé cómo funciona y cuánto cuesta
+        </Link>
       </div>
     );
   }
@@ -303,7 +306,7 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
       <section id="productos" className="tarjeta rounded-3xl p-6">
         <h2 className="text-lg font-semibold">Productos</h2>
         <p className="mt-1 text-sm text-white/80">
-          Mantené el stock al día: si no lo tocás en 7 días (3 si usás hay/poco), el producto aparece como &quot;Sin verificar&quot;.
+          Mantené el stock al día: si no lo tocás en 7 días (3 si usás hay/poco), el producto aparece como &quot;Stock sin confirmar&quot;.
         </p>
         <details className="mt-4 rounded-2xl border border-white/20 p-4" open={!(productos ?? []).length}>
           <summary className="cursor-pointer font-semibold">Cargar o actualizar desde Excel</summary>

@@ -9,7 +9,7 @@ export async function MenuCuenta() {
   if (!usuario) {
     return (
       <>
-        <Link href="/comerciante" className={enlace}>
+        <Link href="/comercios" className={enlace}>
           Soy comerciante
         </Link>
         <Link href="/ingresar" className={`${enlace} bg-white/10`}>
