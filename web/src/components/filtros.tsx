@@ -1,7 +1,7 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useEffect, useState, useTransition } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useState, useTransition } from "react";
 import { CENTROS, ZONA_INICIAL } from "@/lib/zonas";
 import { CampoUbicacion } from "./campo-ubicacion";
 
@@ -17,9 +17,11 @@ export type ValoresFiltro = {
   lugar?: string;
 };
 
-function armarUrl(v: ValoresFiltro) {
-  const p = new URLSearchParams();
-  if (v.q.trim()) p.set("q", v.q.trim());
+// Arma la dirección con la ubicación y el radio nuevos, sin perder lo demás
+// que ya estaba elegido (lo buscado, el orden, "abierto ahora"...).
+function armarUrl(v: ValoresFiltro, actuales: URLSearchParams) {
+  const p = new URLSearchParams(actuales.toString());
+  for (const k of ["zona", "lat", "lng", "lugar", "radio", "comercio"]) p.delete(k);
   if (v.lat != null && v.lng != null) {
     p.set("lat", v.lat.toFixed(5));
     p.set("lng", v.lng.toFixed(5));
@@ -33,20 +35,15 @@ function armarUrl(v: ValoresFiltro) {
 
 export function Filtros({ zonas, inicial }: { zonas: Zona[]; inicial: ValoresFiltro }) {
   const router = useRouter();
+  const params = useSearchParams();
+  // En el celular arrancan plegados (una línea con la zona y el radio).
+  const [abierto, setAbierto] = useState(false);
   const [pendiente, startTransition] = useTransition();
   const [v, setV] = useState(inicial);
   const [aviso, setAviso] = useState("");
 
-  // La búsqueda por texto espera a que se deje de escribir.
-  useEffect(() => {
-    if (v.q === inicial.q) return;
-    const t = setTimeout(() => ir({ ...v }), 350);
-    return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [v.q]);
-
   function ir(nuevo: ValoresFiltro) {
-    startTransition(() => router.replace(armarUrl(nuevo), { scroll: false }));
+    startTransition(() => router.replace(armarUrl(nuevo, params), { scroll: false }));
   }
 
   function cambiar(parcial: Partial<ValoresFiltro>, navegar = true) {
@@ -78,23 +75,24 @@ export function Filtros({ zonas, inicial }: { zonas: Zona[]; inicial: ValoresFil
   const cerca = conUbicacion ? { lat: v.lat!, lng: v.lng! } : (CENTROS[v.zona] ?? CENTROS[ZONA_INICIAL]);
 
   return (
-    <div className="tarjeta rounded-3xl p-5" aria-busy={pendiente}>
-      <h2 className="text-xs font-semibold tracking-wider uppercase">Filtros</h2>
+    <div className="tarjeta rounded-3xl p-4 lg:p-5" aria-busy={pendiente}>
+      <button
+        type="button"
+        onClick={() => setAbierto((a) => !a)}
+        aria-expanded={abierto}
+        className="flex w-full items-center justify-between gap-3 text-left text-sm lg:hidden"
+      >
+        <span className="min-w-0">
+          <span aria-hidden>📍 </span>
+          <span className="font-semibold">{etiqueta || "Elegí tu zona"}</span>
+          <span className="text-white/75"> · a {v.radio} km</span>
+        </span>
+        <span className="shrink-0 rounded-lg border border-white/40 px-3 py-1 text-xs">{abierto ? "Listo" : "Cambiar"}</span>
+      </button>
+      <div className={`${abierto ? "mt-4 block" : "hidden"} lg:mt-0 lg:block`}>
+      <h2 className="hidden text-xs font-semibold tracking-wider uppercase lg:block">Dónde buscar</h2>
 
-      <label htmlFor="q" className="mt-4 block text-xs">
-        Producto o rubro
-      </label>
-      <input
-        id="q"
-        type="search"
-        autoComplete="off"
-        placeholder="Mercería, tornillos, zapatillas..."
-        value={v.q}
-        onChange={(e) => cambiar({ q: e.target.value }, false)}
-        className="campo mt-1"
-      />
-
-      <label htmlFor="ubicacion" className="mt-4 block text-xs">
+      <label htmlFor="ubicacion" className="mt-4 block text-xs lg:mt-4">
         Ubicación
       </label>
       <CampoUbicacion
@@ -132,6 +130,7 @@ export function Filtros({ zonas, inicial }: { zonas: Zona[]; inicial: ValoresFil
       <div className="mt-1 flex justify-between text-[11px]">
         <span>1 km</span>
         <span>20 km</span>
+      </div>
       </div>
     </div>
   );

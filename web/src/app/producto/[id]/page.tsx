@@ -102,8 +102,24 @@ async function Producto({ params }: Pick<Props, "params">) {
       <Link href={`/comercio/${c.id}`} className="text-sm text-white/80 transition hover:text-white">
         ‹ Volver a {c.nombre}
       </Link>
-      <nav className="mt-3 text-xs text-white/70">
-        {c.rubro} › {p.grupo || p.nombre} › {p.nombre}
+      <nav aria-label="Ubicación" className="mt-3 flex flex-wrap gap-x-1 text-xs text-white/70">
+        <Link href={`/?q=${encodeURIComponent(c.rubro)}`} className="hover:underline">
+          {c.rubro}
+        </Link>
+        <span aria-hidden>›</span>
+        <Link href={`/comercio/${c.id}`} className="hover:underline">
+          {c.nombre}
+        </Link>
+        {p.grupo && p.grupo.trim().toLowerCase() !== p.nombre.trim().toLowerCase() ? (
+          <>
+            <span aria-hidden>›</span>
+            <Link href={`/comercio/${c.id}?q=${encodeURIComponent(p.grupo)}`} className="hover:underline">
+              {p.grupo}
+            </Link>
+          </>
+        ) : null}
+        <span aria-hidden>›</span>
+        <span className="text-white/90">{p.nombre}</span>
       </nav>
 
       <div className="mt-4 grid gap-8 md:grid-cols-2">

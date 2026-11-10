@@ -6,6 +6,7 @@ import { LogoVeciRed } from "@/components/logo";
 import { MenuCuenta } from "@/components/menu-cuenta";
 import { MenuMovil } from "@/components/menu-movil";
 import { Avisos } from "@/components/avisos";
+import { Buscador, BuscadorCargando } from "@/components/buscador";
 import { DESCRIPCION_SITIO, SITIO } from "@/lib/sitio";
 import { CUIT, MAIL_CONTACTO, TITULAR } from "@/lib/legal";
 import "./globals.css";
@@ -41,8 +42,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html lang="es" className={`${geistSans.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col font-sans">
         <header className="sticky top-0 z-40 border-b border-white/10 bg-marino shadow-lg shadow-black/30">
-          <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-3 lg:px-6">
-            <Link href="/" className="mr-auto flex min-w-0 items-center gap-3">
+          <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-3 lg:gap-5 lg:px-6">
+            <Link href="/" className="mr-auto flex min-w-0 shrink-0 items-center gap-3 lg:mr-0">
               <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl border border-white/30">
                 <LogoVeciRed className="h-9 w-9" />
               </span>
@@ -50,13 +51,14 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
                 <span className="block text-2xl leading-none font-black tracking-tight text-white">
                   Veci<span className="text-naranja-vivo">Red</span>
                 </span>
-                <span className="mt-1 block text-xs leading-tight text-white">Conectá con el comercio de tu barrio</span>
+                <span className="mt-1 block text-xs leading-tight text-white lg:hidden xl:block">Conectá con el comercio de tu barrio</span>
               </span>
             </Link>
-            <nav className="hidden items-center gap-1 rounded-2xl border border-white/20 p-1 md:flex" aria-label="Secciones">
-              <Link href="/" className="rounded-xl px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10">
-                Buscar
-              </Link>
+            {/* En la compu el buscador va en el medio; en el celular, en una fila propia (abajo). */}
+            <Suspense fallback={<BuscadorCargando className="hidden flex-1 lg:block" />}>
+              <Buscador className="hidden flex-1 lg:block" />
+            </Suspense>
+            <nav className="hidden shrink-0 items-center gap-1 rounded-2xl border border-white/20 p-1 md:flex" aria-label="Secciones">
               <Suspense fallback={null}>
                 <MenuCuenta />
               </Suspense>
@@ -67,12 +69,17 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             <Suspense fallback={null}>
               <MenuMovil>
                 <Link href="/" className="rounded-xl px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10">
-                  Buscar
+                  Inicio
                 </Link>
                 <Suspense fallback={null}>
                   <MenuCuenta />
                 </Suspense>
               </MenuMovil>
+            </Suspense>
+          </div>
+          <div className="mx-auto max-w-7xl px-4 pb-3 lg:hidden">
+            <Suspense fallback={<BuscadorCargando />}>
+              <Buscador />
             </Suspense>
           </div>
         </header>
