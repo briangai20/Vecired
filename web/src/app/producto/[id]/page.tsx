@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { FotoProducto } from "@/components/foto-producto";
+import { Favorito } from "@/components/favorito";
+import { Galeria } from "@/components/galeria";
 import { Abierto, Estrellas, Stock } from "@/components/insignias";
 import { RegistrarVista } from "@/components/registrar-vista";
 import { AvisoCierres } from "@/components/aviso-cierres";
@@ -48,7 +49,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default function PaginaProducto({ params }: Props) {
   return (
     <div className="tarjeta rounded-3xl p-5">
-      <Suspense fallback={<p className="py-10 text-center text-sm text-white/80">Cargando el producto…</p>}>
+      <Suspense fallback={<ProductoCargando />}>
         <Producto params={params} />
       </Suspense>
     </div>
@@ -71,14 +72,31 @@ async function Producto({ params }: Pick<Props, "params">) {
   if (!p) notFound();
   const c = p.comercio;
 
-  const [{ data: hermanos }, { data: otros }, { data: resenas }, { data: franjas }] = await Promise.all([
+  // "También lo tienen": el mismo producto en otros comercios (mismo nombre, o
+  // mismo código si parece un código de barras).
+  const mismoNombre = p.nombre.trim().replace(/[\%_]/g, (x) => "\\" + x);
+  const codigoBarras = p.codigo && /^d{8,14}$/.test(p.codigo.trim()) ? p.codigo.trim() : null;
+  const deOtros = () =>
+    db
+      .from("productos")
+      .select("id, nombre, precio, modo, stock, semaforo, actualizado_en, foto_url, comercio:comercios!inner(id, nombre, direccion, aprobado)")
+      .eq("activo", true)
+      .eq("comercio.aprobado", true)
+      .neq("comercio_id", c.id)
+      .limit(8);
+  const [{ data: hermanos }, { data: otros }, { data: resenas }, { data: franjas }, { data: igualNombre }, { data: igualCodigo }] = await Promise.all([
     p.grupo
       ? db.from("productos").select("id, nombre, precio").eq("comercio_id", c.id).eq("grupo", p.grupo).eq("activo", true).order("precio")
       : Promise.resolve({ data: [] }),
     db.from("productos").select("id, nombre, precio").eq("comercio_id", c.id).eq("activo", true).neq("id", p.id).limit(8),
     db.from("resenas").select("estrellas").eq("comercio_id", c.id),
     db.from("horarios").select("*").eq("comercio_id", c.id),
+    deOtros().ilike("nombre", mismoNombre),
+    codigoBarras ? deOtros().eq("codigo", codigoBarras) : Promise.resolve({ data: [] }),
   ]);
+  const enOtros = [...new Map([...(igualNombre ?? []), ...(igualCodigo ?? [])].map((o) => [o.id, o])).values()].sort(
+    (x, y) => (x.precio ?? Infinity) - (y.precio ?? Infinity),
+  );
 
   const ahora = new Date();
   const { data: cierres } = await db.rpc("dias_cerrados", { p_comercio: c.id, p_desde: fechaAR(ahora), p_hasta: fechaAR(ahora, 21) });
@@ -123,9 +141,7 @@ async function Producto({ params }: Pick<Props, "params">) {
       </nav>
 
       <div className="mt-4 grid gap-8 md:grid-cols-2">
-        <div className="relative aspect-square overflow-hidden rounded-2xl border border-white/20 bg-marino">
-          <FotoProducto url={p.foto_url} nombre={p.nombre} sizes="(min-width: 768px) 50vw, 100vw" texto="text-7xl" />
-        </div>
+        <Galeria fotos={[p.foto_url, ...(p.fotos ?? [])].filter((f): f is string => !!f)} nombre={p.nombre} />
         <div>
           <p className="text-xs text-white/80">
             Vendido por <span className="font-semibold text-white">{c.nombre}</span>
@@ -134,7 +150,12 @@ async function Producto({ params }: Pick<Props, "params">) {
             <Estrellas valor={prom} />
             <span>{nota(prom) ?? "Sin reseñas"}</span>
           </div>
-          <h1 className="mt-3 text-2xl leading-snug font-bold">{p.nombre}</h1>
+          <div className="mt-3 flex items-start justify-between gap-3">
+            <h1 className="text-2xl leading-snug font-bold">{p.nombre}</h1>
+            <Suspense fallback={<span className="h-10 w-10 shrink-0" />}>
+              <Favorito tipo="producto" id={p.id} />
+            </Suspense>
+          </div>
           {p.marca ? <p className="mt-1 text-sm text-white/80">Marca: {p.marca}</p> : null}
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <Stock d={d} />
@@ -206,6 +227,41 @@ async function Producto({ params }: Pick<Props, "params">) {
         </section>
       ) : null}
 
+      {enOtros.length ? (
+        <section className="mt-8">
+          <h2 className="text-lg font-semibold">También lo tienen</h2>
+          <p className="mt-1 text-sm text-white/75">El mismo producto en otros comercios de VeciRed. Compará antes de reservar.</p>
+          <ul className="mt-3 divide-y divide-white/10 rounded-2xl border border-white/20">
+            <li className="flex items-center justify-between gap-3 bg-white/5 px-4 py-3 text-sm">
+              <span className="min-w-0">
+                <span className="font-semibold">{c.nombre}</span> <span className="text-xs text-white/70">(el que estás viendo)</span>
+              </span>
+              <span className="shrink-0 font-bold">{plata(p.precio)}</span>
+            </li>
+            {enOtros.map((o) => {
+              const masBarato = o.precio != null && p.precio != null && o.precio < p.precio;
+              return (
+                <li key={o.id}>
+                  <Link href={`/producto/${o.id}`} className="flex items-center justify-between gap-3 px-4 py-3 text-sm transition hover:bg-white/5">
+                    <span className="min-w-0">
+                      <span className="block font-semibold break-words">{o.comercio.nombre}</span>
+                      <span className="block text-xs break-words text-white/70">{o.comercio.direccion}</span>
+                      <span className="mt-1 inline-block">
+                        <Stock d={disponibilidad(o, ahora)} />
+                      </span>
+                    </span>
+                    <span className="shrink-0 text-right">
+                      <span className="block font-bold">{plata(o.precio)}</span>
+                      {masBarato ? <span className="mt-0.5 block text-[11px] font-semibold text-naranja-vivo">Más barato</span> : null}
+                    </span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      ) : null}
+
       <section className="mt-8">
         <h2 className="text-lg font-semibold">Descripción</h2>
         <p className="mt-2 text-sm leading-relaxed text-white/85">{p.descripcion || "Este producto todavía no tiene descripción cargada."}</p>
@@ -259,4 +315,24 @@ async function Reserva(props: React.ComponentProps<typeof FormReserva>) {
     );
   }
   return <FormReserva {...props} />;
+}
+
+// Esqueleto mientras carga: foto, título, precio y botón, en gris.
+function ProductoCargando() {
+  return (
+    <div aria-label="Cargando el producto…">
+      <div className="h-4 w-40 animate-pulse rounded bg-white/10" />
+      <div className="mt-4 grid gap-8 md:grid-cols-2">
+        <div className="aspect-square animate-pulse rounded-2xl bg-white/10" />
+        <div className="space-y-3">
+          <div className="h-3 w-1/3 animate-pulse rounded bg-white/10" />
+          <div className="h-7 w-4/5 animate-pulse rounded bg-white/10" />
+          <div className="h-5 w-1/2 animate-pulse rounded bg-white/10" />
+          <div className="h-9 w-2/5 animate-pulse rounded bg-white/10" />
+          <div className="h-12 w-full animate-pulse rounded-xl bg-white/10" />
+          <div className="h-12 w-full animate-pulse rounded-xl bg-white/10" />
+        </div>
+      </div>
+    </div>
+  );
 }

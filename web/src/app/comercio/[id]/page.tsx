@@ -5,6 +5,8 @@ import { Suspense } from "react";
 import { FotoPerfil } from "@/components/foto-perfil";
 import { FotoProducto } from "@/components/foto-producto";
 import { LogoComercio } from "@/components/logo-comercio";
+import { Favorito } from "@/components/favorito";
+import { TarjetaProductoCargando } from "@/components/tarjeta-producto";
 import { Abierto, Estrellas, Stock, Verificado } from "@/components/insignias";
 import { MapaComercios } from "@/components/mapa-comercios";
 import { RegistrarVista } from "@/components/registrar-vista";
@@ -45,7 +47,7 @@ const sinAcentos = (v: string) => v.toLowerCase().normalize("NFD").replace(/[̀-
 export default function PaginaComercio({ params, searchParams }: Props) {
   return (
     <div className="tarjeta rounded-3xl p-5">
-      <Suspense fallback={<p className="py-10 text-center text-sm text-white/80">Cargando el comercio…</p>}>
+      <Suspense fallback={<ComercioCargando />}>
         <Comercio params={params} searchParams={searchParams} />
       </Suspense>
     </div>
@@ -110,6 +112,9 @@ async function Comercio({ params, searchParams }: Pick<Props, "params" | "search
           <Abierto abierto={abiertoAhora(franjas ?? [], ahora, cerrados)} />
           <Verificado />
         </div>
+        <Suspense fallback={<span className="ml-auto h-10 w-10 shrink-0" />}>
+          <Favorito tipo="comercio" id={c.id} className="ml-auto" />
+        </Suspense>
       </div>
       <p className="mt-1 text-sm text-white/80">
         {c.rubro} · {c.direccion} · Horario {horario(franjas ?? [])}
@@ -231,5 +236,27 @@ function TarjetaGrupo({ lista }: { lista: Tabla<"productos">[] }) {
         <span className="boton mt-4 block w-full rounded-xl px-4 py-2.5 text-center text-sm font-semibold">Elegir variante</span>
       </div>
     </Link>
+  );
+}
+
+// Esqueleto mientras carga: logo, nombre, mapa y productos, en gris.
+function ComercioCargando() {
+  return (
+    <div aria-label="Cargando el comercio…">
+      <div className="h-4 w-36 animate-pulse rounded bg-white/10" />
+      <div className="mt-4 flex items-center gap-3">
+        <div className="h-16 w-16 animate-pulse rounded-2xl bg-white/10" />
+        <div className="flex-1 space-y-2">
+          <div className="h-6 w-1/2 animate-pulse rounded bg-white/10" />
+          <div className="h-3 w-2/3 animate-pulse rounded bg-white/10" />
+        </div>
+      </div>
+      <div className="mt-6 h-56 animate-pulse rounded-2xl bg-white/10" />
+      <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-3">
+        {Array.from({ length: 6 }, (_, i) => (
+          <TarjetaProductoCargando key={i} />
+        ))}
+      </div>
+    </div>
   );
 }

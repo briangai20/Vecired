@@ -134,6 +134,15 @@ export type Database = {
           },
         ]
       }
+      favoritos: {
+        Row: { comercio_id: number | null; creado_en: string; id: number; producto_id: number | null; usuario_id: string }
+        Insert: { comercio_id?: number | null; creado_en?: string; id?: never; producto_id?: number | null; usuario_id?: string }
+        Update: { comercio_id?: number | null; creado_en?: string; id?: never; producto_id?: number | null; usuario_id?: string }
+        Relationships: [
+          { foreignKeyName: "favoritos_producto_id_fkey"; columns: ["producto_id"]; isOneToOne: false; referencedRelation: "productos"; referencedColumns: ["id"] },
+          { foreignKeyName: "favoritos_comercio_id_fkey"; columns: ["comercio_id"]; isOneToOne: false; referencedRelation: "comercios"; referencedColumns: ["id"] },
+        ]
+      }
       mensajes: {
         Row: { autor_id: string; creado_en: string; id: number; reserva_id: number; texto: string }
         Insert: { autor_id?: string; creado_en?: string; id?: never; reserva_id: number; texto: string }
@@ -184,6 +193,7 @@ export type Database = {
           comercio_id: number
           descripcion: string | null
           foto_url: string | null
+          fotos: string[]
           grupo: string | null
           id: number
           marca: string | null
@@ -200,6 +210,7 @@ export type Database = {
           comercio_id: number
           descripcion?: string | null
           foto_url?: string | null
+          fotos?: string[]
           grupo?: string | null
           id?: never
           marca?: string | null
@@ -216,6 +227,7 @@ export type Database = {
           comercio_id?: number
           descripcion?: string | null
           foto_url?: string | null
+          fotos?: string[]
           grupo?: string | null
           id?: never
           marca?: string | null

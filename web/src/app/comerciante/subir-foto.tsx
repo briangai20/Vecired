@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { supabaseNavegador } from "@/lib/supabase/navegador";
-import { guardarFoto } from "./acciones";
+import { agregarFotoExtra, guardarFoto, quitarFotoExtra } from "./acciones";
 
 // Achica la foto a 1200 px de lado y la pasa a JPEG, para que suba rápido
 // con datos móviles y no ocupe espacio de más.
@@ -137,5 +137,76 @@ export function FotoNuevoProducto({ comercioId }: { comercioId: number }) {
       ) : null}
       {estado === "error" ? <span className="text-[#ffb4a2]">No se pudo subir. Probá con otra foto.</span> : null}
     </div>
+  );
+}
+
+// Fotos extra de un producto (hasta 5, además de la principal), para la galería.
+export function FotosExtra({ productoId, comercioId, fotos }: { productoId: number; comercioId: number; fotos: string[] }) {
+  const entrada = useRef<HTMLInputElement>(null);
+  const [estado, setEstado] = useState<"" | "subiendo" | "error">("");
+
+  async function subir(archivos: File[]) {
+    setEstado("subiendo");
+    try {
+      const supabase = supabaseNavegador();
+      for (const archivo of archivos.slice(0, 5 - fotos.length)) {
+        const foto = await achicar(archivo);
+        const ruta = `${comercioId}/${productoId}-extra-${Date.now()}.jpg`;
+        const { error } = await supabase.storage.from("productos").upload(ruta, foto, { contentType: "image/jpeg" });
+        if (error) throw error;
+        await agregarFotoExtra(productoId, supabase.storage.from("productos").getPublicUrl(ruta).data.publicUrl);
+      }
+      setEstado("");
+    } catch (e) {
+      console.error("[fotos]", e);
+      setEstado("error");
+    }
+  }
+
+  return (
+    <details className="mt-2 text-xs">
+      <summary className="cursor-pointer text-white/85">Más fotos ({fotos.length} de 5)</summary>
+      <div className="mt-2 flex flex-wrap items-center gap-2">
+        {fotos.map((f) => (
+          <div key={f} className="relative h-14 w-14 overflow-hidden rounded-xl border border-white/20">
+            {/* eslint-disable-next-line @next/next/no-img-element -- miniatura en el panel */}
+            <img src={f} alt="" className="h-full w-full object-cover" />
+            <button
+              type="button"
+              onClick={() => quitarFotoExtra(productoId, f)}
+              aria-label="Quitar esta foto"
+              className="absolute top-0.5 right-0.5 grid h-5 w-5 place-items-center rounded-full bg-marino/90 text-[11px] text-white"
+            >
+              ✕
+            </button>
+          </div>
+        ))}
+        {fotos.length < 5 ? (
+          <>
+            <input
+              ref={entrada}
+              type="file"
+              accept="image/*"
+              multiple
+              hidden
+              onChange={(e) => {
+                const lista = [...(e.target.files ?? [])];
+                if (lista.length) subir(lista);
+                e.target.value = "";
+              }}
+            />
+            <button
+              type="button"
+              disabled={estado === "subiendo"}
+              onClick={() => entrada.current?.click()}
+              className="grid h-14 w-14 place-items-center rounded-xl border border-dashed border-white/40 hover:bg-white/10 disabled:opacity-50"
+            >
+              {estado === "subiendo" ? "…" : "+ Foto"}
+            </button>
+          </>
+        ) : null}
+      </div>
+      {estado === "error" ? <p className="mt-1 text-[#ffb4a2]">No se pudo subir. Probá con otra foto.</p> : null}
+    </details>
   );
 }

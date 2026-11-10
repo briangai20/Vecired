@@ -133,7 +133,7 @@ export type Disponibilidad = {
 
 // Misma lógica que el prototipo: si el comercio no actualiza el stock hace
 // días, se muestra "Stock sin confirmar" y la reserva pasa a pedir confirmación.
-export function disponibilidad(p: Tabla<"productos">, ahora: Date): Disponibilidad {
+export function disponibilidad(p: Pick<Tabla<"productos">, "modo" | "stock" | "semaforo" | "actualizado_en">, ahora: Date): Disponibilidad {
   const dias = (ahora.getTime() - new Date(p.actualizado_en).getTime()) / DIA;
   const sinVerificar: Disponibilidad = { texto: "Stock sin confirmar", tono: "consultar", sePuede: true, requiereConfirmacion: true };
 

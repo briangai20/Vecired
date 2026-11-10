@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { Filtros, type ValoresFiltro } from "@/components/filtros";
-import { FotoProducto } from "@/components/foto-producto";
-import { Abierto, Estrellas, Stock } from "@/components/insignias";
+import { Abierto, Estrellas } from "@/components/insignias";
+import { TarjetaProducto, TarjetaProductoCargando } from "@/components/tarjeta-producto";
 import { ListaConMas } from "@/components/lista-con-mas";
 import { LogoComercio } from "@/components/logo-comercio";
 import { MapaComercios } from "@/components/mapa-comercios";
-import { abiertoAhora, disponibilidad, fechaAR, horario, km, nota, plata, promedio, viaje } from "@/lib/formato";
+import { abiertoAhora, disponibilidad, fechaAR, horario, km, nota, promedio, viaje } from "@/lib/formato";
 import { iconoRubro, nombreRubro, sinAcentos } from "@/lib/rubros";
 import { supabasePublico } from "@/lib/supabase/publico";
 import { CENTROS, RADIO_INICIAL, ZONA_INICIAL } from "@/lib/zonas";
@@ -70,6 +70,9 @@ export default function Inicio({ searchParams }: PageProps<"/">) {
     <div className="space-y-6">
       <Suspense fallback={null}>
         <Portada searchParams={searchParams} />
+      </Suspense>
+      <Suspense fallback={<FilasCargando />}>
+        <FilasDeProductos searchParams={searchParams} />
       </Suspense>
       <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
         <aside className="space-y-4 lg:sticky lg:top-24 lg:self-start">
@@ -157,6 +160,91 @@ async function Portada({ searchParams }: { searchParams: Params }) {
         </nav>
       ) : null}
     </>
+  );
+}
+
+// Filas de productos de la portada (sin búsqueda): cerca tuyo, abiertos ahora
+// y recién agregados, como las vidrieras de Mercado Libre.
+async function FilasDeProductos({ searchParams }: { searchParams: Params }) {
+  const sp = await searchParams;
+  const f = leerFiltro(sp);
+  if (f.q) return null;
+  const centro = f.lat != null && f.lng != null ? { lat: f.lat, lng: f.lng } : CENTROS[f.zona];
+  const db = supabasePublico();
+  const { data: comercios } = await db.rpc("comercios_cercanos", { p_lat: centro.lat, p_lng: centro.lng, p_radio_km: f.radio });
+  const ids = (comercios ?? []).map((c) => c.id);
+  if (!ids.length) return null;
+  const ahora = new Date();
+  const [{ data: productos }, { data: horarios }, cierres] = await Promise.all([
+    db.from("productos").select("*").in("comercio_id", ids).eq("activo", true).order("id", { ascending: false }).limit(400),
+    db.from("horarios").select("*").in("comercio_id", ids),
+    Promise.all(ids.map((id) => db.rpc("dias_cerrados", { p_comercio: id, p_desde: fechaAR(ahora), p_hasta: fechaAR(ahora) }))),
+  ]);
+  const cerradoHoy = new Set(cierres.flatMap((r, i) => (r.data?.length ? [ids[i]] : [])));
+  const abierto = new Map(
+    ids.map((id) => [id, abiertoAhora((horarios ?? []).filter((h) => h.comercio_id === id), ahora, cerradoHoy.has(id) ? [fechaAR(ahora)] : [])]),
+  );
+  const comercioDe = new Map((comercios ?? []).map((c) => [c.id, c]));
+  // Solo productos que se pueden reservar; con foto primero, que se ven mejor.
+  const todos = (productos ?? [])
+    .map((p) => ({ p, c: comercioDe.get(p.comercio_id)!, d: disponibilidad(p, ahora) }))
+    .filter((x) => x.c && x.d.sePuede);
+  type Item = (typeof todos)[number];
+  const conFotoPrimero = (l: Item[]) => [...l].sort((a, b) => Number(!!b.p.foto_url) - Number(!!a.p.foto_url));
+  // Para que una fila no sea toda de un mismo comercio, se van alternando.
+  const mezclar = (l: Item[]) => {
+    const porComercio = new Map<number, Item[]>();
+    for (const x of l) porComercio.set(x.c.id, [...(porComercio.get(x.c.id) ?? []), x]);
+    const colas = [...porComercio.values()];
+    const salida: Item[] = [];
+    while (colas.some((q) => q.length)) for (const q of colas) if (q.length) salida.push(q.shift()!);
+    return salida;
+  };
+  const filas = [
+    { titulo: "Cerca tuyo", lista: mezclar(conFotoPrimero(todos).sort((a, b) => a.c.distancia_km - b.c.distancia_km)) },
+    { titulo: "Abiertos ahora", lista: mezclar(conFotoPrimero(todos.filter((x) => abierto.get(x.c.id)))) },
+    { titulo: "Recién agregados", lista: mezclar(todos) },
+  ].filter((fila) => fila.lista.length >= 2);
+  if (!filas.length) return null;
+
+  return (
+    <div className="space-y-5">
+      {filas.map((fila) => (
+        <section key={fila.titulo} aria-label={fila.titulo}>
+          <h2 className="mb-2 text-lg font-bold text-marino">{fila.titulo}</h2>
+          <ul className="-mx-4 flex snap-x gap-3 overflow-x-auto px-4 pb-2 sm:mx-0 sm:px-0">
+            {fila.lista.slice(0, 12).map(({ p, c, d }) => (
+              <li key={p.id} className="w-40 shrink-0 snap-start sm:w-48">
+                <TarjetaProducto
+                  id={p.id}
+                  nombre={p.nombre}
+                  precio={p.precio}
+                  foto={p.foto_url}
+                  d={d}
+                  comercio={c.nombre}
+                  distancia={c.distancia_km}
+                  abierto={abierto.get(c.id) ?? null}
+                  className="h-full"
+                />
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))}
+    </div>
+  );
+}
+
+function FilasCargando() {
+  return (
+    <div>
+      <div className="mb-2 h-5 w-32 animate-pulse rounded bg-marino/10" />
+      <div className="flex gap-3 overflow-hidden">
+        {Array.from({ length: 6 }, (_, i) => (
+          <TarjetaProductoCargando key={i} className="w-40 shrink-0 bg-marino sm:w-48" />
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -283,28 +371,17 @@ async function Resultados({ searchParams }: { searchParams: Params }) {
         ) : (
           <ListaConMas deA={12} que="productos" className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
             {productos.map(({ p, c, d }) => (
-              <Link
+              <TarjetaProducto
                 key={p.id}
-                href={`/producto/${p.id}`}
-                className="group flex flex-col overflow-hidden rounded-2xl border border-white/20 transition hover:-translate-y-0.5 hover:border-white/60"
-              >
-                <div className="relative aspect-square overflow-hidden bg-marino-claro">
-                  <FotoProducto url={p.foto_url} nombre={p.nombre} sizes="(min-width: 1280px) 22vw, (min-width: 768px) 30vw, 50vw" />
-                  <span className="absolute top-2 left-2">
-                    <Stock d={d} />
-                  </span>
-                </div>
-                <div className="flex flex-1 flex-col p-3">
-                  <p className="line-clamp-2 text-sm leading-snug font-medium">{p.nombre}</p>
-                  <p className="mt-1 text-lg font-black">{plata(p.precio)}</p>
-                  <p className="mt-auto pt-2 text-xs break-words text-white/80">
-                    {c.nombre} · {km(c.distancia_km)}
-                  </p>
-                  <p className={`text-[11px] font-semibold ${abierto.get(c.id) ? "text-white" : "text-white/55"}`}>
-                    {abierto.get(c.id) ? "● Abierto ahora" : "Cerrado ahora"}
-                  </p>
-                </div>
-              </Link>
+                id={p.id}
+                nombre={p.nombre}
+                precio={p.precio}
+                foto={p.foto_url}
+                d={d}
+                comercio={c.nombre}
+                distancia={c.distancia_km}
+                abierto={abierto.get(c.id) ?? null}
+              />
             ))}
           </ListaConMas>
         )
@@ -442,7 +519,7 @@ function Cargando() {
       <div className="h-6 w-1/2 animate-pulse rounded-lg bg-white/10" />
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
         {Array.from({ length: 6 }, (_, i) => (
-          <div key={i} className="h-48 animate-pulse rounded-2xl bg-white/10" />
+          <TarjetaProductoCargando key={i} />
         ))}
       </div>
     </div>

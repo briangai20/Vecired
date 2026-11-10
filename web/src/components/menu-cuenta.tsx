@@ -23,6 +23,9 @@ export async function MenuCuenta() {
       <Link href="/reservas" className={enlace}>
         Mis reservas
       </Link>
+      <Link href="/favoritos" className={enlace}>
+        Favoritos
+      </Link>
       {usuario.rol === "comerciante" ? (
         <Link href="/comerciante" className={enlace}>
           Mi comercio

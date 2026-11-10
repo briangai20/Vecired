@@ -396,3 +396,27 @@ export async function responderResena(d: FormData) {
   if (error) redirect(`/comerciante?seccion=resenas&error=${encodeURIComponent(error.code === "P0001" ? error.message : "No pudimos guardar la respuesta. Probá de nuevo.")}`);
   await listo("resenas");
 }
+
+// Fotos extra de un producto (galería). Solo se aceptan fotos del propio comercio.
+export async function agregarFotoExtra(productoId: number, url: string) {
+  const supabase = await comerciante();
+  const { data: p } = await supabase.from("productos").select("comercio_id, fotos").eq("id", productoId).single();
+  if (!p) throw new Error("Producto no encontrado");
+  const carpeta = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/productos/${p.comercio_id}/`;
+  if (!url.startsWith(carpeta)) throw new Error("La foto no es de este comercio");
+  if ((p.fotos ?? []).length >= 5) throw new Error("Ya tiene 5 fotos extra");
+  const { error } = await supabase.from("productos").update({ fotos: [...(p.fotos ?? []), url] }).eq("id", productoId);
+  if (error) throw new Error("No se pudo guardar la foto");
+  refresh();
+}
+
+export async function quitarFotoExtra(productoId: number, url: string) {
+  const supabase = await comerciante();
+  const { data: p } = await supabase.from("productos").select("fotos").eq("id", productoId).single();
+  if (!p || !(p.fotos ?? []).includes(url)) return;
+  const { error } = await supabase.from("productos").update({ fotos: p.fotos.filter((f) => f !== url) }).eq("id", productoId);
+  if (error) throw new Error("No se pudo quitar la foto");
+  const raiz = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/productos/`;
+  if (url.startsWith(raiz)) await supabase.storage.from("productos").remove([url.slice(raiz.length)]);
+  refresh();
+}

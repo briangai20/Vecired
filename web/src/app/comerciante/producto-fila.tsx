@@ -3,7 +3,7 @@ import type { Tabla } from "@/lib/supabase/tipos";
 import { FotoProducto } from "@/components/foto-producto";
 import { Stock } from "@/components/insignias";
 import { confirmarStock, guardarProducto } from "./acciones";
-import { FotoNuevoProducto, SubirFoto } from "./subir-foto";
+import { FotoNuevoProducto, FotosExtra, SubirFoto } from "./subir-foto";
 
 // Un producto editable (o el formulario de alta, si no se pasa producto).
 export function ProductoFila({ p, comercioId, ahora }: { p?: Tabla<"productos">; comercioId: number; ahora: Date }) {
@@ -24,6 +24,7 @@ export function ProductoFila({ p, comercioId, ahora }: { p?: Tabla<"productos">;
               </p>
               <div className="mt-1">
                 <SubirFoto productoId={p.id} comercioId={comercioId} tieneFoto={!!p.foto_url} />
+                <FotosExtra productoId={p.id} comercioId={comercioId} fotos={p.fotos ?? []} />
               </div>
             </div>
           </div>

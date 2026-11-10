@@ -7,6 +7,7 @@ import { MenuCuenta } from "@/components/menu-cuenta";
 import { MenuMovil } from "@/components/menu-movil";
 import { Avisos } from "@/components/avisos";
 import { Buscador, BuscadorCargando } from "@/components/buscador";
+import { InstalarApp } from "@/components/instalar-app";
 import { DESCRIPCION_SITIO, SITIO } from "@/lib/sitio";
 import { CUIT, MAIL_CONTACTO, TITULAR } from "@/lib/legal";
 import "./globals.css";
@@ -31,6 +32,8 @@ export const metadata: Metadata = {
     description: DESCRIPCION_SITIO,
   },
   twitter: { card: "summary_large_image" },
+  // Al agregarla a la pantalla de inicio del iPhone, se abre como app.
+  appleWebApp: { capable: true, title: "VeciRed", statusBarStyle: "black-translucent" },
 };
 
 export const viewport: Viewport = {
@@ -94,6 +97,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
                 </span>
               </Link>
               <p className="mt-2 text-white/75">Conectá con el comercio de tu barrio.</p>
+              <div className="mt-4">
+                <InstalarApp />
+              </div>
             </div>
             <nav className="flex flex-col gap-2" aria-label="VeciRed">
               <Link href="/comercios" className="hover:underline">Sumá tu comercio</Link>
