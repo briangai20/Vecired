@@ -17,14 +17,15 @@ export function MenuMovil({ children }: { children: ReactNode }) {
   return (
     <details ref={menu} className="group relative md:hidden">
       <summary
-        className="flex cursor-pointer list-none items-center gap-2 rounded-xl border border-white/30 px-3 py-2 text-sm font-medium text-white [&::-webkit-details-marker]:hidden"
+        className="flex cursor-pointer list-none h-10 items-center gap-2 rounded-xl border border-white/30 px-2.5 text-sm min-[420px]:px-3 font-medium text-white [&::-webkit-details-marker]:hidden"
         aria-label="Menú"
       >
         <svg aria-hidden viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
           <path className="group-open:hidden" d="M4 7h16M4 12h16M4 17h16" />
           <path className="hidden group-open:block" d="M6 6l12 12M18 6L6 18" />
         </svg>
-        Menú
+        {/* En celulares angostos queda solo el ícono, para que entre la fila. */}
+        <span className="hidden min-[420px]:inline">Menú</span>
       </summary>
       <nav
         aria-label="Secciones"

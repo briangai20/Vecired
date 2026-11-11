@@ -150,7 +150,7 @@ export function Campanita({ yo }: { yo: string }) {
   }
 
   return (
-    <div ref={caja} className="relative">
+    <div ref={caja} className="sm:relative">
       <button
         type="button"
         onClick={() => {
@@ -173,7 +173,9 @@ export function Campanita({ yo }: { yo: string }) {
       </button>
 
       {abierta ? (
-        <div className="absolute right-0 z-50 mt-2 w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-white/20 bg-marino text-white shadow-2xl shadow-black/50">
+        // En el celular cuelga del encabezado, a lo ancho de la pantalla (pegado a
+        // la campanita se salía por la izquierda); en la compu cuelga del botón.
+        <div className="absolute inset-x-4 top-full z-50 mt-2 overflow-hidden rounded-2xl border border-white/20 bg-marino text-white shadow-2xl shadow-black/50 sm:inset-x-auto sm:right-0 sm:w-[22rem]">
           <div className="flex items-center justify-between gap-2 border-b border-white/15 px-4 py-3">
             <p className="font-semibold">Avisos</p>
             <div className="flex items-center gap-3 text-xs">

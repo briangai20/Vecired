@@ -46,7 +46,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="flex min-h-full flex-col font-sans">
         <header className="sticky top-0 z-40 border-b border-white/10 bg-marino shadow-lg shadow-black/30">
           <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-3 lg:gap-5 lg:px-6">
-            <Link href="/" className="mr-auto flex min-w-0 shrink-0 items-center gap-3 lg:mr-0">
+            <Link href="/" className="mr-auto flex min-w-0 items-center gap-2.5 sm:gap-3 lg:mr-0 lg:shrink-0">
               <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl border border-white/30">
                 <LogoVeciRed className="h-9 w-9" />
               </span>
