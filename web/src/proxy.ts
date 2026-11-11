@@ -27,5 +27,6 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   // Todo menos archivos estáticos e imágenes.
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"],
+  // /sw.js y /api/push no usan la sesión: se saltean para no hacer viajes de más.
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|sw\\.js|api/push|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"],
 };

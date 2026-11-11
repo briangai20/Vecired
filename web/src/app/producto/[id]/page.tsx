@@ -10,6 +10,10 @@ import { AvisoCierres } from "@/components/aviso-cierres";
 import { abiertoAhora, fechaAR, disponibilidad, franjasRetiro, horario, nota, plata, promedio } from "@/lib/formato";
 import { usuarioActual } from "@/lib/sesion";
 import { FormReserva } from "./form-reserva";
+import { FormPregunta } from "./form-pregunta";
+import { borrarPregunta } from "./acciones";
+import { BotonEnviar } from "@/components/boton-enviar";
+import { supabaseServidor } from "@/lib/supabase/servidor";
 import { supabasePublico } from "@/lib/supabase/publico";
 import { vistaPrevia } from "@/lib/sitio";
 import { enlaceWhatsapp } from "@/lib/whatsapp";
@@ -280,6 +284,13 @@ async function Producto({ params }: Pick<Props, "params">) {
         </dl>
       </section>
 
+      <section id="preguntas" className="mt-8 scroll-mt-28">
+        <h2 className="text-lg font-semibold">Preguntas al comercio</h2>
+        <Suspense fallback={<div className="mt-3 h-24 animate-pulse rounded-2xl bg-white/5" />}>
+          <Preguntas productoId={p.id} comercioId={c.id} comercio={c.nombre} />
+        </Suspense>
+      </section>
+
       {masProductos.length ? (
         <section className="mt-8">
           <h2 className="text-lg font-semibold">Más productos de {c.nombre}</h2>
@@ -315,6 +326,79 @@ async function Reserva(props: React.ComponentProps<typeof FormReserva>) {
     );
   }
   return <FormReserva {...props} />;
+}
+
+// Preguntas públicas con sus respuestas, y el formulario para preguntar.
+// No se muestra quién preguntó; a cada uno se le marca "Tu pregunta".
+async function Preguntas({ productoId, comercioId, comercio }: { productoId: number; comercioId: number; comercio: string }) {
+  const usuario = await usuarioActual();
+  const supabase = await supabaseServidor();
+  const [{ data: preguntas }, { data: mias }, { data: esDueno }] = await Promise.all([
+    supabase
+      .from("preguntas")
+      .select("id, texto, creada_en, respuesta, respondida_en")
+      .eq("producto_id", productoId)
+      .order("creada_en", { ascending: false })
+      .limit(50),
+    usuario ? supabase.rpc("mis_preguntas", { p_producto: productoId }) : Promise.resolve({ data: [] as number[] }),
+    usuario ? supabase.rpc("es_dueno", { p_comercio: comercioId }) : Promise.resolve({ data: false }),
+  ]);
+  const propias = new Set(mias ?? []);
+  const fecha = (f: string) => new Date(f).toLocaleDateString("es-AR", { day: "numeric", month: "short", timeZone: "America/Argentina/Buenos_Aires" });
+
+  return (
+    <>
+      {esDueno ? (
+        <p className="mt-2 text-sm text-white/80">
+          Es tu producto: las preguntas se responden desde{" "}
+          <Link href="/comerciante?seccion=preguntas" className="underline">
+            tu panel
+          </Link>
+          .
+        </p>
+      ) : usuario ? (
+        <FormPregunta productoId={productoId} />
+      ) : (
+        <p className="mt-2 text-sm text-white/80">
+          <Link href={`/ingresar?siguiente=${encodeURIComponent(`/producto/${productoId}#preguntas`)}`} className="font-semibold underline">
+            Ingresá
+          </Link>{" "}
+          para preguntarle a {comercio}.
+        </p>
+      )}
+      {preguntas?.length ? (
+        <ul className="mt-5 space-y-4">
+          {preguntas.map((q) => (
+            <li key={q.id} className="text-sm">
+              <div className="flex items-start justify-between gap-3">
+                <p className="break-words">
+                  {q.texto}
+                  {propias.has(q.id) ? <span className="ml-2 rounded-full bg-white/15 px-2 py-0.5 text-[11px] font-semibold">Tu pregunta</span> : null}
+                </p>
+                {propias.has(q.id) ? (
+                  <form action={borrarPregunta}>
+                    <input type="hidden" name="pregunta" value={q.id} />
+                    <BotonEnviar enviando="Borrando…" className="shrink-0 text-xs text-white/60 underline-offset-2 hover:text-white hover:underline">
+                      Borrar
+                    </BotonEnviar>
+                  </form>
+                ) : null}
+              </div>
+              {q.respuesta ? (
+                <p className="mt-1 border-l-2 border-white/30 pl-3 break-words text-white/80">
+                  {q.respuesta} <span className="text-xs text-white/55">· {fecha(q.respondida_en ?? q.creada_en)}</span>
+                </p>
+              ) : (
+                <p className="mt-1 pl-3 text-xs text-white/55">Esperando la respuesta del comercio · {fecha(q.creada_en)}</p>
+              )}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="mt-4 text-sm text-white/70">Nadie preguntó todavía. ¡Hacé la primera pregunta!</p>
+      )}
+    </>
+  );
 }
 
 // Esqueleto mientras carga: foto, título, precio y botón, en gris.

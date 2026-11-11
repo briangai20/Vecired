@@ -153,9 +153,24 @@ export type Database = {
         ]
       }
       notificaciones: {
-        Row: { creada_en: string; cuerpo: string | null; enlace: string | null; id: number; leida_en: string | null; titulo: string; usuario_id: string }
-        Insert: { creada_en?: string; cuerpo?: string | null; enlace?: string | null; id?: never; leida_en?: string | null; titulo: string; usuario_id: string }
-        Update: { creada_en?: string; cuerpo?: string | null; enlace?: string | null; id?: never; leida_en?: string | null; titulo?: string; usuario_id?: string }
+        Row: { creada_en: string; cuerpo: string | null; enlace: string | null; id: number; leida_en: string | null; push_enviada_en: string | null; titulo: string; usuario_id: string }
+        Insert: { creada_en?: string; cuerpo?: string | null; enlace?: string | null; id?: never; leida_en?: string | null; push_enviada_en?: string | null; titulo: string; usuario_id: string }
+        Update: { creada_en?: string; cuerpo?: string | null; enlace?: string | null; id?: never; leida_en?: string | null; push_enviada_en?: string | null; titulo?: string; usuario_id?: string }
+        Relationships: []
+      }
+      preguntas: {
+        Row: { autor_id: string; comercio_id: number; creada_en: string; id: number; producto_id: number; respondida_en: string | null; respuesta: string | null; texto: string }
+        Insert: { autor_id?: string; comercio_id?: number; creada_en?: string; id?: never; producto_id: number; respondida_en?: string | null; respuesta?: string | null; texto: string }
+        Update: { autor_id?: string; comercio_id?: number; creada_en?: string; id?: never; producto_id?: number; respondida_en?: string | null; respuesta?: string | null; texto?: string }
+        Relationships: [
+          { foreignKeyName: "preguntas_producto_id_fkey"; columns: ["producto_id"]; isOneToOne: false; referencedRelation: "productos"; referencedColumns: ["id"] },
+          { foreignKeyName: "preguntas_comercio_id_fkey"; columns: ["comercio_id"]; isOneToOne: false; referencedRelation: "comercios"; referencedColumns: ["id"] },
+        ]
+      }
+      suscripciones_push: {
+        Row: { auth: string; creada_en: string; endpoint: string; id: number; p256dh: string; usuario_id: string }
+        Insert: { auth: string; creada_en?: string; endpoint: string; id?: never; p256dh: string; usuario_id: string }
+        Update: { auth?: string; creada_en?: string; endpoint?: string; id?: never; p256dh?: string; usuario_id?: string }
         Relationships: []
       }
       perfiles: {
@@ -492,6 +507,9 @@ export type Database = {
     }
     Functions: {
       responder_resena: { Args: { p_resena: number; p_texto: string }; Returns: undefined }
+      responder_pregunta: { Args: { p_pregunta: number; p_texto: string }; Returns: undefined }
+      mis_preguntas: { Args: { p_producto: number }; Returns: number[] }
+      guardar_suscripcion_push: { Args: { p_endpoint: string; p_p256dh: string; p_auth: string }; Returns: undefined }
       dias_cerrados: {
         Args: { p_comercio: number; p_desde: string; p_hasta: string }
         Returns: { fecha: string; motivo: string }[]

@@ -397,6 +397,24 @@ export async function responderResena(d: FormData) {
   await listo("resenas");
 }
 
+export async function responderPregunta(d: FormData) {
+  const supabase = await comerciante();
+  const pregunta = Number(texto(d, "pregunta"));
+  if (!pregunta) return;
+  const { error } = await supabase.rpc("responder_pregunta", { p_pregunta: pregunta, p_texto: texto(d, "respuesta").slice(0, 1000) });
+  if (error) redirect(`/comerciante?seccion=preguntas&error=${encodeURIComponent(error.code === "P0001" ? error.message : "No pudimos guardar la respuesta. Probá de nuevo.")}`);
+  await listo("preguntas");
+}
+
+// Borra una pregunta ofensiva o que no corresponde.
+export async function borrarPreguntaComercio(d: FormData) {
+  const supabase = await comerciante();
+  const pregunta = Number(texto(d, "pregunta"));
+  if (!pregunta) return;
+  await supabase.from("preguntas").delete().eq("id", pregunta);
+  await listo("preguntas");
+}
+
 // Fotos extra de un producto (galería). Solo se aceptan fotos del propio comercio.
 export async function agregarFotoExtra(productoId: number, url: string) {
   const supabase = await comerciante();

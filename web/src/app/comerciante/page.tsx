@@ -5,13 +5,13 @@ import { disponibilidad, fechaAR, plata } from "@/lib/formato";
 import { usuarioActual } from "@/lib/sesion";
 import { supabaseServidor } from "@/lib/supabase/servidor";
 import type { Enum } from "@/lib/supabase/tipos";
-import { agregarCierre, borrarCierre, cambiarReserva, ofrecerAlternativas, responderResena } from "./acciones";
+import { agregarCierre, borrarCierre, borrarPreguntaComercio, cambiarReserva, ofrecerAlternativas, responderPregunta, responderResena } from "./acciones";
 
 const fechaCorta = (f: string) => `${Number(f.slice(8))}/${Number(f.slice(5, 7))}`;
 
 // El panel se divide en pestañas (?seccion=): lo del día a día (reservas)
 // queda separado de la configuración del comercio.
-const SECCIONES = { reservas: "Reservas", productos: "Productos", resenas: "Reseñas", configuracion: "Configuración del comercio" } as const;
+const SECCIONES = { reservas: "Reservas", productos: "Productos", preguntas: "Preguntas", resenas: "Reseñas", configuracion: "Configuración del comercio" } as const;
 type Seccion = keyof typeof SECCIONES;
 import { FormComercio } from "./form-comercio";
 import { FotosEnLote } from "./fotos-en-lote";
@@ -20,6 +20,7 @@ import { ProductoFila } from "./producto-fila";
 import { ListaConMas } from "@/components/lista-con-mas";
 import { LogoComercio } from "@/components/logo-comercio";
 import { BotonEnviar } from "@/components/boton-enviar";
+import { AvisosCelular } from "@/components/avisos-celular";
 import { Conversacion } from "@/components/conversacion";
 import { BotonesReserva, EstadoReserva, ReservaEnVivo, SiEstado } from "./reserva-en-vivo";
 import { FotoPerfil } from "@/components/foto-perfil";
@@ -102,7 +103,7 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
   }
 
   const ahora = new Date();
-  const [{ data: productos }, { data: reservas }, { data: stats }, { data: franjas }, { data: cierres }, { data: feriados }, { data: verificacion }, { data: resenas }] = await Promise.all([
+  const [{ data: productos }, { data: reservas }, { data: stats }, { data: franjas }, { data: cierres }, { data: feriados }, { data: verificacion }, { data: resenas }, { data: preguntas }] = await Promise.all([
     supabase.from("productos").select("*").eq("comercio_id", comercio.id).order("nombre"),
     supabase
       .from("reservas")
@@ -121,8 +122,17 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
       .eq("comercio_id", comercio.id)
       .order("creada_en", { ascending: false })
       .limit(50),
+    supabase
+      .from("preguntas")
+      .select("id, texto, creada_en, respuesta, producto:productos(id, nombre)")
+      .eq("comercio_id", comercio.id)
+      .order("creada_en", { ascending: false })
+      .limit(100),
   ]);
   const sinResponder = (resenas ?? []).filter((r) => !r.respuesta).length;
+  // Primero las que esperan respuesta.
+  const listaPreguntas = [...(preguntas ?? [])].sort((a, b) => Number(!!a.respuesta) - Number(!!b.respuesta));
+  const preguntasSinResponder = listaPreguntas.filter((q) => !q.respuesta).length;
   const s = stats?.[0];
   const enCurso = (e: string) => e === "pendiente" || e === "alternativa" || e === "aceptada";
   const abiertas = (reservas ?? []).filter((r) => enCurso(r.estado));
@@ -201,16 +211,17 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
             </div>
           ))}
         </div>
-        <nav className="mt-6 grid grid-cols-2 gap-1 sm:grid-cols-4 rounded-2xl border border-white/20 p-1" aria-label="Secciones del panel">
+        <nav className="mt-6 grid grid-cols-2 gap-1 rounded-2xl border border-white/20 p-1 sm:grid-cols-5" aria-label="Secciones del panel">
           {(Object.keys(SECCIONES) as Seccion[]).map((k) => {
-            const pendientes = k === "reservas" ? abiertas.filter((r) => r.estado === "pendiente").length : k === "resenas" ? sinResponder : 0;
+            const pendientes =
+              k === "reservas" ? abiertas.filter((r) => r.estado === "pendiente").length : k === "resenas" ? sinResponder : k === "preguntas" ? preguntasSinResponder : 0;
             return (
               <Link
                 key={k}
                 href={`/comerciante?seccion=${k}`}
                 scroll={false}
                 aria-current={k === seccion ? "page" : undefined}
-                className={`flex items-center justify-center gap-2 rounded-xl px-2 py-2.5 text-center text-sm font-medium leading-tight transition ${k === seccion ? "bg-white text-marino" : "hover:bg-white/10"}`}
+                className={`flex items-center justify-center gap-2 rounded-xl px-2 py-2.5 text-center text-sm font-medium leading-tight transition ${k === "configuracion" ? "col-span-2 sm:col-span-1" : ""} ${k === seccion ? "bg-white text-marino" : "hover:bg-white/10"}`}
               >
                 {k === "configuracion" ? (
                   <>
@@ -237,6 +248,7 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
       <section id="reservas" className="tarjeta rounded-3xl p-6">
         <h2 className="text-lg font-semibold">Reservas</h2>
         <p className="mt-1 text-sm text-white/80">Respondé cada reserva dentro de las 2 horas de tu horario de atención: si no, vence sola. Las que llegan con el local cerrado empiezan a contar cuando abrís. Las aceptadas que nadie retira vencen solas un día de atención después del último horario de retiro, y el producto vuelve a tu stock.</p>
+        <AvisosCelular variante="panel" />
         {abiertas.length === 0 ? (
           <p className="mt-3 text-sm text-white/80">No tenés reservas para responder. Aparecen acá en cuanto un vecino reserve.</p>
         ) : (
@@ -349,6 +361,55 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
             ))}
           </ListaConMas>
         </div>
+      </section>
+      ) : null}
+
+      {seccion === "preguntas" ? (
+      <section id="preguntas" className="tarjeta rounded-3xl p-6">
+        <h2 className="text-lg font-semibold">Preguntas de los vecinos</h2>
+        <p className="mt-1 text-sm text-white/80">
+          Lo que preguntan en la página de tus productos. Respondé rápido: la pregunta y tu respuesta quedan a la vista de todos y le avisamos al vecino. Si una pregunta es ofensiva o no tiene que ver, podés borrarla.
+        </p>
+        {listaPreguntas.length ? (
+          <div className="mt-4 grid gap-3 md:grid-cols-2">
+            {listaPreguntas.map((q) => (
+              <article key={q.id} className={`rounded-2xl border p-4 ${q.respuesta ? "border-white/20" : "border-naranja-vivo/70"}`}>
+                <div className="flex flex-wrap items-baseline justify-between gap-2 text-xs text-white/70">
+                  {q.producto ? (
+                    <Link href={`/producto/${q.producto.id}#preguntas`} className="font-semibold text-white underline-offset-2 hover:underline">
+                      {q.producto.nombre}
+                    </Link>
+                  ) : null}
+                  <span>{new Date(q.creada_en).toLocaleDateString("es-AR", { timeZone: "America/Argentina/Buenos_Aires" })}</span>
+                </div>
+                <p className="mt-2 text-sm break-words">“{q.texto}”</p>
+                <form action={responderPregunta} className="mt-3 space-y-2">
+                  <input type="hidden" name="pregunta" value={q.id} />
+                  <label className="block text-xs text-white/80">
+                    {q.respuesta ? "Tu respuesta (podés cambiarla)" : "Tu respuesta"}
+                    <textarea name="respuesta" maxLength={1000} rows={2} defaultValue={q.respuesta ?? ""} className="campo mt-1" placeholder="¡Hola! Sí, lo tenemos. Te esperamos." />
+                  </label>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <BotonEnviar enviando="Guardando…" className="boton rounded-xl px-4 py-2 text-sm font-semibold">
+                      {q.respuesta ? "Guardar respuesta" : "Responder"}
+                    </BotonEnviar>
+                    <BotonEnviar
+                      formAction={borrarPreguntaComercio}
+                      name="borrar"
+                      value="1"
+                      enviando="Borrando…"
+                      className="text-xs text-white/60 underline-offset-2 hover:text-white hover:underline"
+                    >
+                      Borrar pregunta
+                    </BotonEnviar>
+                  </div>
+                </form>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <p className="mt-3 text-sm text-white/80">Todavía no te hicieron preguntas. Aparecen acá cuando un vecino pregunta en la página de un producto.</p>
+        )}
       </section>
       ) : null}
 

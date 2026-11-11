@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabaseNavegador } from "@/lib/supabase/navegador";
 import type { Tabla } from "@/lib/supabase/tipos";
+import { AvisosCelular } from "./avisos-celular";
 
 type Notificacion = Tabla<"notificaciones">;
 
@@ -211,6 +212,7 @@ export function Campanita({ yo }: { yo: string }) {
               ))
             )}
           </ul>
+          <AvisosCelular />
         </div>
       ) : null}
 
