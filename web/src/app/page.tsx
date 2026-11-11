@@ -10,6 +10,7 @@ import { abiertoAhora, disponibilidad, fechaAR, horario, km, nota, promedio, via
 import { iconoRubro, nombreRubro, sinAcentos } from "@/lib/rubros";
 import { supabasePublico } from "@/lib/supabase/publico";
 import { CENTROS, RADIO_INICIAL, ZONA_INICIAL } from "@/lib/zonas";
+import { VistosRecientes } from "@/components/vistos-recientes";
 
 type Params = PageProps<"/">["searchParams"];
 type SP = Awaited<Params>;
@@ -70,6 +71,9 @@ export default function Inicio({ searchParams }: PageProps<"/">) {
     <div className="space-y-6">
       <Suspense fallback={null}>
         <Portada searchParams={searchParams} />
+      </Suspense>
+      <Suspense fallback={null}>
+        <VistosRecientes />
       </Suspense>
       <Suspense fallback={<FilasCargando />}>
         <FilasDeProductos searchParams={searchParams} />

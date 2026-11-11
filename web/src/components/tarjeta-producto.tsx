@@ -19,7 +19,7 @@ export function TarjetaProducto({
   nombre: string;
   precio: number | null;
   foto: string | null;
-  d: Disponibilidad;
+  d?: Disponibilidad;
   comercio: string;
   distancia?: number;
   abierto?: boolean | null;
@@ -32,9 +32,11 @@ export function TarjetaProducto({
     >
       <div className="relative aspect-square overflow-hidden bg-marino-claro">
         <FotoProducto url={foto} nombre={nombre} sizes="(min-width: 1280px) 22vw, (min-width: 768px) 30vw, 50vw" />
-        <span className="absolute top-2 left-2">
-          <Stock d={d} />
-        </span>
+        {d ? (
+          <span className="absolute top-2 left-2">
+            <Stock d={d} />
+          </span>
+        ) : null}
       </div>
       <div className="flex flex-1 flex-col p-3 text-white">
         <p className="line-clamp-2 text-sm leading-snug font-medium">{nombre}</p>

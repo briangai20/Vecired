@@ -75,7 +75,7 @@ async function Producto({ params }: Pick<Props, "params">) {
   // "También lo tienen": el mismo producto en otros comercios (mismo nombre, o
   // mismo código si parece un código de barras).
   const mismoNombre = p.nombre.trim().replace(/[\%_]/g, (x) => "\\" + x);
-  const codigoBarras = p.codigo && /^d{8,14}$/.test(p.codigo.trim()) ? p.codigo.trim() : null;
+  const codigoBarras = p.codigo && /^\d{8,14}$/.test(p.codigo.trim()) ? p.codigo.trim() : null;
   const deOtros = () =>
     db
       .from("productos")
