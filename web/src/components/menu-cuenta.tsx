@@ -2,17 +2,25 @@ import Link from "next/link";
 import { salir } from "@/app/ingresar/acciones";
 import { usuarioActual } from "@/lib/sesion";
 
-const enlace = "rounded-xl px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10";
+// Cada opción va en su propio recuadro, en la compu y en el menú del celular.
+const enlace = "rounded-xl border border-white/25 px-3 py-2 text-center text-sm font-medium whitespace-nowrap text-white transition hover:border-white/60 hover:bg-white/10";
+
+const inicio = (
+  <Link href="/" className={enlace}>
+    Inicio
+  </Link>
+);
 
 export async function MenuCuenta() {
   const usuario = await usuarioActual();
   if (!usuario) {
     return (
       <>
+        {inicio}
         <Link href="/comercios" className={enlace}>
           Soy comerciante
         </Link>
-        <Link href="/ingresar" className={`${enlace} bg-white/10`}>
+        <Link href="/ingresar" className={`${enlace} border-white/50 bg-white/10`}>
           Ingresar
         </Link>
       </>
@@ -20,6 +28,7 @@ export async function MenuCuenta() {
   }
   return (
     <>
+      {inicio}
       <Link href="/reservas" className={enlace}>
         Mis reservas
       </Link>

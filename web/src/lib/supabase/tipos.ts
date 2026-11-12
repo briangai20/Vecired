@@ -153,9 +153,9 @@ export type Database = {
         ]
       }
       notificaciones: {
-        Row: { creada_en: string; cuerpo: string | null; enlace: string | null; id: number; leida_en: string | null; push_enviada_en: string | null; titulo: string; usuario_id: string }
-        Insert: { creada_en?: string; cuerpo?: string | null; enlace?: string | null; id?: never; leida_en?: string | null; push_enviada_en?: string | null; titulo: string; usuario_id: string }
-        Update: { creada_en?: string; cuerpo?: string | null; enlace?: string | null; id?: never; leida_en?: string | null; push_enviada_en?: string | null; titulo?: string; usuario_id?: string }
+        Row: { creada_en: string; cuerpo: string | null; enlace: string | null; id: number; leida_en: string | null; push_enviada_en: string | null; titulo: string; tono: "accion" | "bien" | "mal" | null; usuario_id: string }
+        Insert: { creada_en?: string; cuerpo?: string | null; enlace?: string | null; id?: never; leida_en?: string | null; push_enviada_en?: string | null; titulo: string; tono?: "accion" | "bien" | "mal" | null; usuario_id: string }
+        Update: { creada_en?: string; cuerpo?: string | null; enlace?: string | null; id?: never; leida_en?: string | null; push_enviada_en?: string | null; titulo?: string; tono?: "accion" | "bien" | "mal" | null; usuario_id?: string }
         Relationships: []
       }
       preguntas: {
@@ -508,6 +508,7 @@ export type Database = {
     Functions: {
       responder_resena: { Args: { p_resena: number; p_texto: string }; Returns: undefined }
       responder_pregunta: { Args: { p_pregunta: number; p_texto: string }; Returns: undefined }
+      corregir_busqueda: { Args: { p_texto: string }; Returns: string | null }
       mis_preguntas: { Args: { p_producto: number }; Returns: number[] }
       guardar_suscripcion_push: { Args: { p_endpoint: string; p_p256dh: string; p_auth: string }; Returns: undefined }
       dias_cerrados: {

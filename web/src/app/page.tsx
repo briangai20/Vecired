@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { Filtros, type ValoresFiltro } from "@/components/filtros";
 import { Abierto, Estrellas } from "@/components/insignias";
@@ -11,6 +12,7 @@ import { iconoRubro, nombreRubro, sinAcentos } from "@/lib/rubros";
 import { supabasePublico } from "@/lib/supabase/publico";
 import { CENTROS, RADIO_INICIAL, ZONA_INICIAL } from "@/lib/zonas";
 import { VistosRecientes } from "@/components/vistos-recientes";
+import { Carrusel } from "@/components/carrusel";
 
 type Params = PageProps<"/">["searchParams"];
 type SP = Awaited<Params>;
@@ -72,12 +74,7 @@ export default function Inicio({ searchParams }: PageProps<"/">) {
       <Suspense fallback={null}>
         <Portada searchParams={searchParams} />
       </Suspense>
-      <Suspense fallback={null}>
-        <VistosRecientes />
-      </Suspense>
-      <Suspense fallback={<FilasCargando />}>
-        <FilasDeProductos searchParams={searchParams} />
-      </Suspense>
+      {/* Enseguida de la bienvenida, la búsqueda y el mapa; las vidrieras de productos van al final. */}
       <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
         <aside className="space-y-4 lg:sticky lg:top-24 lg:self-start">
           <Suspense fallback={<div className="tarjeta h-16 animate-pulse rounded-3xl lg:h-72" />}>
@@ -90,6 +87,12 @@ export default function Inicio({ searchParams }: PageProps<"/">) {
           </Suspense>
         </section>
       </div>
+      <Suspense fallback={null}>
+        <VistosRecientes />
+      </Suspense>
+      <Suspense fallback={<FilasCargando />}>
+        <FilasDeProductos searchParams={searchParams} />
+      </Suspense>
     </div>
   );
 }
@@ -147,7 +150,7 @@ async function Portada({ searchParams }: { searchParams: Params }) {
 
       {rubros.length ? (
         <nav aria-label="Rubros">
-          <h2 className="mb-2 text-sm font-semibold text-marino">Explorá por rubro</h2>
+          <h2 className="titulo-seccion mb-3 text-marino">🧭 Explorá por rubro</h2>
           <ul className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:px-0">
             {rubros.map((r) => (
               <li key={r.nombre} className="shrink-0">
@@ -205,18 +208,19 @@ async function FilasDeProductos({ searchParams }: { searchParams: Params }) {
     return salida;
   };
   const filas = [
-    { titulo: "Cerca tuyo", lista: mezclar(conFotoPrimero(todos).sort((a, b) => a.c.distancia_km - b.c.distancia_km)) },
-    { titulo: "Abiertos ahora", lista: mezclar(conFotoPrimero(todos.filter((x) => abierto.get(x.c.id)))) },
-    { titulo: "Recién agregados", lista: mezclar(todos) },
+    { titulo: "📍 Cerca tuyo", lista: mezclar(conFotoPrimero(todos).sort((a, b) => a.c.distancia_km - b.c.distancia_km)) },
+    { titulo: "🟢 Abiertos ahora", lista: mezclar(conFotoPrimero(todos.filter((x) => abierto.get(x.c.id)))) },
+    { titulo: "🆕 Recién agregados", lista: mezclar(todos) },
   ].filter((fila) => fila.lista.length >= 2);
   if (!filas.length) return null;
 
   return (
     <div className="space-y-5">
-      {filas.map((fila) => (
-        <section key={fila.titulo} aria-label={fila.titulo}>
-          <h2 className="mb-2 text-lg font-bold text-marino">{fila.titulo}</h2>
-          <ul className="-mx-4 flex snap-x gap-3 overflow-x-auto px-4 pb-2 sm:mx-0 sm:px-0">
+      {/* Las filas se alternan: franja blanca, fondo crema, franja blanca… */}
+      {filas.map((fila, i) => (
+        <section key={fila.titulo} aria-label={fila.titulo.replace(/^\S+ /, "")} className={i % 2 === 0 ? "banda" : "px-1"}>
+          <h2 className="titulo-seccion mb-3 text-marino">{fila.titulo}</h2>
+          <Carrusel etiqueta={fila.titulo}>
             {fila.lista.slice(0, 12).map(({ p, c, d }) => (
               <li key={p.id} className="w-40 shrink-0 snap-start sm:w-48">
                 <TarjetaProducto
@@ -232,7 +236,7 @@ async function FilasDeProductos({ searchParams }: { searchParams: Params }) {
                 />
               </li>
             ))}
-          </ul>
+          </Carrusel>
         </section>
       ))}
     </div>
@@ -325,6 +329,14 @@ async function Resultados({ searchParams }: { searchParams: Params }) {
         : x.c.distancia_km - y.c.distancia_km),
   );
 
+  // Nada con lo que escribió: si parece un error de tipeo ("cillar"), se
+  // busca lo corregido ("collar") y se le avisa arriba.
+  const buscaste = texto(sp, "buscaste").slice(0, 80);
+  if (f.q && !productos.length && !lista.length && !buscaste) {
+    const { data: corregida } = await db.rpc("corregir_busqueda", { p_texto: f.q });
+    if (corregida && corregida !== sinAcentos(f.q)) redirect(con(sp, { q: corregida, buscaste: f.q }));
+  }
+
   const elegido = lista.find((c) => c.id === leerElegido(sp));
   const conBusqueda = Boolean(f.q);
   const verProductos = conBusqueda && !a.verComercios;
@@ -336,6 +348,11 @@ async function Resultados({ searchParams }: { searchParams: Params }) {
           <h1 className="text-lg font-semibold break-words">
             Resultados para “{f.q}” <span className="font-normal text-white/75">a menos de {f.radio} km</span>
           </h1>
+          {buscaste ? (
+            <p className="mt-1 text-sm text-white/80">
+              No encontramos “{buscaste}”: te mostramos resultados de <b className="text-naranja-vivo">“{f.q}”</b>.
+            </p>
+          ) : null}
           <div className="mt-3 flex gap-1 rounded-2xl border border-white/20 p-1" role="tablist" aria-label="Qué ver">
             {[
               [false, `Productos (${productos.length})`],
@@ -432,7 +449,7 @@ async function Resultados({ searchParams }: { searchParams: Params }) {
             </>
           ) : (
             <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <h2 className="text-lg font-semibold">{conBusqueda ? "Comercios" : "Comercios cercanos"}</h2>
+              <h2 className="titulo-seccion">🏪 {conBusqueda ? "Comercios" : "Comercios cercanos"}</h2>
               <span className="text-xs text-white/80">
                 {lista.length} {lista.length === 1 ? "comercio" : "comercios"} a menos de {f.radio} km
               </span>

@@ -100,10 +100,6 @@ const PREGUNTAS: Pregunta[] = [
       </p>
     ),
   },
-  {
-    p: "¿En qué zonas funciona?",
-    r: <p>Arrancamos en Ingeniero Maschwitz y vamos a sumar más barrios y localidades de a poco.</p>,
-  },
 ];
 
 export default function PaginaPreguntas() {

@@ -64,7 +64,7 @@ async function Lista() {
     <>
       {productos.length ? (
         <section className="mt-6">
-          <h2 className="text-lg font-semibold">Productos ({productos.length})</h2>
+          <h2 className="titulo-seccion">🛍️ Productos ({productos.length})</h2>
           <ul className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
             {productos.map((p) => (
               <li key={p.id} className="relative">
@@ -86,7 +86,7 @@ async function Lista() {
 
       {comercios.length ? (
         <section className="mt-8">
-          <h2 className="text-lg font-semibold">Comercios ({comercios.length})</h2>
+          <h2 className="titulo-seccion">🏪 Comercios ({comercios.length})</h2>
           <ul className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {comercios.map((c) => (
               <li key={c.id} className="flex items-center gap-3 rounded-2xl border border-white/20 p-4">

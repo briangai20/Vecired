@@ -10,6 +10,9 @@
   --color-naranja-hover: #bf3f0d;
   --color-naranja-vivo: #ff6b2c; /* "Red" del logo sobre azul marino */
   --color-estrella: #ffc93c;
+  /* Avisos: bien (aceptada, publicada) y mal (rechazada, vencida), legibles sobre azul marino */
+  --color-verde: #3ddc84;
+  --color-rojo: #ff5c5c;
   --font-sans: var(--font-geist-sans);
 }
 
@@ -125,5 +128,82 @@ select option {
   *::after {
     animation: none !important;
     transition: none !important;
+  }
+}
+
+/* Filas que se corren de costado sin mostrar la barra (ver components/carrusel.tsx). */
+.sin-barra {
+  scrollbar-width: none;
+}
+.sin-barra::-webkit-scrollbar {
+  display: none;
+}
+
+/* Títulos de sección: más grandes y con una rayita naranja al costado,
+   para que se distingan del resto del texto. */
+.titulo-seccion {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.2rem;
+  line-height: 1.25;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+.titulo-seccion::before {
+  content: "";
+  flex-shrink: 0;
+  width: 5px;
+  height: 1.2em;
+  border-radius: 9999px;
+  background: var(--color-naranja-vivo);
+}
+
+/* Franja clara para alternar con el fondo crema y las tarjetas azules. */
+.banda {
+  border-radius: 1.5rem;
+  border: 1px solid color-mix(in srgb, var(--color-marino) 10%, transparent);
+  background: #fff;
+  padding: 1rem;
+  box-shadow: 0 1px 3px rgb(20 33 61 / 0.08);
+}
+@media (min-width: 640px) {
+  .banda {
+    padding: 1.25rem;
+  }
+}
+
+/* Pantalla de inicio (components/pantalla-inicio.tsx): se ve ~1 segundo y
+   se desvanece. Si ya se vio en esta visita, no aparece. */
+.pantalla-inicio {
+  animation: irse-inicio 0.45s ease-in 1s forwards;
+}
+.pantalla-inicio-logo {
+  animation: latir-inicio 0.9s ease-out both;
+}
+.sin-intro .pantalla-inicio {
+  display: none;
+}
+@keyframes irse-inicio {
+  to {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+}
+@keyframes latir-inicio {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+/* Con "reducir movimiento" no hay animaciones (ver arriba): se saca directo. */
+@media (prefers-reduced-motion: reduce) {
+  .pantalla-inicio {
+    display: none;
   }
 }

@@ -8,6 +8,7 @@ import { MenuMovil } from "@/components/menu-movil";
 import { Avisos } from "@/components/avisos";
 import { Buscador, BuscadorCargando } from "@/components/buscador";
 import { InstalarApp } from "@/components/instalar-app";
+import { PantallaInicio } from "@/components/pantalla-inicio";
 import { DESCRIPCION_SITIO, SITIO } from "@/lib/sitio";
 import { CUIT, MAIL_CONTACTO, TITULAR } from "@/lib/legal";
 import "./globals.css";
@@ -36,14 +37,18 @@ export const metadata: Metadata = {
   appleWebApp: { capable: true, title: "VeciRed", statusBarStyle: "black-translucent" },
 };
 
+// Enlaces del pie, cada uno en su recuadro.
+const botonPie = "rounded-xl border border-white/25 px-3 py-2 transition hover:border-white/60 hover:bg-white/10";
+
 export const viewport: Viewport = {
   themeColor: "#14213D",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="es" className={`${geistSans.variable} h-full antialiased`}>
+    <html lang="es" className={`${geistSans.variable} h-full antialiased`} suppressHydrationWarning>
       <body className="flex min-h-full flex-col font-sans">
+        <PantallaInicio />
         <header className="sticky top-0 z-40 border-b border-white/10 bg-marino shadow-lg shadow-black/30">
           <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-3 lg:gap-5 lg:px-6">
             <Link href="/" className="mr-auto flex min-w-0 items-center gap-2.5 sm:gap-3 lg:mr-0 lg:shrink-0">
@@ -61,7 +66,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             <Suspense fallback={<BuscadorCargando className="hidden flex-1 lg:block" />}>
               <Buscador className="hidden flex-1 lg:block" />
             </Suspense>
-            <nav className="hidden shrink-0 items-center gap-1 rounded-2xl border border-white/20 p-1 md:flex" aria-label="Secciones">
+            <nav className="hidden shrink-0 items-center gap-1.5 rounded-2xl border border-white/20 p-1.5 lg:flex" aria-label="Secciones">
               <Suspense fallback={null}>
                 <MenuCuenta />
               </Suspense>
@@ -71,9 +76,6 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             </Suspense>
             <Suspense fallback={null}>
               <MenuMovil>
-                <Link href="/" className="rounded-xl px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10">
-                  Inicio
-                </Link>
                 <Suspense fallback={null}>
                   <MenuCuenta />
                 </Suspense>
@@ -101,14 +103,14 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
                 <InstalarApp />
               </div>
             </div>
-            <nav className="flex flex-col gap-2" aria-label="VeciRed">
-              <Link href="/comercios" className="hover:underline">Sumá tu comercio</Link>
-              <Link href="/preguntas" className="hover:underline">Preguntas frecuentes</Link>
-              <a href={`mailto:${MAIL_CONTACTO}`} className="hover:underline">Contacto: {MAIL_CONTACTO}</a>
+            <nav className="flex flex-col gap-2 sm:items-start" aria-label="VeciRed">
+              <Link href="/comercios" className={botonPie}>Sumá tu comercio</Link>
+              <Link href="/preguntas" className={botonPie}>Preguntas frecuentes</Link>
+              <a href={`mailto:${MAIL_CONTACTO}`} className={botonPie}>Contacto: {MAIL_CONTACTO}</a>
             </nav>
-            <nav className="flex flex-col gap-2" aria-label="Legales">
-              <Link href="/terminos" className="hover:underline">Términos y condiciones</Link>
-              <Link href="/privacidad" className="hover:underline">Política de privacidad</Link>
+            <nav className="flex flex-col gap-2 sm:items-start" aria-label="Legales">
+              <Link href="/terminos" className={botonPie}>Términos y condiciones</Link>
+              <Link href="/privacidad" className={botonPie}>Política de privacidad</Link>
             </nav>
           </div>
           <p className="border-t border-white/10 px-4 py-4 text-center text-xs text-white/60">

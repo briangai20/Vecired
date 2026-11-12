@@ -68,7 +68,7 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
             Ya tengo cuenta
           </Link>
         </div>
-        <Link href="/comercios" className="mt-4 inline-block text-sm text-white/85 underline">
+        <Link href="/comercios" className="mt-4 inline-block rounded-xl border border-white/30 px-4 py-2 text-sm transition hover:border-white/60 hover:bg-white/10">
           Conocé cómo funciona y cuánto cuesta
         </Link>
       </div>
@@ -163,8 +163,11 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
           <p className="font-semibold">Todavía no pudimos publicar tu comercio.</p>
           <p className="mt-1">{comercio.motivo_rechazo}</p>
           <p className="mt-2">
-            Corregilo en <Link href="/comerciante?seccion=configuracion#datos" className="underline">los datos del comercio</Link> y guardá: lo volvemos a revisar.
+            Corregilo en los datos del comercio y guardá: lo volvemos a revisar.
           </p>
+          <Link href="/comerciante?seccion=configuracion#datos" className="mt-3 inline-block rounded-lg border border-white/30 px-3 py-1.5 text-xs font-medium transition hover:border-white/60 hover:bg-white/10">
+            Ir a los datos del comercio
+          </Link>
         </div>
       ) : !comercio.aprobado ? (
         <p className="rounded-2xl border border-naranja bg-naranja/10 p-4 text-sm">
@@ -173,11 +176,10 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
       ) : null}
       {!numeroWhatsapp(comercio.whatsapp) ? (
         <p role="alert" className="rounded-2xl border border-naranja bg-naranja/10 p-4 text-sm">
-          <span className="font-semibold">Falta tu WhatsApp.</span> Sin él, los vecinos no pueden consultarte antes de reservar.{" "}
-          <Link href="/comerciante?seccion=configuracion#datos" className="underline">
+          <span className="font-semibold">Falta tu WhatsApp.</span> Sin él, los vecinos no pueden consultarte antes de reservar.
+          <Link href="/comerciante?seccion=configuracion#datos" className="mt-3 block w-fit rounded-lg border border-white/30 px-3 py-1.5 text-xs font-medium transition hover:border-white/60 hover:bg-white/10">
             Cargalo en la configuración del comercio
           </Link>
-          .
         </p>
       ) : null}
 
@@ -246,7 +248,7 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
 
       {seccion === "reservas" ? (
       <section id="reservas" className="tarjeta rounded-3xl p-6">
-        <h2 className="text-lg font-semibold">Reservas</h2>
+        <h2 className="titulo-seccion">📦 Reservas</h2>
         <p className="mt-1 text-sm text-white/80">Respondé cada reserva dentro de las 2 horas de tu horario de atención: si no, vence sola. Las que llegan con el local cerrado empiezan a contar cuando abrís. Las aceptadas que nadie retira vencen solas un día de atención después del último horario de retiro, y el producto vuelve a tu stock.</p>
         <AvisosCelular variante="panel" />
         {abiertas.length === 0 ? (
@@ -326,7 +328,7 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
 
       {seccion === "productos" ? (
       <section id="productos" className="tarjeta rounded-3xl p-6">
-        <h2 className="text-lg font-semibold">Productos</h2>
+        <h2 className="titulo-seccion">🛍️ Productos</h2>
         <p className="mt-1 text-sm text-white/80">
           Mantené el stock al día: si no lo tocás en 7 días (3 si usás hay/poco), el producto aparece como &quot;Stock sin confirmar&quot;.
         </p>
@@ -366,7 +368,7 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
 
       {seccion === "preguntas" ? (
       <section id="preguntas" className="tarjeta rounded-3xl p-6">
-        <h2 className="text-lg font-semibold">Preguntas de los vecinos</h2>
+        <h2 className="titulo-seccion">💬 Preguntas de los vecinos</h2>
         <p className="mt-1 text-sm text-white/80">
           Lo que preguntan en la página de tus productos. Respondé rápido: la pregunta y tu respuesta quedan a la vista de todos y le avisamos al vecino. Si una pregunta es ofensiva o no tiene que ver, podés borrarla.
         </p>
@@ -398,7 +400,7 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
                       name="borrar"
                       value="1"
                       enviando="Borrando…"
-                      className="text-xs text-white/60 underline-offset-2 hover:text-white hover:underline"
+                      className="rounded-lg border border-white/30 px-3 py-1.5 text-xs font-medium transition hover:border-white/60 hover:bg-white/10 text-white/80"
                     >
                       Borrar pregunta
                     </BotonEnviar>
@@ -415,7 +417,7 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
 
       {seccion === "resenas" ? (
       <section id="resenas" className="tarjeta rounded-3xl p-6">
-        <h2 className="text-lg font-semibold">Reseñas</h2>
+        <h2 className="titulo-seccion">⭐ Reseñas</h2>
         <p className="mt-1 text-sm text-white/80">
           Lo que opinan tus clientes después de retirar. Respondé con amabilidad: tu respuesta se ve en tu página, debajo de la reseña, y le avisamos al cliente.
         </p>
@@ -456,13 +458,13 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
       {seccion === "configuracion" ? (
       <>
       <section id="datos" className="tarjeta rounded-3xl p-6">
-        <h2 className="mb-1 text-lg font-semibold">Datos del comercio</h2>
+        <h2 className="titulo-seccion mb-1">🏪 Datos del comercio</h2>
         <p className="mb-4 text-sm text-white/80">Nombre, dirección, WhatsApp, logo, verificación, horario de atención y ubicación en el mapa.</p>
         <FormComercio comercio={comercio} zonas={zonas ?? []} franjas={franjas ?? []} verificacion={verificacion} />
       </section>
 
       <section id="cierres" className="tarjeta rounded-3xl p-6">
-        <h2 className="text-lg font-semibold">Días que cerrás</h2>
+        <h2 className="titulo-seccion">📅 Días que cerrás</h2>
         <p className="mt-1 text-sm text-white/80">
           Vacaciones, inventario o cualquier día que no abras. Esos días figurás cerrado y las reservas esperan a que vuelvas a abrir.
         </p>
@@ -477,7 +479,7 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
                 </span>
                 <form action={borrarCierre}>
                   <input type="hidden" name="id" value={ci.id} />
-                  <BotonEnviar enviando="Quitando…" className="text-xs underline">
+                  <BotonEnviar enviando="Quitando…" className="rounded-lg border border-white/30 px-3 py-1.5 text-xs font-medium transition hover:border-white/60 hover:bg-white/10">
                     Quitar
                   </BotonEnviar>
                 </form>
@@ -532,19 +534,17 @@ function Cliente({
       <div className="min-w-0 flex-1">
         <p className="font-semibold break-words">{nombre}</p>
         {comprador?.telefono ? (
-          <p className="text-xs text-white/80">
-            {comprador.telefono}
-            {" · "}
+          <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-white/80">
+            <span>{comprador.telefono}</span>
             {whatsapp ? (
-              <a href={whatsapp} target="_blank" rel="noopener noreferrer" className="underline">
+              <a href={whatsapp} target="_blank" rel="noopener noreferrer" className="rounded-lg border border-white/30 px-3 py-1.5 font-medium text-white transition hover:border-white/60 hover:bg-white/10">
                 WhatsApp
               </a>
             ) : null}
-            {whatsapp ? " · " : null}
-            <a href={`tel:${comprador.telefono.replace(/[^\d+]/g, "")}`} className="underline">
+            <a href={`tel:${comprador.telefono.replace(/[^\d+]/g, "")}`} className="rounded-lg border border-white/30 px-3 py-1.5 font-medium text-white transition hover:border-white/60 hover:bg-white/10">
               Llamar
             </a>
-          </p>
+          </div>
         ) : (
           <p className="text-xs text-white/70">No cargó teléfono</p>
         )}

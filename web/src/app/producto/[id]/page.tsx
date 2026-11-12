@@ -172,7 +172,7 @@ async function Producto({ params }: Pick<Props, "params">) {
                 : "El comercio te confirma la reserva antes de que vayas a retirar."}
             </p>
           ) : null}
-          <p className="mt-4 text-3xl font-black">{plata(p.precio)}</p>
+          <p className="mt-4 text-4xl font-black tracking-tight text-naranja-vivo">{plata(p.precio)}</p>
 
           {d.sePuede ? (
             <Suspense fallback={<div className="mt-5 h-40 animate-pulse rounded-xl bg-white/5" />}>
@@ -215,7 +215,7 @@ async function Producto({ params }: Pick<Props, "params">) {
 
       {hermanos && hermanos.length > 1 ? (
         <section className="mt-8">
-          <h2 className="text-lg font-semibold">Variantes de {p.grupo}</h2>
+          <h2 className="titulo-seccion">🎨 Variantes de {p.grupo}</h2>
           <div className="mt-3 flex flex-wrap gap-2">
             {hermanos.map((h) => (
               <Link
@@ -233,7 +233,7 @@ async function Producto({ params }: Pick<Props, "params">) {
 
       {enOtros.length ? (
         <section className="mt-8">
-          <h2 className="text-lg font-semibold">También lo tienen</h2>
+          <h2 className="titulo-seccion">🏷️ También lo tienen</h2>
           <p className="mt-1 text-sm text-white/75">El mismo producto en otros comercios de VeciRed. Compará antes de reservar.</p>
           <ul className="mt-3 divide-y divide-white/10 rounded-2xl border border-white/20">
             <li className="flex items-center justify-between gap-3 bg-white/5 px-4 py-3 text-sm">
@@ -266,13 +266,13 @@ async function Producto({ params }: Pick<Props, "params">) {
         </section>
       ) : null}
 
-      <section className="mt-8">
-        <h2 className="text-lg font-semibold">Descripción</h2>
+      <section className="mt-8 rounded-2xl bg-white/[0.06] p-4 sm:p-5">
+        <h2 className="titulo-seccion">📝 Descripción</h2>
         <p className="mt-2 text-sm leading-relaxed text-white/85">{p.descripcion || "Este producto todavía no tiene descripción cargada."}</p>
       </section>
 
       <section className="mt-8">
-        <h2 className="text-lg font-semibold">Características</h2>
+        <h2 className="titulo-seccion">📋 Características</h2>
         <dl className="mt-2 max-w-xl">
           {fila("Comercio", c.nombre)}
           {fila("Rubro", c.rubro)}
@@ -284,8 +284,8 @@ async function Producto({ params }: Pick<Props, "params">) {
         </dl>
       </section>
 
-      <section id="preguntas" className="mt-8 scroll-mt-28">
-        <h2 className="text-lg font-semibold">Preguntas al comercio</h2>
+      <section id="preguntas" className="mt-8 scroll-mt-28 rounded-2xl bg-white/[0.06] p-4 sm:p-5">
+        <h2 className="titulo-seccion">💬 Preguntas al comercio</h2>
         <Suspense fallback={<div className="mt-3 h-24 animate-pulse rounded-2xl bg-white/5" />}>
           <Preguntas productoId={p.id} comercioId={c.id} comercio={c.nombre} />
         </Suspense>
@@ -293,7 +293,7 @@ async function Producto({ params }: Pick<Props, "params">) {
 
       {masProductos.length ? (
         <section className="mt-8">
-          <h2 className="text-lg font-semibold">Más productos de {c.nombre}</h2>
+          <h2 className="titulo-seccion">🛍️ Más productos de {c.nombre}</h2>
           <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {masProductos.map((o) => (
               <Link key={o.id} href={`/producto/${o.id}`} className="rounded-2xl border border-white/20 p-4 transition hover:-translate-y-0.5 hover:border-white/60">

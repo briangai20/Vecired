@@ -14,7 +14,7 @@ export function Abierto({ abierto }: { abierto: boolean | null }) {
   if (abierto == null) return null;
   return (
     <span
-      className={`shrink-0 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold text-white ${abierto ? "border-white" : "border-white/40"}`}
+      className={`shrink-0 rounded-full border px-2.5 py-0.5 text-[11px] font-bold ${abierto ? "border-verde bg-verde/15 text-verde" : "border-white/40 text-white/70"}`}
     >
       {abierto ? "Abierto" : "Cerrado"}
     </span>
@@ -35,15 +35,15 @@ export function Verificado() {
 }
 
 const BORDE: Record<Disponibilidad["tono"], string> = {
-  ok: "border-white",
-  poco: "border-white/70",
-  no: "border-white/40 line-through",
-  consultar: "border-dashed border-white/70",
+  ok: "border-verde bg-verde text-marino",
+  poco: "border-estrella bg-estrella text-marino",
+  no: "border-white/40 bg-marino-claro text-white/80 line-through",
+  consultar: "border-dashed border-white/70 bg-marino-claro text-white",
 };
 
 export function Stock({ d }: { d: Disponibilidad }) {
   return (
-    <span className={`rounded-full border bg-marino-claro px-2.5 py-0.5 text-[11px] font-semibold text-white ${BORDE[d.tono]}`}>
+    <span className={`rounded-full border px-2.5 py-0.5 text-[11px] font-bold shadow-sm ${BORDE[d.tono]}`}>
       {d.texto}
     </span>
   );

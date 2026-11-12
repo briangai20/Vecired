@@ -35,7 +35,7 @@ const PASOS = [
 const BENEFICIOS = [
   ["Te encuentran los vecinos", "Tu comercio y tus productos aparecen en el mapa y en la búsqueda de la gente de tu zona, y también en Google."],
   ["Vendés sin cambiar nada", "El cliente paga en tu local con los medios que ya aceptás. No hace falta envío ni cobrar por internet."],
-  ["Menos consultas que no terminan en venta", "El vecino ya ve el precio y si hay stock antes de ir, y te llega con el producto reservado."],
+  ["Menos consultas que no terminan en venta", "Antes de ir, el vecino ya sabe el precio y si hay stock. Cuando llega a tu local, el producto lo está esperando."],
   ["Si no lo tenés, ofrecé otra cosa", "Si te reservan algo que se agotó, le ofrecés al cliente otros productos de tu catálogo con un toque."],
   ["Sabés qué interesa", "En tu panel ves cuántas veces vieron tu comercio, cuántas reservas recibiste, cuántas se retiraron y tus reseñas."],
   ["Hablás directo con el cliente", "Ves su nombre y teléfono en cada reserva, con botones para escribirle por WhatsApp o llamarlo."],
@@ -128,10 +128,6 @@ const PREGUNTAS: Pregunta[] = [
         vacaciones: esos días no se pueden hacer reservas para retirar.
       </p>
     ),
-  },
-  {
-    p: "¿En qué zonas está VeciRed?",
-    r: <p>Arrancamos en Ingeniero Maschwitz y vamos a sumar Escobar, Pacheco, Tigre, Pilar y más zonas de a poco.</p>,
   },
   {
     p: "¿Puedo dar de baja el comercio?",

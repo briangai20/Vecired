@@ -64,7 +64,7 @@ export function HorarioSemanal({ franjas, abreFeriados }: { franjas: Franja[]; a
                       <input type="time" name={`h${dia}c2`} value={d.c2} onChange={(e) => cambiar(dia, { c2: e.target.value })} aria-label={`${DIAS[dia]}: cierra a la tarde`} className="campo w-28 py-1.5" />
                     </span>
                   ) : null}
-                  <button type="button" onClick={() => cambiar(dia, { cortado: !d.cortado })} className="text-xs text-white/80 underline">
+                  <button type="button" onClick={() => cambiar(dia, { cortado: !d.cortado })} className="rounded-lg border border-white/30 px-3 py-1.5 text-xs font-medium transition hover:border-white/60 hover:bg-white/10 text-white/85">
                     {d.cortado ? "Sin cortar al mediodía" : "Cierro al mediodía"}
                   </button>
                 </>

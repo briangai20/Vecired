@@ -4,7 +4,7 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useRef, type ReactNode } from "react";
 
 // En el celular el menú no entra en una fila: se abre con un botón y se
-// cierra solo al elegir una opción o al cambiar de página.
+// cierra solo al elegir una opción, al cambiar de página o al tocar afuera.
 export function MenuMovil({ children }: { children: ReactNode }) {
   const menu = useRef<HTMLDetailsElement>(null);
   const ruta = usePathname();
@@ -14,8 +14,17 @@ export function MenuMovil({ children }: { children: ReactNode }) {
     if (menu.current) menu.current.open = false;
   }, [ruta, params]);
 
+  // Tocar afuera del recuadro lo cierra.
+  useEffect(() => {
+    const fuera = (e: PointerEvent) => {
+      if (menu.current?.open && !menu.current.contains(e.target as Node)) menu.current.open = false;
+    };
+    document.addEventListener("pointerdown", fuera);
+    return () => document.removeEventListener("pointerdown", fuera);
+  }, []);
+
   return (
-    <details ref={menu} className="group relative md:hidden">
+    <details ref={menu} className="group relative lg:hidden">
       <summary
         className="flex cursor-pointer list-none h-10 items-center gap-2 rounded-xl border border-white/30 px-2.5 text-sm min-[420px]:px-3 font-medium text-white [&::-webkit-details-marker]:hidden"
         aria-label="Menú"
@@ -32,7 +41,7 @@ export function MenuMovil({ children }: { children: ReactNode }) {
         onClick={(e) => {
           if ((e.target as HTMLElement).closest("a") && menu.current) menu.current.open = false;
         }}
-        className="absolute right-0 z-50 mt-2 flex w-56 flex-col gap-1 rounded-2xl border border-white/20 bg-marino p-2 shadow-xl shadow-black/40 [&_a]:block [&_button]:w-full [&_button]:text-left [&_form]:w-full"
+        className="absolute right-0 z-50 mt-2 flex w-60 flex-col gap-1.5 rounded-2xl border border-white/20 bg-marino p-2 shadow-xl shadow-black/40 [&_a]:block [&_a]:text-left [&_button]:w-full [&_button]:text-left [&_form]:w-full"
       >
         {children}
       </nav>

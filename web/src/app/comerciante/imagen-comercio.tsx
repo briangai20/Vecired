@@ -72,7 +72,7 @@ export function ImagenComercio({
             {estado === "subiendo" ? "Subiendo…" : url ? "Cambiar" : tipo === "logo" ? "Subir logo" : "Subir foto"}
           </button>
           {url ? (
-            <button type="button" onClick={() => setUrl("")} className="underline">
+            <button type="button" onClick={() => setUrl("")} className="rounded-lg border border-white/30 px-3 py-1.5 hover:bg-white/10">
               Quitar
             </button>
           ) : null}

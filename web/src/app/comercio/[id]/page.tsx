@@ -159,7 +159,7 @@ async function Comercio({ params, searchParams }: Pick<Props, "params" | "search
 
       {resenas?.length ? (
         <section id="resenas" className="mt-10 scroll-mt-24">
-          <h2 className="text-lg font-semibold">Reseñas</h2>
+          <h2 className="titulo-seccion">⭐ Reseñas</h2>
           <div className="mt-3 grid gap-3 md:grid-cols-2">
             {resenas.slice(0, 6).map((r, i) => (
               <article key={i} className="rounded-2xl border border-white/20 p-4">

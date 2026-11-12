@@ -2,6 +2,7 @@
 
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { Carrusel } from "@/components/carrusel";
 import { TarjetaProducto } from "@/components/tarjeta-producto";
 import { borrarVistos, useVistos } from "@/lib/historial";
 import type { Tabla } from "@/lib/supabase/tipos";
@@ -44,14 +45,14 @@ export function VistosRecientes() {
   const ahora = new Date();
 
   return (
-    <section aria-label="Vistos recientemente">
+    <section aria-label="Vistos recientemente" className="banda">
       <div className="mb-2 flex items-baseline justify-between gap-3">
-        <h2 className="text-lg font-bold text-marino">Vistos recientemente</h2>
+        <h2 className="titulo-seccion text-marino">🕘 Vistos recientemente</h2>
         <button type="button" onClick={borrarVistos} className="text-xs text-marino/70 underline-offset-2 hover:text-marino hover:underline">
           Borrar historial
         </button>
       </div>
-      <ul className="-mx-4 flex snap-x gap-3 overflow-x-auto px-4 pb-2 sm:mx-0 sm:px-0">
+      <Carrusel etiqueta="Vistos recientemente">
         {productos.lista.map((p) => (
           <li key={p.id} className="w-40 shrink-0 snap-start sm:w-48">
             <TarjetaProducto
@@ -65,7 +66,7 @@ export function VistosRecientes() {
             />
           </li>
         ))}
-      </ul>
+      </Carrusel>
     </section>
   );
 }

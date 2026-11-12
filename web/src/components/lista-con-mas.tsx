@@ -39,7 +39,7 @@ export function ListaConMas({
               </button>
             ) : null}
             <button type="button" onClick={() => setVisibles(todos.length)} className="boton rounded-xl px-5 py-2.5 text-sm font-semibold">
-              Ver {faltan > deA ? `todos los ${faltan} que faltan` : `los ${faltan} ${que} que faltan`}
+              Ver todos
             </button>
           </div>
         </div>

@@ -9,6 +9,7 @@ import { supabaseNavegador } from "@/lib/supabase/navegador";
 type Sugerencia =
   | { tipo: "reciente"; texto: string }
   | { tipo: "producto"; texto: string }
+  | { tipo: "correccion"; texto: string }
   | { tipo: "comercio"; id: number; texto: string; rubro: string };
 
 // Escapa los comodines de "ilike" para buscar el texto tal cual.
@@ -45,17 +46,33 @@ export function Buscador({ className = "" }: { className?: string }) {
     const espera = setTimeout(async () => {
       const db = supabaseNavegador();
       const patron = `%${literal(t)}%`;
-      const [{ data: productos }, { data: comercios }] = await Promise.all([
+      const productosCon = (p: string) =>
         db
           .from("productos")
           .select("nombre, comercio:comercios!inner(aprobado)")
           .eq("activo", true)
           .eq("comercio.aprobado", true)
-          .ilike("nombre", patron)
-          .limit(40),
+          .ilike("nombre", p)
+          .limit(40);
+      const [deProductos, { data: comercios }] = await Promise.all([
+        productosCon(patron),
         db.from("comercios").select("id, nombre, rubro").eq("aprobado", true).ilike("nombre", patron).limit(3),
       ]);
+      let productos = deProductos.data;
       if (!vigente) return;
+      // Si casi no aparece nada, puede ser un error de tipeo ("cillar"): se
+      // propone lo corregido ("collar") y sus productos.
+      let correccion: string | null = null;
+      if (t.length >= 3 && (productos?.length ?? 0) + (comercios?.length ?? 0) < 2) {
+        const { data } = await db.rpc("corregir_busqueda", { p_texto: t });
+        if (!vigente) return;
+        if (data) {
+          correccion = data;
+          const { data: otros } = await productosCon(`%${literal(data)}%`);
+          if (!vigente) return;
+          productos = [...(productos ?? []), ...(otros ?? [])];
+        }
+      }
       // Nombres sin repetir, primero los que empiezan con lo escrito.
       const vistos = new Set<string>();
       const nombres = (productos ?? [])
@@ -71,6 +88,7 @@ export function Buscador({ className = "" }: { className?: string }) {
       setEncontradas({
         para: t,
         lista: [
+          ...(correccion ? [{ tipo: "correccion", texto: correccion } as Sugerencia] : []),
           ...nombres.map((n): Sugerencia => ({ tipo: "producto", texto: n })),
           ...(comercios ?? []).map((c): Sugerencia => ({ tipo: "comercio", id: c.id, texto: c.nombre, rubro: c.rubro })),
         ],
@@ -96,6 +114,7 @@ export function Buscador({ className = "" }: { className?: string }) {
     const p = new URLSearchParams(ruta === "/" ? params.toString() : "");
     p.delete("comercio");
     p.delete("ver");
+    p.delete("buscaste");
     const b = busqueda.trim();
     if (b) {
       p.set("q", b);
@@ -197,10 +216,16 @@ export function Buscador({ className = "" }: { className?: string }) {
               className={`flex cursor-pointer items-center gap-3 px-4 py-2 ${i === activa ? "bg-crema" : ""}`}
             >
               <span aria-hidden className="w-5 shrink-0 text-center text-marino/55">
-                {s.tipo === "reciente" ? "🕘" : s.tipo === "comercio" ? iconoRubro(s.rubro) : "🔍"}
+                {s.tipo === "reciente" ? "🕘" : s.tipo === "comercio" ? iconoRubro(s.rubro) : s.tipo === "correccion" ? "✨" : "🔍"}
               </span>
               <span className="min-w-0 flex-1 truncate">
-                <Resaltado texto={s.texto} buscado={t} />
+                {s.tipo === "correccion" ? (
+                  <span>
+                    ¿Quisiste decir <b className="text-naranja">{s.texto}</b>?
+                  </span>
+                ) : (
+                  <Resaltado texto={s.texto} buscado={t} />
+                )}
                 {s.tipo === "comercio" ? <span className="ml-2 text-xs text-marino/60">Comercio · {s.rubro}</span> : null}
               </span>
               {s.tipo === "reciente" ? (

@@ -9,6 +9,15 @@ import { AvisosCelular } from "./avisos-celular";
 
 type Notificacion = Tabla<"notificaciones">;
 
+// Color de cada aviso: naranja si hay que hacer algo (y los viejos, sin tono),
+// verde si salió bien (aceptada, publicado) y rojo si no (rechazada, vencida).
+const TONO = {
+  accion: { punto: "bg-naranja-vivo", borde: "border-l-naranja-vivo", icono: "🔔" },
+  bien: { punto: "bg-verde", borde: "border-l-verde", icono: "✅" },
+  mal: { punto: "bg-rojo", borde: "border-l-rojo", icono: "❌" },
+} as const;
+const tono = (n: Notificacion) => TONO[n.tono ?? "accion"];
+
 const SIN_SONIDO = "vecired-sin-sonido";
 
 // "Ding" corto de dos notas, armado en el navegador (sin archivos de audio).
@@ -201,9 +210,9 @@ export function Campanita({ yo }: { yo: string }) {
                       void marcar([n.id]);
                       setAbierta(false);
                     }}
-                    className={`flex gap-3 px-4 py-3 text-sm transition hover:bg-white/5 ${n.leida_en ? "text-white/70" : ""}`}
+                    className={`flex gap-3 border-l-4 px-4 py-3 text-sm transition hover:bg-white/5 ${tono(n).borde} ${n.leida_en ? "text-white/70" : "bg-white/[0.04]"}`}
                   >
-                    <span aria-hidden className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${n.leida_en ? "bg-transparent" : "bg-naranja-vivo"}`} />
+                    <span aria-hidden className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${n.leida_en ? "bg-transparent" : tono(n).punto}`} />
                     <span className="min-w-0 flex-1">
                       <span className={`block ${n.leida_en ? "" : "font-semibold"}`}>{n.titulo}</span>
                       {n.cuerpo ? <span className="mt-0.5 block text-xs text-white/75">{n.cuerpo}</span> : null}
@@ -219,9 +228,9 @@ export function Campanita({ yo }: { yo: string }) {
       ) : null}
 
       {cartel ? (
-        <div role="status" className="fixed right-4 bottom-4 z-50 w-[min(22rem,calc(100vw-2rem))] rounded-2xl border border-white/30 bg-marino p-4 text-white shadow-2xl shadow-black/50">
+        <div role="status" className={`fixed right-4 bottom-4 z-50 w-[min(22rem,calc(100vw-2rem))] rounded-2xl border border-l-8 border-white/30 ${tono(cartel).borde} bg-marino p-4 text-white shadow-2xl shadow-black/50`}>
           <div className="flex items-start gap-3">
-            <span aria-hidden className="text-xl">🔔</span>
+            <span aria-hidden className="text-xl">{tono(cartel).icono}</span>
             <Link
               href={cartel.enlace ?? "#"}
               onClick={() => {

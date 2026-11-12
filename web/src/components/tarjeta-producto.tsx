@@ -40,13 +40,13 @@ export function TarjetaProducto({
       </div>
       <div className="flex flex-1 flex-col p-3 text-white">
         <p className="line-clamp-2 text-sm leading-snug font-medium">{nombre}</p>
-        <p className="mt-1 text-lg font-black">{plata(precio)}</p>
+        <p className="mt-1 text-lg font-black text-naranja-vivo">{plata(precio)}</p>
         <p className="mt-auto pt-2 text-xs break-words text-white/80">
           {comercio}
           {distancia != null ? ` · ${km(distancia)}` : ""}
         </p>
         {abierto != null ? (
-          <p className={`text-[11px] font-semibold ${abierto ? "text-white" : "text-white/55"}`}>{abierto ? "● Abierto ahora" : "Cerrado ahora"}</p>
+          <p className={`text-[11px] font-semibold ${abierto ? "text-verde" : "text-white/55"}`}>{abierto ? "● Abierto ahora" : "Cerrado ahora"}</p>
         ) : null}
       </div>
     </Link>
