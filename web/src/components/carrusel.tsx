@@ -37,11 +37,11 @@ export function Carrusel({ children, etiqueta }: { children: ReactNode; etiqueta
 
   function correr(sentido: 1 | -1) {
     cancelAnimationFrame(cuadro.current);
-    let antes = performance.now();
+    let antes: number | null = null;
     const paso = (ahora: number) => {
       const f = fila.current;
       if (!f) return;
-      f.scrollLeft += sentido * VELOCIDAD * Math.min(ahora - antes, 50);
+      f.scrollLeft += sentido * VELOCIDAD * (antes == null ? 16 : Math.min(ahora - antes, 50));
       antes = ahora;
       const tope = sentido > 0 ? f.scrollLeft + f.clientWidth >= f.scrollWidth - 1 : f.scrollLeft <= 0;
       if (!tope) cuadro.current = requestAnimationFrame(paso);
