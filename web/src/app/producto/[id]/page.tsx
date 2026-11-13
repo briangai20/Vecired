@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { Favorito } from "@/components/favorito";
 import { Galeria } from "@/components/galeria";
+import { MapaComercios } from "@/components/mapa-comercios";
 import { Abierto, Estrellas, Stock } from "@/components/insignias";
 import { RegistrarVista } from "@/components/registrar-vista";
 import { AvisoCierres } from "@/components/aviso-cierres";
@@ -16,6 +17,7 @@ import { BotonEnviar } from "@/components/boton-enviar";
 import { supabaseServidor } from "@/lib/supabase/servidor";
 import { supabasePublico } from "@/lib/supabase/publico";
 import { vistaPrevia } from "@/lib/sitio";
+import { descuento, hastaCorto } from "@/lib/ofertas";
 import { enlaceWhatsapp } from "@/lib/whatsapp";
 
 type Props = PageProps<"/producto/[id]">;
@@ -52,7 +54,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default function PaginaProducto({ params }: Props) {
   return (
-    <div className="tarjeta rounded-3xl p-5">
+    <div className="space-y-4">
       <Suspense fallback={<ProductoCargando />}>
         <Producto params={params} />
       </Suspense>
@@ -103,6 +105,17 @@ async function Producto({ params }: Pick<Props, "params">) {
   );
 
   const ahora = new Date();
+  // Oferta vigente (la más barata): al reservar se cobra este precio.
+  const { data: oferta } = await db
+    .from("ofertas")
+    .select("precio_oferta, hasta")
+    .eq("producto_id", p.id)
+    .gte("hasta", fechaAR(ahora))
+    .not("precio_oferta", "is", null)
+    .order("precio_oferta")
+    .limit(1)
+    .maybeSingle();
+  const precioFinal = oferta?.precio_oferta ?? p.precio;
   const { data: cierres } = await db.rpc("dias_cerrados", { p_comercio: c.id, p_desde: fechaAR(ahora), p_hasta: fechaAR(ahora, 21) });
   const cerrados = (cierres ?? []).map((x) => x.fecha);
   const d = disponibilidad(p, ahora);
@@ -121,6 +134,7 @@ async function Producto({ params }: Pick<Props, "params">) {
   return (
     <>
       <RegistrarVista comercioId={c.id} productoId={p.id} />
+      <div className="tarjeta rounded-3xl p-5">
       <Link href={`/comercio/${c.id}`} className="text-sm text-white/80 transition hover:text-white">
         ‹ Volver a {c.nombre}
       </Link>
@@ -172,7 +186,19 @@ async function Producto({ params }: Pick<Props, "params">) {
                 : "El comercio te confirma la reserva antes de que vayas a retirar."}
             </p>
           ) : null}
-          <p className="mt-4 text-4xl font-black tracking-tight text-naranja-vivo">{plata(p.precio)}</p>
+          {oferta ? (
+            <div className="mt-4">
+              <p className="text-xs font-bold tracking-wide text-naranja-vivo uppercase">
+                🔥 Oferta {descuento(p.precio, oferta.precio_oferta) ? `-${descuento(p.precio, oferta.precio_oferta)}% ` : ""}· {hastaCorto(oferta.hasta)}
+              </p>
+              <p className="mt-1 flex flex-wrap items-baseline gap-x-3">
+                <span className="text-4xl font-black tracking-tight text-white">{plata(oferta.precio_oferta)}</span>
+                <span className="text-lg text-white/60 line-through">{plata(p.precio)}</span>
+              </p>
+            </div>
+          ) : (
+            <p className="mt-4 text-4xl font-black tracking-tight text-white">{plata(p.precio)}</p>
+          )}
 
           {d.sePuede ? (
             <Suspense fallback={<div className="mt-5 h-40 animate-pulse rounded-xl bg-white/5" />}>
@@ -181,7 +207,7 @@ async function Producto({ params }: Pick<Props, "params">) {
                 maximo={p.modo === "exacto" && !d.requiereConfirmacion ? Math.min(Math.max(p.stock ?? 1, 1), 20) : 10}
                 franjas={franjasRetiro(franjas ?? [], ahora, cerrados)}
                 textoBoton={textoBoton}
-                precio={p.precio}
+                precio={precioFinal}
               />
             </Suspense>
           ) : (
@@ -204,7 +230,7 @@ async function Producto({ params }: Pick<Props, "params">) {
             </p>
           )}
 
-          <div className="mt-6 rounded-2xl border border-white/20 p-4">
+          <div className="mt-6 border-t border-white/15 pt-4">
             <p className="text-sm font-semibold">Retirás en el local</p>
             <p className="mt-1 text-xs text-white/80">{c.direccion}</p>
             <p className="mt-1 text-xs text-white/80">Horario de atención: {horario(franjas ?? [])}</p>
@@ -212,9 +238,35 @@ async function Producto({ params }: Pick<Props, "params">) {
           </div>
         </div>
       </div>
+      </div>
+
+      {c.lat != null && c.lng != null ? (
+        <section className="tarjeta rounded-3xl p-5">
+          <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+            <h2 className="titulo-seccion">📍 Dónde retirarlo</h2>
+            <a
+              href={`https://www.google.com/maps/dir/?api=1&destination=${c.lat},${c.lng}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded-xl bg-white/10 px-3 py-2 text-xs font-semibold transition hover:bg-white/15 active:bg-naranja/70"
+            >
+              Cómo llegar
+            </a>
+          </div>
+          <p className="mb-3 text-sm text-white/85">
+            {c.nombre} · {c.direccion}
+          </p>
+          <MapaComercios
+            centro={{ lat: c.lat, lng: c.lng }}
+            seleccionado={c.id}
+            className="h-[240px] sm:h-[300px]"
+            comercios={[{ id: c.id, nombre: c.nombre, rubro: c.rubro, direccion: c.direccion, lat: c.lat, lng: c.lng, logo_url: c.logo_url }]}
+          />
+        </section>
+      ) : null}
 
       {hermanos && hermanos.length > 1 ? (
-        <section className="mt-8">
+        <section className="tarjeta rounded-3xl p-5">
           <h2 className="titulo-seccion">🎨 Variantes de {p.grupo}</h2>
           <div className="mt-3 flex flex-wrap gap-2">
             {hermanos.map((h) => (
@@ -232,10 +284,10 @@ async function Producto({ params }: Pick<Props, "params">) {
       ) : null}
 
       {enOtros.length ? (
-        <section className="mt-8">
+        <section className="tarjeta rounded-3xl p-5">
           <h2 className="titulo-seccion">🏷️ También lo tienen</h2>
           <p className="mt-1 text-sm text-white/75">El mismo producto en otros comercios de VeciRed. Compará antes de reservar.</p>
-          <ul className="mt-3 divide-y divide-white/10 rounded-2xl border border-white/20">
+          <ul className="mt-3 divide-y divide-white/10 border-y border-white/10">
             <li className="flex items-center justify-between gap-3 bg-white/5 px-4 py-3 text-sm">
               <span className="min-w-0">
                 <span className="font-semibold">{c.nombre}</span> <span className="text-xs text-white/70">(el que estás viendo)</span>
@@ -266,25 +318,27 @@ async function Producto({ params }: Pick<Props, "params">) {
         </section>
       ) : null}
 
-      <section className="mt-8 rounded-2xl bg-white/[0.06] p-4 sm:p-5">
+      <section className="tarjeta rounded-3xl p-5">
         <h2 className="titulo-seccion">📝 Descripción</h2>
         <p className="mt-2 text-sm leading-relaxed text-white/85">{p.descripcion || "Este producto todavía no tiene descripción cargada."}</p>
       </section>
 
-      <section className="mt-8">
+      <section className="tarjeta rounded-3xl p-5">
         <h2 className="titulo-seccion">📋 Características</h2>
         <dl className="mt-2 max-w-xl">
           {fila("Comercio", c.nombre)}
           {fila("Rubro", c.rubro)}
           {p.marca ? fila("Marca", p.marca) : null}
+          {p.medida ? fila("Medida", p.medida) : null}
+          {p.material ? fila("Material", p.material) : null}
           {fila("Disponibilidad", d.texto)}
-          {fila("Precio", plata(p.precio))}
+          {fila("Precio", oferta ? `${plata(precioFinal)} (oferta; normal ${plata(p.precio)})` : plata(p.precio))}
           {fila("Horario de atención", horario(franjas ?? []))}
           {fila("Valoración del comercio", prom != null ? `${nota(prom)} de 5` : "Sin reseñas")}
         </dl>
       </section>
 
-      <section id="preguntas" className="mt-8 scroll-mt-28 rounded-2xl bg-white/[0.06] p-4 sm:p-5">
+      <section id="preguntas" className="tarjeta scroll-mt-28 rounded-3xl p-5">
         <h2 className="titulo-seccion">💬 Preguntas al comercio</h2>
         <Suspense fallback={<div className="mt-3 h-24 animate-pulse rounded-2xl bg-white/5" />}>
           <Preguntas productoId={p.id} comercioId={c.id} comercio={c.nombre} />
@@ -292,11 +346,11 @@ async function Producto({ params }: Pick<Props, "params">) {
       </section>
 
       {masProductos.length ? (
-        <section className="mt-8">
+        <section className="tarjeta rounded-3xl p-5">
           <h2 className="titulo-seccion">🛍️ Más productos de {c.nombre}</h2>
           <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {masProductos.map((o) => (
-              <Link key={o.id} href={`/producto/${o.id}`} className="rounded-2xl border border-white/20 p-4 transition hover:-translate-y-0.5 hover:border-white/60">
+              <Link key={o.id} href={`/producto/${o.id}`} className="rounded-xl p-3 transition hover:bg-white/10 active:bg-naranja/70">
                 <p className="text-sm font-semibold">{o.nombre}</p>
                 <p className="mt-1 text-sm text-white/80">{plata(o.precio)}</p>
               </Link>
@@ -404,7 +458,7 @@ async function Preguntas({ productoId, comercioId, comercio }: { productoId: num
 // Esqueleto mientras carga: foto, título, precio y botón, en gris.
 function ProductoCargando() {
   return (
-    <div aria-label="Cargando el producto…">
+    <div aria-label="Cargando el producto…" className="tarjeta rounded-3xl p-5">
       <div className="h-4 w-40 animate-pulse rounded bg-white/10" />
       <div className="mt-4 grid gap-8 md:grid-cols-2">
         <div className="aspect-square animate-pulse rounded-2xl bg-white/10" />

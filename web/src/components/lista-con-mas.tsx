@@ -25,7 +25,7 @@ export function ListaConMas({
       <div className={className}>{todos.slice(0, visibles)}</div>
       {faltan > 0 ? (
         <div className="mt-4 flex flex-col items-center gap-2">
-          <span className="text-xs text-white/70">
+          <span className="text-xs opacity-70">
             Estás viendo {visibles} de {todos.length} · faltan {faltan}
           </span>
           <div className="flex flex-wrap justify-center gap-2">
@@ -33,7 +33,7 @@ export function ListaConMas({
               <button
                 type="button"
                 onClick={() => setVisibles((v) => v + deA)}
-                className="rounded-xl border border-white/40 px-5 py-2.5 text-sm font-semibold hover:bg-white/10"
+                className="rounded-xl border border-current/40 px-5 py-2.5 text-sm font-semibold hover:bg-current/10"
               >
                 Ver {deA} {que} más
               </button>

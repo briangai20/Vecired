@@ -26,6 +26,7 @@ export type Database = {
           abre_feriados: boolean
           aprobado: boolean
           creado_en: string
+          dado_de_baja_en: string | null
           direccion: string
           dueno_id: string
           id: number
@@ -44,6 +45,7 @@ export type Database = {
           abre_feriados?: boolean
           aprobado?: boolean
           creado_en?: string
+          dado_de_baja_en?: string | null
           direccion: string
           dueno_id?: string
           id?: never
@@ -62,6 +64,7 @@ export type Database = {
           abre_feriados?: boolean
           aprobado?: boolean
           creado_en?: string
+          dado_de_baja_en?: string | null
           direccion?: string
           dueno_id?: string
           id?: never
@@ -158,6 +161,15 @@ export type Database = {
         Update: { creada_en?: string; cuerpo?: string | null; enlace?: string | null; id?: never; leida_en?: string | null; push_enviada_en?: string | null; titulo?: string; tono?: "accion" | "bien" | "mal" | null; usuario_id?: string }
         Relationships: []
       }
+      ofertas: {
+        Row: { comercio_id: number; creada_en: string; hasta: string; id: number; imagen_url: string | null; precio_oferta: number | null; producto_id: number | null; titulo: string | null }
+        Insert: { comercio_id: number; creada_en?: string; hasta: string; id?: never; imagen_url?: string | null; precio_oferta?: number | null; producto_id?: number | null; titulo?: string | null }
+        Update: { comercio_id?: number; creada_en?: string; hasta?: string; id?: never; imagen_url?: string | null; precio_oferta?: number | null; producto_id?: number | null; titulo?: string | null }
+        Relationships: [
+          { foreignKeyName: "ofertas_comercio_id_fkey"; columns: ["comercio_id"]; isOneToOne: false; referencedRelation: "comercios"; referencedColumns: ["id"] },
+          { foreignKeyName: "ofertas_producto_id_fkey"; columns: ["producto_id"]; isOneToOne: false; referencedRelation: "productos"; referencedColumns: ["id"] },
+        ]
+      }
       preguntas: {
         Row: { autor_id: string; comercio_id: number; creada_en: string; id: number; producto_id: number; respondida_en: string | null; respuesta: string | null; texto: string }
         Insert: { autor_id?: string; comercio_id?: number; creada_en?: string; id?: never; producto_id: number; respondida_en?: string | null; respuesta?: string | null; texto: string }
@@ -212,6 +224,8 @@ export type Database = {
           grupo: string | null
           id: number
           marca: string | null
+          material: string | null
+          medida: string | null
           modo: Database["public"]["Enums"]["modo_stock"]
           nombre: string
           precio: number | null
@@ -229,6 +243,8 @@ export type Database = {
           grupo?: string | null
           id?: never
           marca?: string | null
+          material?: string | null
+          medida?: string | null
           modo?: Database["public"]["Enums"]["modo_stock"]
           nombre: string
           precio?: number | null
@@ -246,6 +262,8 @@ export type Database = {
           grupo?: string | null
           id?: never
           marca?: string | null
+          material?: string | null
+          medida?: string | null
           modo?: Database["public"]["Enums"]["modo_stock"]
           nombre?: string
           precio?: number | null
@@ -508,6 +526,9 @@ export type Database = {
     Functions: {
       responder_resena: { Args: { p_resena: number; p_texto: string }; Returns: undefined }
       responder_pregunta: { Args: { p_pregunta: number; p_texto: string }; Returns: undefined }
+      dar_de_baja_mi_comercio: { Args: never; Returns: number }
+      precio_vigente: { Args: { p_producto: number }; Returns: number | null }
+      reactivar_mi_comercio: { Args: never; Returns: undefined }
       corregir_busqueda: { Args: { p_texto: string }; Returns: string | null }
       mis_preguntas: { Args: { p_producto: number }; Returns: number[] }
       guardar_suscripcion_push: { Args: { p_endpoint: string; p_p256dh: string; p_auth: string }; Returns: undefined }

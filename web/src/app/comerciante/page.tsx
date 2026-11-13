@@ -5,13 +5,16 @@ import { disponibilidad, fechaAR, plata } from "@/lib/formato";
 import { usuarioActual } from "@/lib/sesion";
 import { supabaseServidor } from "@/lib/supabase/servidor";
 import type { Enum } from "@/lib/supabase/tipos";
-import { agregarCierre, borrarCierre, borrarPreguntaComercio, cambiarReserva, ofrecerAlternativas, responderPregunta, responderResena } from "./acciones";
+import { reactivarComercio } from "@/app/cuenta/acciones";
+import { FormOferta } from "./form-oferta";
+import { descuento, hastaCorto } from "@/lib/ofertas";
+import { agregarCierre, borrarCierre, borrarOferta, borrarPreguntaComercio, darDeBajaComercio, cambiarReserva, ofrecerAlternativas, responderPregunta, responderResena } from "./acciones";
 
 const fechaCorta = (f: string) => `${Number(f.slice(8))}/${Number(f.slice(5, 7))}`;
 
 // El panel se divide en pestañas (?seccion=): lo del día a día (reservas)
 // queda separado de la configuración del comercio.
-const SECCIONES = { reservas: "Reservas", productos: "Productos", preguntas: "Preguntas", resenas: "Reseñas", configuracion: "Configuración del comercio" } as const;
+const SECCIONES = { reservas: "Reservas", productos: "Productos", preguntas: "Preguntas", ofertas: "Ofertas", resenas: "Reseñas", configuracion: "Configuración del comercio" } as const;
 type Seccion = keyof typeof SECCIONES;
 import { FormComercio } from "./form-comercio";
 import { FotosEnLote } from "./fotos-en-lote";
@@ -92,6 +95,23 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
     supabase.from("zonas").select("*").order("nombre"),
   ]);
 
+  if (comercio?.dado_de_baja_en) {
+    return (
+      <div className="tarjeta mx-auto max-w-xl rounded-3xl p-8 text-center">
+        <h1 className="text-2xl font-bold">{comercio.nombre} está dado de baja</h1>
+        <p className="mt-2 text-sm text-white/85">
+          Nadie lo ve en VeciRed, pero guardamos tus productos y datos. Podés seguir usando tu cuenta para reservar como cualquier vecino, o volver a
+          publicarlo cuando quieras.
+        </p>
+        <form action={reactivarComercio} className="mt-6">
+          <BotonEnviar enviando="Reactivando…" className="boton rounded-xl px-5 py-2.5 text-sm font-semibold">
+            Reactivar mi comercio
+          </BotonEnviar>
+        </form>
+      </div>
+    );
+  }
+
   if (!comercio) {
     return (
       <div className="tarjeta rounded-3xl p-6">
@@ -103,7 +123,7 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
   }
 
   const ahora = new Date();
-  const [{ data: productos }, { data: reservas }, { data: stats }, { data: franjas }, { data: cierres }, { data: feriados }, { data: verificacion }, { data: resenas }, { data: preguntas }] = await Promise.all([
+  const [{ data: productos }, { data: reservas }, { data: stats }, { data: franjas }, { data: cierres }, { data: feriados }, { data: verificacion }, { data: resenas }, { data: preguntas }, { data: misOfertas }] = await Promise.all([
     supabase.from("productos").select("*").eq("comercio_id", comercio.id).order("nombre"),
     supabase
       .from("reservas")
@@ -128,6 +148,12 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
       .eq("comercio_id", comercio.id)
       .order("creada_en", { ascending: false })
       .limit(100),
+    supabase
+      .from("ofertas")
+      .select("id, hasta, titulo, imagen_url, precio_oferta, producto:productos(id, nombre, precio)")
+      .eq("comercio_id", comercio.id)
+      .order("hasta", { ascending: false })
+      .limit(50),
   ]);
   const sinResponder = (resenas ?? []).filter((r) => !r.respuesta).length;
   // Primero las que esperan respuesta.
@@ -207,13 +233,13 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
             ["Retiradas (7 días)", s?.total_retiradas ?? 0],
             ["Valoración", s?.promedio_estrellas ? `${String(s.promedio_estrellas).replace(".", ",")} (${s.total_resenas})` : "Sin reseñas"],
           ].map(([t, v]) => (
-            <div key={t} className="rounded-2xl border border-white/20 p-4">
+            <div key={t} className="border-l-2 border-naranja-vivo/70 py-1 pl-3">
               <p className="text-xs text-white/75">{t}</p>
               <p className="mt-1 text-2xl font-black">{v}</p>
             </div>
           ))}
         </div>
-        <nav className="mt-6 grid grid-cols-2 gap-1 rounded-2xl border border-white/20 p-1 sm:grid-cols-5" aria-label="Secciones del panel">
+        <nav className="mt-6 grid grid-cols-2 gap-1 sm:grid-cols-3 lg:grid-cols-6" aria-label="Secciones del panel">
           {(Object.keys(SECCIONES) as Seccion[]).map((k) => {
             const pendientes =
               k === "reservas" ? abiertas.filter((r) => r.estado === "pendiente").length : k === "resenas" ? sinResponder : k === "preguntas" ? preguntasSinResponder : 0;
@@ -223,7 +249,7 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
                 href={`/comerciante?seccion=${k}`}
                 scroll={false}
                 aria-current={k === seccion ? "page" : undefined}
-                className={`flex items-center justify-center gap-2 rounded-xl px-2 py-2.5 text-center text-sm font-medium leading-tight transition ${k === "configuracion" ? "col-span-2 sm:col-span-1" : ""} ${k === seccion ? "bg-white text-marino" : "hover:bg-white/10"}`}
+                className={`flex items-center justify-center gap-2 rounded-xl px-2 py-2.5 text-center text-sm font-medium leading-tight transition  ${k === seccion ? "bg-white text-marino" : "hover:bg-white/10"}`}
               >
                 {k === "configuracion" ? (
                   <>
@@ -254,10 +280,10 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
         {abiertas.length === 0 ? (
           <p className="mt-3 text-sm text-white/80">No tenés reservas para responder. Aparecen acá en cuanto un vecino reserve.</p>
         ) : (
-          <div className="mt-4 grid gap-3 md:grid-cols-2">
+          <div className="mt-4 divide-y divide-white/15">
             {abiertas.map((r) => (
               <ReservaEnVivo key={r.id} reserva={r.id} estado={r.estado} etiquetas={ESTADOS} accion={cambiarReserva}>
-              <article id={`reserva-${r.id}`} className="scroll-mt-24 rounded-2xl border border-white/20 p-4">
+              <article id={`reserva-${r.id}`} className="scroll-mt-24 py-4">
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     <p className="font-semibold">
@@ -332,14 +358,14 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
         <p className="mt-1 text-sm text-white/80">
           Mantené el stock al día: si no lo tocás en 7 días (3 si usás hay/poco), el producto aparece como &quot;Stock sin confirmar&quot;.
         </p>
-        <details className="mt-4 rounded-2xl border border-white/20 p-4" open={!(productos ?? []).length}>
+        <details className="mt-4 border-t border-white/15 pt-4" open={!(productos ?? []).length}>
           <summary className="cursor-pointer font-semibold">Cargar o actualizar desde Excel</summary>
           <div className="mt-3">
             <ImportarProductos comercioId={comercio.id} existentes={(productos ?? []).map((p) => ({ id: p.id, codigo: p.codigo, nombre: p.nombre }))} />
           </div>
         </details>
         {(productos ?? []).length ? (
-          <details className="mt-4 rounded-2xl border border-white/20 p-4" id="fotos">
+          <details className="mt-4 border-t border-white/15 pt-4" id="fotos">
             <summary className="cursor-pointer font-semibold">
               Cargar fotos de varios productos
               {(() => {
@@ -355,9 +381,9 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
             </div>
           </details>
         ) : null}
-        <div className="mt-4 space-y-3">
+        <div className="mt-4 divide-y divide-white/15">
           <ProductoFila comercioId={comercio.id} ahora={ahora} />
-          <ListaConMas deA={15} que="productos" className="space-y-3">
+          <ListaConMas deA={15} que="productos" className="divide-y divide-white/15">
             {(productos ?? []).map((p) => (
               <ProductoFila key={p.id} p={p} comercioId={comercio.id} ahora={ahora} />
             ))}
@@ -373,7 +399,7 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
           Lo que preguntan en la página de tus productos. Respondé rápido: la pregunta y tu respuesta quedan a la vista de todos y le avisamos al vecino. Si una pregunta es ofensiva o no tiene que ver, podés borrarla.
         </p>
         {listaPreguntas.length ? (
-          <div className="mt-4 grid gap-3 md:grid-cols-2">
+          <div className="mt-4 divide-y divide-white/15">
             {listaPreguntas.map((q) => (
               <article key={q.id} className={`rounded-2xl border p-4 ${q.respuesta ? "border-white/20" : "border-naranja-vivo/70"}`}>
                 <div className="flex flex-wrap items-baseline justify-between gap-2 text-xs text-white/70">
@@ -415,6 +441,53 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
       </section>
       ) : null}
 
+      {seccion === "ofertas" ? (
+      <section id="ofertas" className="tarjeta rounded-3xl p-6">
+        <h2 className="titulo-seccion">🔥 Ofertas</h2>
+        <p className="mt-1 text-sm text-white/80">
+          Aparecen arriba de todo en la portada (van pasando solas) y en la sección Ofertas. Si es un producto rebajado, la reserva se hace al precio de
+          oferta mientras esté vigente. Podés tener hasta 10 a la vez, de hasta 60 días.
+        </p>
+        <FormOferta
+          comercioId={comercio.id}
+          productos={(productos ?? []).filter((p) => p.activo).map((p) => ({ id: p.id, nombre: p.nombre, precio: p.precio }))}
+          hoy={fechaAR(ahora)}
+          maximo={fechaAR(ahora, 60)}
+        />
+        <h3 className="mt-6 text-sm font-semibold">Tus ofertas</h3>
+        {misOfertas?.length ? (
+          <ul className="mt-2 divide-y divide-white/15">
+            {misOfertas.map((o) => {
+              const vencida = o.hasta < fechaAR(ahora);
+              const menos = o.producto ? descuento(o.producto.precio, o.precio_oferta) : null;
+              return (
+                <li key={o.id} className={`flex flex-wrap items-center justify-between gap-3 py-3 text-sm ${vencida ? "opacity-60" : ""}`}>
+                  <div className="min-w-0">
+                    <p className="font-semibold break-words">
+                      {o.producto ? o.producto.nombre : o.titulo}
+                      {menos ? <span className="ml-2 rounded-full bg-naranja px-2 py-0.5 text-[11px] font-black">-{menos}%</span> : null}
+                    </p>
+                    <p className="text-xs text-white/75">
+                      {o.producto ? `${plata(o.precio_oferta)} (normal ${plata(o.producto.precio)}) · ` : "Aviso libre · "}
+                      {vencida ? "Vencida" : hastaCorto(o.hasta)}
+                    </p>
+                  </div>
+                  <form action={borrarOferta}>
+                    <input type="hidden" name="oferta" value={o.id} />
+                    <BotonEnviar enviando="Borrando…" className="rounded-lg px-3 py-1.5 text-xs font-medium text-white/85 transition hover:bg-white/10 active:bg-naranja/70">
+                      Borrar
+                    </BotonEnviar>
+                  </form>
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
+          <p className="mt-2 text-sm text-white/75">Todavía no cargaste ofertas.</p>
+        )}
+      </section>
+      ) : null}
+
       {seccion === "resenas" ? (
       <section id="resenas" className="tarjeta rounded-3xl p-6">
         <h2 className="titulo-seccion">⭐ Reseñas</h2>
@@ -422,9 +495,9 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
           Lo que opinan tus clientes después de retirar. Respondé con amabilidad: tu respuesta se ve en tu página, debajo de la reseña, y le avisamos al cliente.
         </p>
         {resenas?.length ? (
-          <div className="mt-4 grid gap-3 md:grid-cols-2">
+          <div className="mt-4 divide-y divide-white/15">
             {resenas.map((r) => (
-              <article key={r.id} className="rounded-2xl border border-white/20 p-4">
+              <article key={r.id} className="py-4">
                 <div className="flex items-center gap-3">
                   <FotoPerfil url={r.autor_foto_url} nombre={r.autor_nombre} />
                   <div className="min-w-0 flex-1">
@@ -471,7 +544,7 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
         {(cierres ?? []).length ? (
           <ul className="mt-3 space-y-2">
             {(cierres ?? []).map((ci) => (
-              <li key={ci.id} className="flex items-center justify-between gap-3 rounded-xl border border-white/20 px-3 py-2 text-sm">
+              <li key={ci.id} className="flex items-center justify-between gap-3 border-b border-white/10 py-2 text-sm">
                 <span>
                   {fechaCorta(ci.desde)}
                   {ci.hasta !== ci.desde ? ` al ${fechaCorta(ci.hasta)}` : ""}
@@ -509,6 +582,23 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
           Próximos feriados nacionales{comercio.abre_feriados ? " (marcaste que abrís los feriados)" : " (figurás cerrado; si abrís, marcalo en el horario)"}:{" "}
           {(feriados ?? []).map((f) => `${fechaCorta(f.fecha)} ${f.nombre}`).join(" · ") || "no hay en los próximos 3 meses"}.
         </p>
+      </section>
+      <section id="baja" className="tarjeta scroll-mt-28 rounded-3xl p-6">
+        <h2 className="titulo-seccion">🚪 Dar de baja el comercio</h2>
+        <p className="mt-1 text-sm text-white/80">
+          Si ya no vas a vender por VeciRed, podés dar de baja el comercio sin borrar tu cuenta: vas a seguir pudiendo reservar como cualquier vecino.
+          El comercio y sus productos dejan de verse, pero quedan guardados para reactivarlo cuando quieras desde “Mi perfil”. Las reservas en curso se
+          cancelan y les avisamos a los clientes.
+        </p>
+        <form action={darDeBajaComercio} className="mt-4 space-y-3">
+          <label className="flex items-start gap-2 text-sm">
+            <input type="checkbox" name="confirmo" value="si" required className="mt-1" />
+            Entiendo que {comercio.nombre} deja de verse y que se cancelan las reservas en curso.
+          </label>
+          <BotonEnviar enviando="Dando de baja…" className="rounded-xl border border-[#ff6b6b] px-4 py-2.5 text-sm font-semibold text-[#ffb4b4] transition hover:bg-[#ff6b6b]/15">
+            Dar de baja mi comercio
+          </BotonEnviar>
+        </form>
       </section>
       </>
       ) : null}

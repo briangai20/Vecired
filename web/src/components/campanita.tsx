@@ -228,7 +228,7 @@ export function Campanita({ yo }: { yo: string }) {
       ) : null}
 
       {cartel ? (
-        <div role="status" className={`fixed right-4 bottom-4 z-50 w-[min(22rem,calc(100vw-2rem))] rounded-2xl border border-l-8 border-white/30 ${tono(cartel).borde} bg-marino p-4 text-white shadow-2xl shadow-black/50`}>
+        <div role="status" className={`fixed right-4 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-50 lg:bottom-4 w-[min(22rem,calc(100vw-2rem))] rounded-2xl border border-l-8 border-white/30 ${tono(cartel).borde} bg-marino p-4 text-white shadow-2xl shadow-black/50`}>
           <div className="flex items-start gap-3">
             <span aria-hidden className="text-xl">{tono(cartel).icono}</span>
             <Link

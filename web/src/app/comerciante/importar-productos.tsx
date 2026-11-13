@@ -27,6 +27,8 @@ const CAMPOS: { dato: Dato; titulo: string; ayuda?: string }[] = [
   { dato: "codigo", titulo: "Código", ayuda: "Sirve para actualizar la lista más adelante" },
   { dato: "stock", titulo: "Stock" },
   { dato: "marca", titulo: "Marca" },
+  { dato: "medida", titulo: "Medida" },
+  { dato: "material", titulo: "Material" },
   { dato: "descripcion", titulo: "Descripción" },
 ];
 
@@ -170,7 +172,7 @@ export function ImportarProductos({ comercioId, existentes }: { comercioId: numb
       </p>
 
       {tabla && lectura ? (
-        <div className="mt-3 space-y-4 rounded-2xl border border-white/20 p-4">
+        <div className="mt-3 space-y-4 border-t border-white/15 pt-4">
           <div>
             <h3 className="font-semibold">1. Revisá qué columna es cada dato</h3>
             <p className="mt-1 text-xs text-white/75">

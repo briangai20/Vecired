@@ -96,3 +96,13 @@ export async function guardarFotoPerfil(url: string | null): Promise<{ error?: s
   refresh();
   return {};
 }
+
+// Vuelve a publicar el comercio que se había dado de baja (la cuenta vuelve a
+// ser de comerciante).
+export async function reactivarComercio() {
+  if (!(await usuarioActual())) redirect("/ingresar?siguiente=/cuenta");
+  const supabase = await supabaseServidor();
+  const { error } = await supabase.rpc("reactivar_mi_comercio");
+  if (error) redirect(`/cuenta?error=${encodeURIComponent(error.code === "P0001" ? error.message : "No pudimos reactivar el comercio. Probá de nuevo.")}`);
+  redirect("/comerciante");
+}

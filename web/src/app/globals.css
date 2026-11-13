@@ -207,3 +207,14 @@ select option {
     display: none;
   }
 }
+
+/* En el celular, mantener apretado un enlace o una foto no abre la vista
+   previa del navegador (se toca y listo, como en una app). */
+a,
+img {
+  -webkit-touch-callout: none;
+}
+a img {
+  -webkit-user-drag: none;
+  user-select: none;
+}

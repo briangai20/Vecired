@@ -109,7 +109,7 @@ export function FormComercio({
         <input name="whatsapp" type="tel" required defaultValue={comercio?.whatsapp ?? ""} className="campo mt-1" placeholder="11 2345 6789" {...marcar("whatsapp")} />
         <ErrorCampo id="error-whatsapp">{error("whatsapp")}</ErrorCampo>
       </label>
-      <fieldset className="rounded-2xl border border-white/20 p-4 md:col-span-2">
+      <fieldset className="border-t border-white/15 pt-4 md:col-span-2">
         <legend className="px-1 text-sm font-semibold">Logo y verificación del local</legend>
         <p className="text-xs text-white/75">
           El logo se ve en el inicio, en el mapa y en tu página. Con el CUIT, tus redes y una foto del frente comprobamos que el local existe y lo

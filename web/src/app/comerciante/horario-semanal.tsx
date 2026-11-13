@@ -34,7 +34,7 @@ export function HorarioSemanal({ franjas, abreFeriados }: { franjas: Franja[]; a
   const copiarLunes = () => setDias((d) => d.map((x, i) => (i >= 2 && i <= 5 ? { ...d[1] } : x)));
 
   return (
-    <fieldset className="rounded-2xl border border-white/20 p-4">
+    <fieldset className="border-t border-white/15 pt-4">
       <legend className="px-1 text-xs">Horario de atención</legend>
       <p className="text-xs text-white/75">
         Los vecinos ven si estás abierto y eligen el retiro dentro de este horario. Las reservas que llegan con el local cerrado empiezan a contar

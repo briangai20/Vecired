@@ -179,6 +179,8 @@ export async function guardarProducto(d: FormData) {
   const datos = {
     nombre: texto(d, "nombre"),
     marca: opcional(d, "marca"),
+    medida: opcional(d, "medida")?.slice(0, 60) ?? null,
+    material: opcional(d, "material")?.slice(0, 60) ?? null,
     grupo: opcional(d, "grupo"),
     descripcion: opcional(d, "descripcion"),
     codigo: opcional(d, "codigo"),
@@ -322,6 +324,8 @@ export async function importarProductos(comercioId: number, filas: FilaProducto[
       codigo: corto(f.codigo, 60),
       nombre: corto(f.nombre, 200) ?? "",
       marca: corto(f.marca, 80),
+      medida: corto(f.medida, 60),
+      material: corto(f.material, 60),
       grupo: corto(f.grupo, 120),
       descripcion: corto(f.descripcion, 1000),
       precio: f.precio === undefined ? undefined : typeof f.precio === "number" && f.precio >= 0 && f.precio < 1e9 ? f.precio : null,
@@ -351,6 +355,8 @@ export async function importarProductos(comercioId: number, filas: FilaProducto[
           activo: true,
           ...(f.codigo ? { codigo: f.codigo } : {}),
           ...(f.marca ? { marca: f.marca } : {}),
+          ...(f.medida ? { medida: f.medida } : {}),
+          ...(f.material ? { material: f.material } : {}),
           ...(f.grupo ? { grupo: f.grupo } : {}),
           ...(f.descripcion ? { descripcion: f.descripcion } : {}),
           ...(f.precio !== undefined ? { precio: f.precio } : {}),
@@ -363,6 +369,8 @@ export async function importarProductos(comercioId: number, filas: FilaProducto[
         codigo: f.codigo,
         nombre: f.nombre,
         marca: f.marca,
+        medida: f.medida,
+        material: f.material,
         grupo: f.grupo,
         descripcion: f.descripcion,
         precio: f.precio ?? null,
@@ -437,4 +445,53 @@ export async function quitarFotoExtra(productoId: number, url: string) {
   const raiz = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/productos/`;
   if (url.startsWith(raiz)) await supabase.storage.from("productos").remove([url.slice(raiz.length)]);
   refresh();
+}
+
+// --- Ofertas ---
+
+export type EstadoOferta = { error?: string; ok?: number };
+
+export async function crearOferta(_: EstadoOferta, d: FormData): Promise<EstadoOferta> {
+  const supabase = await comerciante();
+  const comercioId = Number(texto(d, "comercio"));
+  const hasta = texto(d, "hasta");
+  if (!comercioId) return { error: "Comercio no encontrado." };
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(hasta)) return { error: "Elegí hasta qué día vale la oferta." };
+  let fila: TablesInsert<"ofertas">;
+  if (texto(d, "tipo") === "aviso") {
+    const titulo = texto(d, "titulo").slice(0, 80);
+    if (titulo.length < 3) return { error: "Escribí un título para la oferta." };
+    const imagen = texto(d, "imagen");
+    const carpeta = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/productos/${comercioId}/`;
+    if (imagen && !imagen.startsWith(carpeta)) return { error: "Esa imagen no es de tu comercio." };
+    fila = { comercio_id: comercioId, titulo, imagen_url: imagen || null, hasta };
+  } else {
+    const producto = Number(texto(d, "producto"));
+    const precio = Number(texto(d, "precio"));
+    if (!producto) return { error: "Elegí el producto en oferta." };
+    if (!Number.isFinite(precio) || precio <= 0) return { error: "Poné el precio de oferta." };
+    fila = { comercio_id: comercioId, producto_id: producto, precio_oferta: Math.round(precio * 100) / 100, hasta };
+  }
+  const { error } = await supabase.from("ofertas").insert(fila);
+  if (error) return { error: error.code === "P0001" ? error.message : "No pudimos publicar la oferta. Probá de nuevo." };
+  refresh();
+  return { ok: Date.now() };
+}
+
+export async function borrarOferta(d: FormData) {
+  const supabase = await comerciante();
+  const id = Number(texto(d, "oferta"));
+  if (!id) return;
+  await supabase.from("ofertas").delete().eq("id", id);
+  await listo("ofertas");
+}
+
+// --- Dar de baja el comercio (la cuenta sigue, como comprador) ---
+
+export async function darDeBajaComercio(d: FormData) {
+  const supabase = await comerciante();
+  if (texto(d, "confirmo") !== "si") redirect(`/comerciante?seccion=configuracion&error=${encodeURIComponent("Tildá la casilla para confirmar la baja.")}#baja`);
+  const { error } = await supabase.rpc("dar_de_baja_mi_comercio");
+  if (error) redirect(`/comerciante?seccion=configuracion&error=${encodeURIComponent(error.code === "P0001" ? error.message : "No pudimos dar de baja el comercio. Probá de nuevo.")}#baja`);
+  redirect("/cuenta?comercio=baja");
 }

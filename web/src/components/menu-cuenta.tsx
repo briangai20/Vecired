@@ -1,14 +1,14 @@
-import Link from "next/link";
+import { EnlaceMenu } from "@/components/enlace-menu";
 import { salir } from "@/app/ingresar/acciones";
 import { usuarioActual } from "@/lib/sesion";
 
-// Cada opción va en su propio recuadro, en la compu y en el menú del celular.
-const enlace = "rounded-xl border border-white/25 px-3 py-2 text-center text-sm font-medium whitespace-nowrap text-white transition hover:border-white/60 hover:bg-white/10";
+// Opciones sin recuadro; se pinta la elegida (ver EnlaceMenu).
+const salirClase = "rounded-xl px-3 py-2 text-sm font-medium whitespace-nowrap text-white transition hover:bg-white/10 active:bg-naranja/70";
 
 const inicio = (
-  <Link href="/" className={enlace}>
+  <EnlaceMenu href="/">
     Inicio
-  </Link>
+  </EnlaceMenu>
 );
 
 export async function MenuCuenta() {
@@ -17,39 +17,39 @@ export async function MenuCuenta() {
     return (
       <>
         {inicio}
-        <Link href="/comercios" className={enlace}>
+        <EnlaceMenu href="/comercios">
           Soy comerciante
-        </Link>
-        <Link href="/ingresar" className={`${enlace} border-white/50 bg-white/10`}>
+        </EnlaceMenu>
+        <EnlaceMenu href="/ingresar" className="bg-white/10">
           Ingresar
-        </Link>
+        </EnlaceMenu>
       </>
     );
   }
   return (
     <>
       {inicio}
-      <Link href="/reservas" className={enlace}>
+      <EnlaceMenu href="/reservas">
         Mis reservas
-      </Link>
-      <Link href="/favoritos" className={enlace}>
+      </EnlaceMenu>
+      <EnlaceMenu href="/favoritos">
         Favoritos
-      </Link>
+      </EnlaceMenu>
       {usuario.rol === "comerciante" ? (
-        <Link href="/comerciante" className={enlace}>
+        <EnlaceMenu href="/comerciante">
           Mi comercio
-        </Link>
+        </EnlaceMenu>
       ) : null}
       {usuario.admin ? (
-        <Link href="/admin" className={enlace}>
+        <EnlaceMenu href="/admin">
           Admin
-        </Link>
+        </EnlaceMenu>
       ) : null}
-      <Link href="/cuenta" className={enlace}>
+      <EnlaceMenu href="/cuenta">
         Mi perfil
-      </Link>
+      </EnlaceMenu>
       <form action={salir}>
-        <button className={enlace} title={usuario.email}>
+        <button className={salirClase} title={usuario.email}>
           Salir
         </button>
       </form>

@@ -9,7 +9,7 @@ import { FotoNuevoProducto, FotosExtra, SubirFoto } from "./subir-foto";
 export function ProductoFila({ p, comercioId, ahora }: { p?: Tabla<"productos">; comercioId: number; ahora: Date }) {
   const d = p ? disponibilidad(p, ahora) : null;
   return (
-    <form action={guardarProducto} className="rounded-2xl border border-white/20 p-4">
+    <form action={guardarProducto} className="py-4">
       {p ? <input type="hidden" name="id" value={p.id} /> : <input type="hidden" name="comercio_id" value={comercioId} />}
       <div className="flex flex-wrap items-start justify-between gap-2">
         {p ? (
@@ -76,7 +76,7 @@ export function ProductoFila({ p, comercioId, ahora }: { p?: Tabla<"productos">;
       </div>
 
       <details className="mt-3 text-xs" open={!p}>
-        <summary className="cursor-pointer text-white/80">Más datos (marca, variantes, descripción)</summary>
+        <summary className="cursor-pointer text-white/80">Más datos (marca, medida, material, variantes, descripción)</summary>
         <div className="mt-3 grid gap-3 sm:grid-cols-3">
           {p ? (
             <label className="block sm:col-span-3">
@@ -87,6 +87,14 @@ export function ProductoFila({ p, comercioId, ahora }: { p?: Tabla<"productos">;
           <label className="block">
             Marca
             <input name="marca" defaultValue={p?.marca ?? ""} className="campo mt-1" />
+          </label>
+          <label className="block">
+            Medida
+            <input name="medida" defaultValue={p?.medida ?? ""} maxLength={60} className="campo mt-1" placeholder="20 cm, talle M, 1/2 pulgada" />
+          </label>
+          <label className="block">
+            Material
+            <input name="material" defaultValue={p?.material ?? ""} maxLength={60} className="campo mt-1" placeholder="Acero, algodón, plástico" />
           </label>
           <label className="block">
             Grupo de variantes

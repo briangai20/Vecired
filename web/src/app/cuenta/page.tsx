@@ -5,6 +5,8 @@ import { Suspense } from "react";
 import { Estrellas } from "@/components/insignias";
 import { usuarioActual } from "@/lib/sesion";
 import { supabaseServidor } from "@/lib/supabase/servidor";
+import { BotonEnviar } from "@/components/boton-enviar";
+import { reactivarComercio } from "./acciones";
 import { BorrarCuenta } from "./borrar-cuenta";
 import { FormPerfil } from "./form-perfil";
 import { FotoEditable } from "./foto-editable";
@@ -37,9 +39,7 @@ async function Cuenta() {
       .select("id, estrellas, texto, creada_en, comercio:comercios(id, nombre)")
       .eq("autor_id", usuario.id)
       .order("creada_en", { ascending: false }),
-    usuario.rol === "comerciante"
-      ? supabase.from("comercios").select("id, nombre, aprobado").eq("dueno_id", usuario.id).limit(1).maybeSingle()
-      : Promise.resolve({ data: null }),
+    supabase.from("comercios").select("id, nombre, aprobado, dado_de_baja_en").eq("dueno_id", usuario.id).order("id").limit(1).maybeSingle(),
   ]);
   const meta = auth.user?.user_metadata ?? {};
 
@@ -54,6 +54,18 @@ async function Cuenta() {
         <p className="mt-4 text-xs text-white/70">Tu foto y tu nombre (solo el apellido abreviado) se ven en las reseñas que escribís.</p>
       </section>
 
+      {comercio?.dado_de_baja_en ? (
+        <section className="tarjeta rounded-3xl border-naranja-vivo/60 p-6">
+          <h2 className="titulo-seccion">🏪 {comercio.nombre} está dado de baja</h2>
+          <p className="mt-1 text-sm text-white/80">Nadie lo ve en VeciRed, pero guardamos sus productos y datos. Cuando quieras, lo volvés a publicar.</p>
+          <form action={reactivarComercio} className="mt-4">
+            <BotonEnviar enviando="Reactivando…" className="boton rounded-xl px-5 py-2.5 text-sm font-semibold">
+              Reactivar mi comercio
+            </BotonEnviar>
+          </form>
+        </section>
+      ) : null}
+
       <section className="tarjeta rounded-3xl p-6">
         <h2 className="text-lg font-semibold">Datos de la cuenta</h2>
         <dl className="mt-4 grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
@@ -61,7 +73,7 @@ async function Cuenta() {
           <dd className="break-all">{usuario.email}</dd>
           <dt className="text-white/70">Tipo de cuenta</dt>
           <dd>{usuario.rol === "comerciante" ? "Comerciante (tengo un comercio)" : "Comprador"}</dd>
-          {comercio ? (
+          {comercio && !comercio.dado_de_baja_en ? (
             <>
               <dt className="text-white/70">Mi comercio</dt>
               <dd>

@@ -17,6 +17,8 @@ export type FilaProducto = {
   codigo: string | null;
   nombre: string;
   marca: string | null;
+  medida?: string | null;
+  material?: string | null;
   grupo: string | null;
   descripcion: string | null;
   // undefined = la planilla no trae ese dato (al actualizar, se deja como estaba)
@@ -32,7 +34,7 @@ export const MAX_FILAS = 2000;
 
 // Datos que se pueden sacar de una columna. "costo" y "margen" sirven para
 // calcular el precio de venta cuando la planilla no lo trae.
-export type Dato = "codigo" | "nombre" | "marca" | "grupo" | "descripcion" | "precio" | "costo" | "margen" | "stock";
+export type Dato = "codigo" | "nombre" | "marca" | "medida" | "material" | "grupo" | "descripcion" | "precio" | "costo" | "margen" | "stock";
 export type Mapa = Partial<Record<Dato, number>>; // índice de columna
 
 export type Tabla = {
@@ -58,6 +60,8 @@ const SINONIMOS: Record<Dato, string[]> = {
   codigo: ["codigo", "cod", "sku", "codigo interno", "id", "codigo de articulo", "cod articulo", "ean", "codigo de barras", "referencia", "ref"],
   nombre: ["nombre", "producto", "produto", "productos", "nombre del producto", "articulo", "articulos", "item", "detalle"],
   marca: ["marca", "fabricante", "proveedor"],
+  medida: ["medida", "medidas", "tamano", "talle", "dimension", "dimensiones", "calibre", "largo"],
+  material: ["material", "materiales", "composicion"],
   grupo: ["grupo", "variantes", "grupo de variantes", "familia"],
   descripcion: ["descripcion", "descripcion del producto", "descripcion del articulo", "observaciones", "comentario", "caracteristicas"],
   precio: ["precio", "precio venta", "precio de venta", "precio final", "precio al publico", "precio publico", "pvp", "venta", "precio unitario", "importe", "valor", "precio lista"],
@@ -271,6 +275,8 @@ export function interpretarPlanilla(matriz: Celda[][], tabla: Tabla, mapa: Mapa 
       codigo: texto(dato("codigo")).slice(0, 60) || null,
       nombre,
       marca: texto(dato("marca")).slice(0, 80) || null,
+      medida: texto(dato("medida")).slice(0, 60) || null,
+      material: texto(dato("material")).slice(0, 60) || null,
       grupo: texto(dato("grupo")).slice(0, 120) || null,
       descripcion: texto(dato("descripcion")).slice(0, 1000) || null,
     };

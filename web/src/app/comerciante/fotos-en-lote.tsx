@@ -18,7 +18,7 @@ export function FotosEnLote({ comercioId, productos }: { comercioId: number; pro
   const [modo, setModo] = useState<"varias" | "celular">("varias");
   return (
     <div>
-      <div className="grid grid-cols-2 gap-1 rounded-2xl border border-white/20 p-1 sm:inline-grid" role="tablist">
+      <div className="grid grid-cols-2 gap-1 sm:inline-grid" role="tablist">
         {(
           [
             ["varias", "Elegir varias fotos"],
@@ -133,7 +133,7 @@ function Varias({ comercioId, productos }: { comercioId: number; productos: Prod
               const p = e.productoId != null ? porId.get(e.productoId) : undefined;
               const estado = estados[e.clave];
               return (
-                <li key={e.clave} className="flex gap-3 rounded-2xl border border-white/20 p-3">
+                <li key={e.clave} className="flex gap-3 border-b border-white/10 py-3">
                   {/* eslint-disable-next-line @next/next/no-img-element -- vista previa local (blob:) */}
                   <img src={e.vista} alt="" className="h-20 w-20 shrink-0 rounded-xl bg-white object-contain" />
                   <div className="min-w-0 flex-1 text-xs">
@@ -250,7 +250,7 @@ function Celular({ comercioId, productos }: { comercioId: number; productos: Pro
       <p className="text-sm text-white/80">
         Abrilo desde el celular: te mostramos un producto sin foto por vez, le sacás la foto y pasamos al siguiente. Con buena luz y fondo liso quedan mejor.
       </p>
-      <div className="mt-4 rounded-2xl border border-white/20 p-4 text-center">
+      <div className="mt-4 border-t border-white/15 pt-4 text-center">
         <p className="text-xs text-white/70">
           Producto {indice + 1} de {pendientes.length} sin foto{hechos ? ` · ya sacaste ${hechos}` : ""}
         </p>
