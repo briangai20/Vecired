@@ -7,8 +7,10 @@ import { supabaseServidor } from "@/lib/supabase/servidor";
 import type { Enum } from "@/lib/supabase/tipos";
 import { reactivarComercio } from "@/app/cuenta/acciones";
 import { FormOferta } from "./form-oferta";
+import { MotivoBaja } from "./motivo-baja";
+import { SelectorProductos } from "./selector-productos";
 import { descuento, hastaCorto } from "@/lib/ofertas";
-import { agregarCierre, borrarCierre, borrarOferta, borrarPreguntaComercio, darDeBajaComercio, cambiarReserva, ofrecerAlternativas, responderPregunta, responderResena } from "./acciones";
+import { agregarCierre, borrarCierre, borrarOferta, productosDeOferta, borrarPreguntaComercio, darDeBajaComercio, cambiarReserva, ofrecerAlternativas, responderPregunta, responderResena } from "./acciones";
 
 const fechaCorta = (f: string) => `${Number(f.slice(8))}/${Number(f.slice(5, 7))}`;
 
@@ -150,7 +152,7 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
       .limit(100),
     supabase
       .from("ofertas")
-      .select("id, hasta, titulo, imagen_url, precio_oferta, producto:productos(id, nombre, precio)")
+      .select("id, hasta, titulo, imagen_url, precio_oferta, producto:productos!ofertas_producto_id_fkey(id, nombre, precio), oferta_productos(producto_id)")
       .eq("comercio_id", comercio.id)
       .order("hasta", { ascending: false })
       .limit(50),
@@ -470,7 +472,25 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
                     <p className="text-xs text-white/75">
                       {o.producto ? `${plata(o.precio_oferta)} (normal ${plata(o.producto.precio)}) · ` : "Aviso libre · "}
                       {vencida ? "Vencida" : hastaCorto(o.hasta)}
+                      {!o.producto ? ` · ${o.oferta_productos.length} ${o.oferta_productos.length === 1 ? "producto" : "productos"}` : ""}
                     </p>
+                    {!o.producto && !vencida ? (
+                      <details className="mt-2" open={!o.oferta_productos.length}>
+                        <summary className="cursor-pointer text-xs font-semibold text-naranja-vivo">
+                          {o.oferta_productos.length ? "Cambiar los productos de la oferta" : "Elegí los productos de la oferta"}
+                        </summary>
+                        <form action={productosDeOferta} className="mt-2 space-y-2">
+                          <input type="hidden" name="oferta" value={o.id} />
+                          <SelectorProductos
+                            productos={(productos ?? []).filter((p) => p.activo).map((p) => ({ id: p.id, nombre: p.nombre, precio: p.precio }))}
+                            elegidos={o.oferta_productos.map((x) => x.producto_id)}
+                          />
+                          <BotonEnviar enviando="Guardando…" className="boton rounded-xl px-4 py-2 text-xs font-semibold">
+                            Guardar productos
+                          </BotonEnviar>
+                        </form>
+                      </details>
+                    ) : null}
                   </div>
                   <form action={borrarOferta}>
                     <input type="hidden" name="oferta" value={o.id} />
@@ -590,7 +610,8 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
           El comercio y sus productos dejan de verse, pero quedan guardados para reactivarlo cuando quieras desde “Mi perfil”. Las reservas en curso se
           cancelan y les avisamos a los clientes.
         </p>
-        <form action={darDeBajaComercio} className="mt-4 space-y-3">
+        <form action={darDeBajaComercio} className="mt-4 space-y-4">
+          <MotivoBaja />
           <label className="flex items-start gap-2 text-sm">
             <input type="checkbox" name="confirmo" value="si" required className="mt-1" />
             Entiendo que {comercio.nombre} deja de verse y que se cancelan las reservas en curso.

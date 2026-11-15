@@ -6,6 +6,7 @@ import { plata } from "@/lib/formato";
 import { supabaseNavegador } from "@/lib/supabase/navegador";
 import { crearOferta, type EstadoOferta } from "./acciones";
 import { achicar } from "./subir-foto";
+import { SelectorProductos } from "./selector-productos";
 
 type Producto = { id: number; nombre: string; precio: number | null };
 
@@ -115,6 +116,10 @@ export function FormOferta({ comercioId, productos, hoy, maximo }: { comercioId:
               </button>
               {imagen ? <span className="text-white/75">✓ Imagen lista</span> : null}
             </div>
+          </div>
+          <div className="sm:col-span-2">
+            <SelectorProductos productos={productos} />
+            <p className="mt-1 text-white/60">Al tocar la oferta, los vecinos ven estos productos para reservar.</p>
           </div>
         </div>
       )}

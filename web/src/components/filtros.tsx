@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useTransition } from "react";
 import { CENTROS, ZONA_INICIAL } from "@/lib/zonas";
 import { CampoUbicacion } from "./campo-ubicacion";
+import { guardarUbicacion } from "@/lib/ubicacion";
 
 type Zona = { id: string; nombre: string };
 
@@ -43,6 +44,8 @@ export function Filtros({ zonas, inicial }: { zonas: Zona[]; inicial: ValoresFil
   const [aviso, setAviso] = useState("");
 
   function ir(nuevo: ValoresFiltro) {
+    // Se guarda para las otras páginas (ofertas, resultados) y la próxima búsqueda.
+    guardarUbicacion({ lat: nuevo.lat, lng: nuevo.lng, lugar: nuevo.lugar, zona: nuevo.zona, radio: nuevo.radio, gps: nuevo.lat != null && !nuevo.lugar });
     startTransition(() => router.replace(armarUrl(nuevo, params), { scroll: false }));
   }
 
@@ -64,7 +67,8 @@ export function Filtros({ zonas, inicial }: { zonas: Zona[]; inicial: ValoresFil
         cambiar({ lat: pos.coords.latitude, lng: pos.coords.longitude, lugar: undefined });
       },
       () => setAviso("No pudimos acceder a tu ubicación. Elegí una zona."),
-      { enableHighAccuracy: false, timeout: 10_000 },
+      // Alta precisión: el GPS del celular, no la ubicación aproximada por wifi.
+      { enableHighAccuracy: true, timeout: 15_000, maximumAge: 30_000 },
     );
   }
 

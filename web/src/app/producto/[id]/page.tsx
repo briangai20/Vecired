@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { ComoLlegar } from "@/components/como-llegar";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { Favorito } from "@/components/favorito";
@@ -244,14 +245,11 @@ async function Producto({ params }: Pick<Props, "params">) {
         <section className="tarjeta rounded-3xl p-5">
           <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
             <h2 className="titulo-seccion">📍 Dónde retirarlo</h2>
-            <a
-              href={`https://www.google.com/maps/dir/?api=1&destination=${c.lat},${c.lng}`}
-              target="_blank"
-              rel="noopener noreferrer"
+            <ComoLlegar
+              lat={c.lat}
+              lng={c.lng}
               className="rounded-xl bg-white/10 px-3 py-2 text-xs font-semibold transition hover:bg-white/15 active:bg-naranja/70"
-            >
-              Cómo llegar
-            </a>
+            />
           </div>
           <p className="mb-3 text-sm text-white/85">
             {c.nombre} · {c.direccion}

@@ -9,6 +9,7 @@ import { Avisos } from "@/components/avisos";
 import { Buscador, BuscadorCargando } from "@/components/buscador";
 import { InstalarApp } from "@/components/instalar-app";
 import { PantallaInicio } from "@/components/pantalla-inicio";
+import { UbicacionAlAbrir } from "@/components/ubicacion-al-abrir";
 import { DESCRIPCION_SITIO, SITIO } from "@/lib/sitio";
 import { CUIT, MAIL_CONTACTO, TITULAR } from "@/lib/legal";
 import "./globals.css";
@@ -52,6 +53,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       {/* En el celular, lugar abajo para la barra de navegación fija. */}
       <body className="flex min-h-full flex-col pb-[calc(4rem+env(safe-area-inset-bottom))] font-sans lg:pb-0">
         <PantallaInicio />
+        <Suspense fallback={null}>
+          <UbicacionAlAbrir />
+        </Suspense>
         <header className="sticky top-0 z-40 border-b border-white/10 bg-marino pt-[env(safe-area-inset-top)] shadow-lg shadow-black/30">
           <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-3 lg:gap-5 lg:px-6">
             <Link href="/" className="mr-auto flex min-w-0 items-center gap-2.5 sm:gap-3 lg:mr-0 lg:shrink-0">

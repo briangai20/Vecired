@@ -472,10 +472,32 @@ export async function crearOferta(_: EstadoOferta, d: FormData): Promise<EstadoO
     if (!Number.isFinite(precio) || precio <= 0) return { error: "Poné el precio de oferta." };
     fila = { comercio_id: comercioId, producto_id: producto, precio_oferta: Math.round(precio * 100) / 100, hasta };
   }
-  const { error } = await supabase.from("ofertas").insert(fila);
+  const { data: nueva, error } = await supabase.from("ofertas").insert(fila).select("id").single();
   if (error) return { error: error.code === "P0001" ? error.message : "No pudimos publicar la oferta. Probá de nuevo." };
+  // Oferta libre: los productos que eligió (la base revisa que sean suyos).
+  if (!fila.producto_id) {
+    const ids = [...new Set(d.getAll("productos").map(Number).filter((n) => Number.isInteger(n) && n > 0))].slice(0, 20);
+    if (ids.length) {
+      const { error: e2 } = await supabase.from("oferta_productos").insert(ids.map((producto_id) => ({ oferta_id: nueva.id, producto_id })));
+      if (e2) return { error: "La oferta se publicó, pero no pudimos guardar sus productos. Probá elegirlos de nuevo desde la lista." };
+    }
+  }
   refresh();
   return { ok: Date.now() };
+}
+
+// Cambia los productos de una oferta libre (se reemplazan por los elegidos).
+export async function productosDeOferta(d: FormData) {
+  const supabase = await comerciante();
+  const id = Number(texto(d, "oferta"));
+  if (!id) return;
+  const ids = [...new Set(d.getAll("productos").map(Number).filter((n) => Number.isInteger(n) && n > 0))].slice(0, 20);
+  await supabase.from("oferta_productos").delete().eq("oferta_id", id);
+  if (ids.length) {
+    const { error } = await supabase.from("oferta_productos").insert(ids.map((producto_id) => ({ oferta_id: id, producto_id })));
+    if (error) redirect(`/comerciante?seccion=ofertas&error=${encodeURIComponent("No pudimos guardar los productos de la oferta.")}`);
+  }
+  await listo("ofertas");
 }
 
 export async function borrarOferta(d: FormData) {
@@ -490,8 +512,14 @@ export async function borrarOferta(d: FormData) {
 
 export async function darDeBajaComercio(d: FormData) {
   const supabase = await comerciante();
-  if (texto(d, "confirmo") !== "si") redirect(`/comerciante?seccion=configuracion&error=${encodeURIComponent("Tildá la casilla para confirmar la baja.")}#baja`);
-  const { error } = await supabase.rpc("dar_de_baja_mi_comercio");
+  const volver = (m: string) => redirect(`/comerciante?seccion=configuracion&error=${encodeURIComponent(m)}#baja`);
+  if (texto(d, "confirmo") !== "si") volver("Tildá la casilla para confirmar la baja.");
+  // Motivo: una opción de la lista, o "Otro" con al menos 30 letras.
+  const elegido = texto(d, "motivo");
+  const motivo = elegido === "Otro" ? texto(d, "otro") : elegido;
+  if (!motivo) volver("Elegí el motivo de la baja.");
+  if (elegido === "Otro" && motivo.length < 30) volver("Contanos el motivo con al menos 30 letras.");
+  const { error } = await supabase.rpc("dar_de_baja_mi_comercio", { p_motivo: motivo });
   if (error) redirect(`/comerciante?seccion=configuracion&error=${encodeURIComponent(error.code === "P0001" ? error.message : "No pudimos dar de baja el comercio. Probá de nuevo.")}#baja`);
   redirect("/cuenta?comercio=baja");
 }

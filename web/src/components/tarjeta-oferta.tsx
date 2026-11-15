@@ -11,7 +11,8 @@ export function TarjetaOferta({ o, className = "" }: { o: Oferta; className?: st
   const menos = p ? descuento(p.precio, o.precio_oferta) : null;
   return (
     <Link
-      href={p ? `/producto/${p.id}` : `/comercio/${o.comercio.id}`}
+      // Producto rebajado: va al producto. Oferta libre ("2x1"): a la página de la oferta.
+      href={p ? `/producto/${p.id}` : `/oferta/${o.id}`}
       className={`group flex overflow-hidden rounded-2xl border border-white/20 bg-marino text-white shadow-lg shadow-black/20 transition hover:border-white/60 ${className}`}
     >
       <div className="relative w-2/5 shrink-0 bg-marino-claro">

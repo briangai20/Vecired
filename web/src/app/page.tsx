@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { ComoLlegar } from "@/components/como-llegar";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { Filtros, type ValoresFiltro } from "@/components/filtros";
@@ -13,9 +15,11 @@ import { supabasePublico } from "@/lib/supabase/publico";
 import { CENTROS, RADIO_INICIAL, ZONA_INICIAL } from "@/lib/zonas";
 import { VistosRecientes } from "@/components/vistos-recientes";
 import { Carrusel } from "@/components/carrusel";
+import { ComercioAlInstante } from "@/components/comercio-al-instante";
 import { CarruselOfertas } from "@/components/carrusel-ofertas";
 import { TarjetaOferta } from "@/components/tarjeta-oferta";
 import { ofertasVigentes, preciosDeOferta } from "@/lib/ofertas";
+import { COOKIE_UBICACION, leerUbicacion, type Ubicacion } from "@/lib/ubicacion";
 
 type Params = PageProps<"/">["searchParams"];
 type SP = Awaited<Params>;
@@ -28,22 +32,31 @@ type Orden = keyof typeof ORDENES;
 
 const texto = (sp: SP, k: string) => (typeof sp[k] === "string" ? (sp[k] as string) : "");
 
-function leerFiltro(sp: SP): ValoresFiltro {
+// Dónde buscar: lo que diga la dirección y, si no dice nada, la ubicación
+// guardada (la del GPS al abrir la página o la última que eligió).
+function leerFiltro(sp: SP, g: Ubicacion = {}): ValoresFiltro {
   const numero = (k: string) => {
     const n = Number(texto(sp, k));
     return texto(sp, k) !== "" && Number.isFinite(n) ? n : undefined;
   };
-  const zona = CENTROS[texto(sp, "zona")] ? texto(sp, "zona") : ZONA_INICIAL;
-  const radio = Math.min(20, Math.max(1, Math.round(numero("radio") ?? RADIO_INICIAL)));
-  const lat = numero("lat");
-  const lng = numero("lng");
+  const enDireccion = texto(sp, "zona") !== "" || texto(sp, "lat") !== "";
+  const zonaPedida = enDireccion ? texto(sp, "zona") : (g.zona ?? "");
+  const zona = CENTROS[zonaPedida] ? zonaPedida : ZONA_INICIAL;
+  const radio = Math.min(20, Math.max(1, Math.round(numero("radio") ?? g.radio ?? RADIO_INICIAL)));
+  const lat = enDireccion ? numero("lat") : g.lat;
+  const lng = enDireccion ? numero("lng") : g.lng;
+  const lugar = enDireccion ? texto(sp, "lugar").slice(0, 120) || undefined : g.lugar;
   const ubicacionValida = lat != null && lng != null && Math.abs(lat) <= 90 && Math.abs(lng) <= 180;
   return {
     q: texto(sp, "q").trim().slice(0, 80),
     zona,
     radio,
-    ...(ubicacionValida ? { lat, lng, lugar: texto(sp, "lugar").slice(0, 120) || undefined } : {}),
+    ...(ubicacionValida ? { lat, lng, lugar } : {}),
   };
+}
+
+async function ubicacionGuardada() {
+  return leerUbicacion((await cookies()).get(COOKIE_UBICACION)?.value);
 }
 
 // Orden y filtros de los resultados (?orden=precio&abierto=1&stock=1&ver=comercios).
@@ -79,9 +92,6 @@ export default function Inicio({ searchParams }: PageProps<"/">) {
   return (
     <div className="space-y-6">
       <Suspense fallback={null}>
-        <OfertasDestacadas searchParams={searchParams} />
-      </Suspense>
-      <Suspense fallback={null}>
         <Portada searchParams={searchParams} />
       </Suspense>
       {/* Enseguida de la bienvenida, la búsqueda y el mapa; las vidrieras de productos van al final. */}
@@ -112,7 +122,12 @@ export default function Inicio({ searchParams }: PageProps<"/">) {
 async function OfertasDestacadas({ searchParams }: { searchParams: Params }) {
   const sp = await searchParams;
   if (texto(sp, "q").trim()) return null;
-  const ofertas = await ofertasVigentes(supabasePublico(), { limite: 12 });
+  // Las de los comercios cercanos a la ubicación elegida.
+  const f = leerFiltro(sp, await ubicacionGuardada());
+  const centro = f.lat != null && f.lng != null ? { lat: f.lat, lng: f.lng } : CENTROS[f.zona];
+  const db = supabasePublico();
+  const { data: cerca } = await db.rpc("comercios_cercanos", { p_lat: centro.lat, p_lng: centro.lng, p_radio_km: f.radio });
+  const ofertas = await ofertasVigentes(db, { limite: 12, comercios: (cerca ?? []).map((c) => c.id) });
   if (!ofertas.length) return null;
   return (
     <section aria-label="Ofertas">
@@ -129,7 +144,7 @@ async function OfertasDestacadas({ searchParams }: { searchParams: Params }) {
 // Bienvenida y accesos por rubro: solo en la portada, sin búsqueda hecha.
 async function Portada({ searchParams }: { searchParams: Params }) {
   const sp = await searchParams;
-  if (texto(sp, "q").trim()) return null;
+  const buscado = sinAcentos(texto(sp, "q").trim());
   const { data } = await supabasePublico().from("comercios").select("rubro").eq("aprobado", true);
   // Un acceso por rubro, sin repetir por mayúsculas o acentos, los más comunes primero.
   const cuenta = new Map<string, { nombre: string; n: number }>();
@@ -141,6 +156,34 @@ async function Portada({ searchParams }: { searchParams: Params }) {
     cuenta.set(k, r);
   }
   const rubros = [...cuenta.values()].sort((a, b) => b.n - a.n || a.nombre.localeCompare(b.nombre)).slice(0, 12);
+
+  // Con una búsqueda hecha, solo los rubros (para cambiar de rubro sin volver atrás).
+  const listaRubros = rubros.length ? (
+    <nav aria-label="Rubros">
+      {buscado ? null : <h2 className="titulo-seccion mb-3 text-marino">🧭 Explorá por rubro</h2>}
+      <ul className="sin-barra -mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:px-0">
+        {rubros.map((r) => {
+          const elegido = sinAcentos(r.nombre) === buscado;
+          return (
+            <li key={r.nombre} className="shrink-0">
+              <Link
+                href={con(sp, { q: elegido ? null : r.nombre, comercio: null, ver: null, buscaste: null, marca: null, medida: null, material: null })}
+                aria-current={elegido ? "page" : undefined}
+                className={`flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium shadow-sm transition ${
+                  elegido ? "border-naranja bg-naranja text-white" : "border-marino/15 bg-white text-marino hover:border-naranja hover:text-naranja"
+                }`}
+              >
+                <span aria-hidden>{iconoRubro(r.nombre)}</span>
+                {r.nombre}
+                {elegido ? <span aria-label="Sacar rubro">✕</span> : null}
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+    </nav>
+  ) : null;
+  if (buscado) return listaRubros;
 
   return (
     <>
@@ -169,24 +212,11 @@ async function Portada({ searchParams }: { searchParams: Params }) {
         </div>
       </section>
 
-      {rubros.length ? (
-        <nav aria-label="Rubros">
-          <h2 className="titulo-seccion mb-3 text-marino">🧭 Explorá por rubro</h2>
-          <ul className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:px-0">
-            {rubros.map((r) => (
-              <li key={r.nombre} className="shrink-0">
-                <Link
-                  href={con(sp, { q: r.nombre, comercio: null, ver: null })}
-                  className="flex items-center gap-2 rounded-full border border-marino/15 bg-white px-4 py-2 text-sm font-medium text-marino shadow-sm transition hover:border-naranja hover:text-naranja"
-                >
-                  <span aria-hidden>{iconoRubro(r.nombre)}</span>
-                  {r.nombre}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </nav>
-      ) : null}
+      <Suspense fallback={null}>
+        <OfertasDestacadas searchParams={searchParams} />
+      </Suspense>
+
+      {listaRubros}
     </>
   );
 }
@@ -195,7 +225,7 @@ async function Portada({ searchParams }: { searchParams: Params }) {
 // y recién agregados, como las vidrieras de Mercado Libre.
 async function FilasDeProductos({ searchParams }: { searchParams: Params }) {
   const sp = await searchParams;
-  const f = leerFiltro(sp);
+  const f = leerFiltro(sp, await ubicacionGuardada());
   if (f.q) return null;
   const centro = f.lat != null && f.lng != null ? { lat: f.lat, lng: f.lng } : CENTROS[f.zona];
   const db = supabasePublico();
@@ -280,18 +310,19 @@ function FilasCargando() {
 }
 
 async function FiltrosConZonas({ searchParams }: { searchParams: Params }) {
-  const filtro = leerFiltro(await searchParams);
+  const filtro = leerFiltro(await searchParams, await ubicacionGuardada());
   const { data: zonas } = await supabasePublico()
     .from("zonas")
     .select("id, nombre")
     .eq("activa", true)
     .order("nombre");
-  return <Filtros zonas={zonas ?? []} inicial={filtro} />;
+  // Si cambia la ubicación (por ejemplo, la del GPS al abrir), se rearma con la nueva.
+  return <Filtros key={[filtro.lat, filtro.lng, filtro.zona, filtro.radio, filtro.lugar].join("|")} zonas={zonas ?? []} inicial={filtro} />;
 }
 
 async function Resultados({ searchParams }: { searchParams: Params }) {
   const sp = await searchParams;
-  const f = leerFiltro(sp);
+  const f = leerFiltro(sp, await ubicacionGuardada());
   const a = leerAjustes(sp);
   const centro = f.lat != null && f.lng != null ? { lat: f.lat, lng: f.lng } : CENTROS[f.zona];
   const db = supabasePublico();
@@ -383,9 +414,9 @@ async function Resultados({ searchParams }: { searchParams: Params }) {
   // Cada parte va en su propio recuadro (sin uno grande que las contenga).
   return (
     <div className="space-y-4">
-      <div className="tarjeta rounded-3xl p-4 sm:p-5">
-        {conBusqueda ? (
-          <div className="mb-3">
+      {conBusqueda ? (
+        <div className="tarjeta rounded-3xl p-4 sm:p-5">
+          <div>
             <h1 className="text-lg font-semibold break-words">
               Resultados para “{f.q}” <span className="font-normal text-white/75">a menos de {f.radio} km</span>
             </h1>
@@ -415,9 +446,9 @@ async function Resultados({ searchParams }: { searchParams: Params }) {
               })}
             </div>
           </div>
-        ) : null}
-        <Filtro sp={sp} a={a} deProductos={verProductos} opciones={opciones} />
-      </div>
+        </div>
+      ) : null}
+      <Filtro sp={sp} a={a} deProductos={verProductos} opciones={opciones} />
 
       <div className="tarjeta rounded-3xl p-4 sm:p-5">
         <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
@@ -433,6 +464,13 @@ async function Resultados({ searchParams }: { searchParams: Params }) {
         />
       </div>
 
+      {/* Al tocar un comercio en el mapa, la pantalla baja hasta acá al instante. */}
+      {verProductos ? null : (
+        <Suspense fallback={null}>
+          <ComercioAlInstante />
+        </Suspense>
+      )}
+
       {verProductos ? (
         productos.length === 0 ? (
           <Vacio>
@@ -445,7 +483,7 @@ async function Resultados({ searchParams }: { searchParams: Params }) {
             .
           </Vacio>
         ) : (
-          <ListaConMas deA={12} que="productos" className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
+          <ListaConMas deA={12} deACelular={5} que="productos" className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
             {productos.map(({ p, c, d }) => (
               <TarjetaProducto
                 key={p.id}
@@ -478,14 +516,11 @@ async function Resultados({ searchParams }: { searchParams: Params }) {
                   <Link href={`/comercio/${elegido.id}`} className="boton rounded-xl px-4 py-3 text-center text-sm font-semibold">
                     Ver catálogo
                   </Link>
-                  <a
-                    href={`https://www.google.com/maps/dir/?api=1&destination=${elegido.lat},${elegido.lng}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <ComoLlegar
+                    lat={elegido.lat}
+                    lng={elegido.lng}
                     className="rounded-xl border border-marino/30 px-4 py-3 text-center text-sm font-medium text-marino hover:bg-marino/5"
-                  >
-                    Cómo llegar
-                  </a>
+                  />
                 </div>
               </div>
             </>
@@ -565,7 +600,7 @@ function Filtro({
   opciones: Record<Atributo, string[]>;
 }) {
   const chip = (activo: boolean) =>
-    `rounded-full border px-3 py-1.5 text-xs font-medium transition active:bg-naranja/70 ${activo ? "border-naranja bg-naranja text-white" : "border-white/30 hover:bg-white/10"}`;
+    `rounded-full border px-3 py-1.5 text-xs font-medium transition active:bg-naranja/70 ${activo ? "border-naranja bg-naranja text-white" : "border-marino/20 bg-white text-marino hover:border-naranja"}`;
   const ordenes = (Object.keys(ORDENES) as Orden[]).filter((o) => deProductos || (o !== "precio" && o !== "precio_mayor"));
   const atributos = deProductos ? (Object.keys(ATRIBUTOS) as Atributo[]).filter((k) => opciones[k].length || a.atributos[k]) : [];
   const activos =
@@ -573,22 +608,22 @@ function Filtro({
   const limpio = con(sp, { orden: null, abierto: null, stock: null, marca: null, medida: null, material: null, comercio: null });
   const grupo = (titulo: string, contenido: React.ReactNode) => (
     <div>
-      <p className="mb-2 text-xs font-semibold tracking-wide text-white/70 uppercase">{titulo}</p>
+      <p className="mb-2 text-xs font-semibold tracking-wide text-marino/70 uppercase">{titulo}</p>
       <div className="flex flex-wrap gap-2">{contenido}</div>
     </div>
   );
 
   return (
     <details className="group">
-      <summary className="flex w-fit cursor-pointer list-none items-center gap-2 rounded-xl bg-white/10 px-4 py-2 text-sm font-semibold transition hover:bg-white/15 active:bg-naranja/70 [&::-webkit-details-marker]:hidden">
+      <summary className="flex w-fit cursor-pointer list-none items-center gap-1.5 px-1 py-1 text-sm font-semibold text-marino transition hover:text-naranja [&::-webkit-details-marker]:hidden">
         <svg aria-hidden viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
           <path d="M4 6h16M7 12h10M10 18h4" />
         </svg>
         Filtro
-        {activos ? <span className="grid h-5 min-w-5 place-items-center rounded-full bg-naranja px-1.5 text-[11px] font-bold">{activos}</span> : null}
-        <span aria-hidden className="text-white/70 transition group-open:rotate-180">▾</span>
+        {activos ? <span className="grid h-5 min-w-5 place-items-center rounded-full bg-naranja px-1.5 text-[11px] font-bold text-white">{activos}</span> : null}
+        <span aria-hidden className="text-marino/60 transition group-open:rotate-180">▾</span>
       </summary>
-      <div className="mt-4 space-y-4">
+      <div className="mt-2 space-y-4 px-1 pb-1">
         {grupo(
           "Ordenar por",
           ordenes.map((o) => (
@@ -627,7 +662,7 @@ function Filtro({
           </div>
         ))}
         {activos ? (
-          <Link href={limpio} scroll={false} className="inline-block text-xs text-white/80 underline">
+          <Link href={limpio} scroll={false} className="inline-block text-xs text-marino/80 underline">
             Sacar todos los filtros
           </Link>
         ) : null}

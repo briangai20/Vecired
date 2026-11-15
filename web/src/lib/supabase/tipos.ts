@@ -27,6 +27,7 @@ export type Database = {
           aprobado: boolean
           creado_en: string
           dado_de_baja_en: string | null
+          motivo_baja: string | null
           direccion: string
           dueno_id: string
           id: number
@@ -46,6 +47,7 @@ export type Database = {
           aprobado?: boolean
           creado_en?: string
           dado_de_baja_en?: string | null
+          motivo_baja?: string | null
           direccion: string
           dueno_id?: string
           id?: never
@@ -65,6 +67,7 @@ export type Database = {
           aprobado?: boolean
           creado_en?: string
           dado_de_baja_en?: string | null
+          motivo_baja?: string | null
           direccion?: string
           dueno_id?: string
           id?: never
@@ -160,6 +163,15 @@ export type Database = {
         Insert: { creada_en?: string; cuerpo?: string | null; enlace?: string | null; id?: never; leida_en?: string | null; push_enviada_en?: string | null; titulo: string; tono?: "accion" | "bien" | "mal" | null; usuario_id: string }
         Update: { creada_en?: string; cuerpo?: string | null; enlace?: string | null; id?: never; leida_en?: string | null; push_enviada_en?: string | null; titulo?: string; tono?: "accion" | "bien" | "mal" | null; usuario_id?: string }
         Relationships: []
+      }
+      oferta_productos: {
+        Row: { oferta_id: number; producto_id: number }
+        Insert: { oferta_id: number; producto_id: number }
+        Update: { oferta_id?: number; producto_id?: number }
+        Relationships: [
+          { foreignKeyName: "oferta_productos_oferta_id_fkey"; columns: ["oferta_id"]; isOneToOne: false; referencedRelation: "ofertas"; referencedColumns: ["id"] },
+          { foreignKeyName: "oferta_productos_producto_id_fkey"; columns: ["producto_id"]; isOneToOne: false; referencedRelation: "productos"; referencedColumns: ["id"] },
+        ]
       }
       ofertas: {
         Row: { comercio_id: number; creada_en: string; hasta: string; id: number; imagen_url: string | null; precio_oferta: number | null; producto_id: number | null; titulo: string | null }
@@ -526,7 +538,7 @@ export type Database = {
     Functions: {
       responder_resena: { Args: { p_resena: number; p_texto: string }; Returns: undefined }
       responder_pregunta: { Args: { p_pregunta: number; p_texto: string }; Returns: undefined }
-      dar_de_baja_mi_comercio: { Args: never; Returns: number }
+      dar_de_baja_mi_comercio: { Args: { p_motivo: string }; Returns: number }
       precio_vigente: { Args: { p_producto: number }; Returns: number | null }
       reactivar_mi_comercio: { Args: never; Returns: undefined }
       corregir_busqueda: { Args: { p_texto: string }; Returns: string | null }

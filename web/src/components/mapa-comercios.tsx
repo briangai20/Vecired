@@ -4,6 +4,8 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import type { GeoJSONSource, Map as MapaMapLibre, Marker } from "maplibre-gl";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { enlaceComoLlegar, ubicacionDelNavegador } from "@/lib/ubicacion";
+import { EVENTO_ELEGIDO } from "@/components/comercio-al-instante";
 import { iniciales } from "@/lib/formato";
 
 export type PuntoComercio = {
@@ -97,6 +99,10 @@ export function MapaComercios({
   });
 
   function elegir(id: number) {
+    // Primero baja la pantalla y muestra el comercio con lo que ya sabe el
+    // mapa (instantáneo); después llega la tarjeta completa.
+    const c = actual.current.comercios.find((x) => x.id === id);
+    if (c) window.dispatchEvent(new CustomEvent(EVENTO_ELEGIDO, { detail: { id: c.id, nombre: c.nombre, rubro: c.rubro, direccion: c.direccion, logo_url: c.logo_url } }));
     const p = new URLSearchParams(window.location.search);
     p.set("comercio", String(id));
     router.replace(`/?${p}`, { scroll: false });
@@ -217,7 +223,11 @@ export function MapaComercios({
       }
       const ir = document.createElement("a");
       ir.className = "mt-1 block text-xs underline";
-      ir.href = `https://www.google.com/maps/dir/?api=1&destination=${c.lat},${c.lng}`;
+      ir.href = enlaceComoLlegar(c);
+      // Al tocar, con tu ubicación del GPS como punto de partida.
+      ir.onclick = () => {
+        ir.href = enlaceComoLlegar(c, ubicacionDelNavegador());
+      };
       ir.target = "_blank";
       ir.rel = "noopener noreferrer";
       ir.textContent = "Cómo llegar";

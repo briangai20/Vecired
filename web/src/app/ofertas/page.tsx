@@ -3,7 +3,10 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { TarjetaOferta } from "@/components/tarjeta-oferta";
 import { ofertasVigentes } from "@/lib/ofertas";
+import { cookies } from "next/headers";
 import { supabasePublico } from "@/lib/supabase/publico";
+import { COOKIE_UBICACION, leerUbicacion } from "@/lib/ubicacion";
+import { CENTROS, RADIO_INICIAL, ZONA_INICIAL } from "@/lib/zonas";
 
 export const metadata: Metadata = {
   title: "Ofertas",
@@ -24,11 +27,17 @@ export default function PaginaOfertas() {
 }
 
 async function Lista() {
-  const ofertas = await ofertasVigentes(supabasePublico(), { limite: 60 });
+  // Las de los comercios cercanos a la ubicación guardada (la del GPS o la elegida).
+  const u = leerUbicacion((await cookies()).get(COOKIE_UBICACION)?.value);
+  const zona = u.zona && CENTROS[u.zona] ? u.zona : ZONA_INICIAL;
+  const centro = u.lat != null && u.lng != null ? { lat: u.lat, lng: u.lng } : CENTROS[zona];
+  const db = supabasePublico();
+  const { data: cerca } = await db.rpc("comercios_cercanos", { p_lat: centro.lat, p_lng: centro.lng, p_radio_km: u.radio ?? RADIO_INICIAL });
+  const ofertas = await ofertasVigentes(db, { limite: 60, comercios: (cerca ?? []).map((c) => c.id) });
   if (!ofertas.length) {
     return (
       <div className="tarjeta rounded-3xl p-8 text-center text-sm">
-        Por ahora no hay ofertas vigentes. Volvé en unos días o{" "}
+        Por ahora no hay ofertas vigentes cerca de tu ubicación. Volvé en unos días, ampliá el radio de búsqueda o{" "}
         <Link href="/" className="underline">
           buscá lo que necesitás
         </Link>

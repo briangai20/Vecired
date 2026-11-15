@@ -17,17 +17,22 @@ export type Oferta = {
 
 // Ofertas vigentes de comercios publicados (las reglas de la base ya filtran
 // las vencidas y las de comercios ocultos para quien no es el dueño).
-export async function ofertasVigentes(db: Db, { limite = 30, comercio }: { limite?: number; comercio?: number } = {}): Promise<Oferta[]> {
+export async function ofertasVigentes(db: Db, { limite = 30, comercio, comercios }: { limite?: number; comercio?: number; comercios?: number[] } = {}): Promise<Oferta[]> {
   // "Vigente" depende de la fecha de hoy: se calcula en cada pedido.
   await connection();
   let q = db
     .from("ofertas")
-    .select("id, hasta, titulo, imagen_url, precio_oferta, comercio:comercios!inner(id, nombre, aprobado), producto:productos(id, nombre, precio, foto_url, activo)")
+    .select("id, hasta, titulo, imagen_url, precio_oferta, comercio:comercios!inner(id, nombre, aprobado), producto:productos!ofertas_producto_id_fkey(id, nombre, precio, foto_url, activo)")
     .eq("comercio.aprobado", true)
     .gte("hasta", fechaAR(new Date()))
     .order("creada_en", { ascending: false })
     .limit(limite);
   if (comercio) q = q.eq("comercio_id", comercio);
+  // Solo las de los comercios de la zona elegida.
+  if (comercios) {
+    if (!comercios.length) return [];
+    q = q.in("comercio_id", comercios);
+  }
   const { data } = await q;
   return (data ?? [])
     .filter((o) => !o.producto || o.producto.activo)

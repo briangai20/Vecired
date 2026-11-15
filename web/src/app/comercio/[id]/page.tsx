@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { ComoLlegar } from "@/components/como-llegar";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { FotoPerfil } from "@/components/foto-perfil";
@@ -134,14 +135,7 @@ async function Comercio({ params, searchParams }: Pick<Props, "params" | "search
             comercios={[{ id: c.id, nombre: c.nombre, rubro: c.rubro, direccion: c.direccion, lat: c.lat, lng: c.lng, logo_url: c.logo_url }]}
             className="h-56"
           />
-          <a
-            href={`https://www.google.com/maps/dir/?api=1&destination=${c.lat},${c.lng}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-2 inline-block text-sm text-white/85 underline hover:text-white"
-          >
-            Cómo llegar
-          </a>
+          <ComoLlegar lat={c.lat} lng={c.lng} className="mt-2 inline-block text-sm text-white/85 underline hover:text-white" />
           {enlaceWhatsapp(c.whatsapp) ? (
             <a
               href={enlaceWhatsapp(c.whatsapp, `Hola, los encontré en VeciRed. Quería hacerles una consulta.`)!}

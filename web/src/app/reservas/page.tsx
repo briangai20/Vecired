@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Conversacion } from "@/components/conversacion";
 import Link from "next/link";
+import { ComoLlegar } from "@/components/como-llegar";
 import { redirect } from "next/navigation";
 import { Fragment, Suspense } from "react";
 import { Estrellas } from "@/components/insignias";
@@ -119,9 +120,7 @@ async function Reservas({ searchParams }: Pick<PageProps<"/reservas">, "searchPa
                   {c?.lat != null && c?.lng != null ? (
                     <>
                       {" · "}
-                      <a href={`https://www.google.com/maps/dir/?api=1&destination=${c.lat},${c.lng}`} target="_blank" rel="noopener noreferrer" className="underline">
-                        Cómo llegar
-                      </a>
+                      <ComoLlegar lat={c.lat} lng={c.lng} className="underline" />
                     </>
                   ) : null}
                 </p>

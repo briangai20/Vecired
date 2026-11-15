@@ -3,7 +3,7 @@ import { salir } from "@/app/ingresar/acciones";
 import { usuarioActual } from "@/lib/sesion";
 
 // Opciones sin recuadro; se pinta la elegida (ver EnlaceMenu).
-const salirClase = "rounded-xl px-3 py-2 text-sm font-medium whitespace-nowrap text-white transition hover:bg-white/10 active:bg-naranja/70";
+const salirClase = "rounded-xl px-3 py-2 text-sm font-medium whitespace-nowrap text-white transition hover:text-naranja-vivo active:text-naranja-vivo";
 
 const inicio = (
   <EnlaceMenu href="/">
@@ -20,7 +20,7 @@ export async function MenuCuenta() {
         <EnlaceMenu href="/comercios">
           Soy comerciante
         </EnlaceMenu>
-        <EnlaceMenu href="/ingresar" className="bg-white/10">
+        <EnlaceMenu href="/ingresar" className="font-bold">
           Ingresar
         </EnlaceMenu>
       </>
