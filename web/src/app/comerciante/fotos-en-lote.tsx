@@ -31,7 +31,7 @@ export function FotosEnLote({ comercioId, productos }: { comercioId: number; pro
             role="tab"
             aria-selected={modo === m}
             onClick={() => setModo(m)}
-            className={`rounded-xl px-4 py-2 text-sm font-medium transition ${modo === m ? "bg-white text-marino" : "hover:bg-white/10"}`}
+            className={`rounded-xl px-4 py-2 text-sm font-medium transition ${modo === m ? "text-naranja-vivo underline decoration-2 underline-offset-8" : "text-white/85 hover:text-naranja-vivo active:text-naranja-vivo"}`}
           >
             {t}
           </button>

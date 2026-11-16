@@ -5,7 +5,7 @@ import { ComoLlegar } from "@/components/como-llegar";
 import { redirect } from "next/navigation";
 import { Fragment, Suspense } from "react";
 import { Estrellas } from "@/components/insignias";
-import { plata } from "@/lib/formato";
+import { plata, totalReserva } from "@/lib/formato";
 import { usuarioActual } from "@/lib/sesion";
 import { supabaseServidor } from "@/lib/supabase/servidor";
 import type { Enum } from "@/lib/supabase/tipos";
@@ -58,7 +58,7 @@ async function Reservas({ searchParams }: Pick<PageProps<"/reservas">, "searchPa
 
   const lista = reservas ?? [];
   const abiertas = lista.filter((r) => ["pendiente", "alternativa", "aceptada"].includes(r.estado));
-  const total = abiertas.reduce((a, r) => a + (r.precio_unitario ?? 0) * r.cantidad, 0);
+  const total = abiertas.reduce((a, r) => a + (totalReserva(r) ?? 0), 0);
 
   return (
     <>
@@ -112,7 +112,8 @@ async function Reservas({ searchParams }: Pick<PageProps<"/reservas">, "searchPa
                   </div>
                   <div className="text-right">
                     <p className="text-xs text-white/60">Total</p>
-                    <p className="font-bold">{plata(r.precio_unitario == null ? null : r.precio_unitario * r.cantidad)}</p>
+                    <p className="font-bold">{plata(totalReserva(r))}</p>
+                    {r.promo ? <p className="text-[11px] font-bold text-naranja-vivo">Promo {r.promo}</p> : null}
                   </div>
                 </div>
                 <p className="mt-3 text-xs text-white/75">

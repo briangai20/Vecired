@@ -7,6 +7,7 @@ import { supabaseNavegador } from "@/lib/supabase/navegador";
 import { crearOferta, type EstadoOferta } from "./acciones";
 import { achicar } from "./subir-foto";
 import { SelectorProductos } from "./selector-productos";
+import { CamposPromo } from "./campos-promo";
 
 type Producto = { id: number; nombre: string; precio: number | null };
 
@@ -65,7 +66,7 @@ export function FormOferta({ comercioId, productos, hoy, maximo }: { comercioId:
             role="radio"
             aria-checked={tipo === t}
             onClick={() => setTipo(t)}
-            className={`rounded-xl px-4 py-2 text-sm font-medium transition active:bg-naranja/70 ${tipo === t ? "bg-naranja text-white" : "bg-white/10 hover:bg-white/15"}`}
+            className={`rounded-xl px-4 py-2 text-sm font-medium transition ${tipo === t ? "text-naranja-vivo underline decoration-2 underline-offset-8" : "text-white/85 hover:text-naranja-vivo active:text-naranja-vivo"}`}
           >
             {texto}
           </button>
@@ -120,6 +121,9 @@ export function FormOferta({ comercioId, productos, hoy, maximo }: { comercioId:
           <div className="sm:col-span-2">
             <SelectorProductos productos={productos} />
             <p className="mt-1 text-white/60">Al tocar la oferta, los vecinos ven estos productos para reservar.</p>
+          </div>
+          <div className="sm:col-span-2">
+            <CamposPromo />
           </div>
         </div>
       )}

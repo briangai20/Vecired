@@ -1,6 +1,6 @@
 import "server-only";
 import { supabaseAdmin } from "./supabase/admin";
-import { plata } from "./formato";
+import { plata, totalReserva } from "./formato";
 
 // Avisos por mail con Resend. Necesitan dos variables SOLO de servidor
 // (nunca con NEXT_PUBLIC_):
@@ -87,7 +87,7 @@ export async function avisarReserva(reservaId: number, evento: Evento) {
     }
 
     const producto = `${esc(r.producto_nombre)} × ${r.cantidad}`;
-    const total = plata(r.precio_unitario == null ? null : r.precio_unitario * r.cantidad);
+    const total = plata(totalReserva(r)) + (r.promo ? ` (promo ${esc(r.promo)})` : "");
     const cliente = esc(r.comprador?.nombre || "Un cliente");
     const comercio = esc(r.comercio.nombre);
     const panel = { texto: "Abrir mi panel", url: `${sitio()}/comerciante#reservas` };

@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { Favorito } from "@/components/favorito";
 import { Galeria } from "@/components/galeria";
+import { IrArriba } from "@/components/ir-arriba";
 import { MapaComercios } from "@/components/mapa-comercios";
 import { Abierto, Estrellas, Stock } from "@/components/insignias";
 import { RegistrarVista } from "@/components/registrar-vista";
@@ -19,6 +20,7 @@ import { supabaseServidor } from "@/lib/supabase/servidor";
 import { supabasePublico } from "@/lib/supabase/publico";
 import { vistaPrevia } from "@/lib/sitio";
 import { descuento, hastaCorto } from "@/lib/ofertas";
+import { explicarPromo, nombrePromo, type PromoOferta } from "@/lib/promos";
 import { enlaceWhatsapp } from "@/lib/whatsapp";
 
 type Props = PageProps<"/producto/[id]">;
@@ -117,6 +119,19 @@ async function Producto({ params }: Pick<Props, "params">) {
     .limit(1)
     .maybeSingle();
   const precioFinal = oferta?.precio_oferta ?? p.precio;
+  // Promos (4x3, % en la 2da…) de ofertas que incluyen este producto.
+  const [{ data: promoDirecta }, { data: promoEnLista }] = await Promise.all([
+    db.from("ofertas").select("promo, lleva, paga, porcentaje, hasta").eq("producto_id", p.id).gte("hasta", fechaAR(ahora)).not("promo", "is", null),
+    db
+      .from("oferta_productos")
+      .select("oferta:ofertas!inner(promo, lleva, paga, porcentaje, hasta)")
+      .eq("producto_id", p.id)
+      .gte("oferta.hasta", fechaAR(ahora))
+      .not("oferta.promo", "is", null),
+  ]);
+  const promos = [...(promoDirecta ?? []), ...(promoEnLista ?? []).map((x) => x.oferta)].filter(
+    (x): x is PromoOferta & { hasta: string } => x.promo != null,
+  );
   const { data: cierres } = await db.rpc("dias_cerrados", { p_comercio: c.id, p_desde: fechaAR(ahora), p_hasta: fechaAR(ahora, 21) });
   const cerrados = (cierres ?? []).map((x) => x.fecha);
   const d = disponibilidad(p, ahora);
@@ -135,6 +150,7 @@ async function Producto({ params }: Pick<Props, "params">) {
   return (
     <>
       <RegistrarVista comercioId={c.id} productoId={p.id} />
+      <IrArriba />
       <div className="tarjeta rounded-3xl p-5">
       <Link href={`/comercio/${c.id}`} className="text-sm text-white/80 transition hover:text-white">
         ‹ Volver a {c.nombre}
@@ -187,6 +203,17 @@ async function Producto({ params }: Pick<Props, "params">) {
                 : "El comercio te confirma la reserva antes de que vayas a retirar."}
             </p>
           ) : null}
+          {promos.length ? (
+            <div className="mt-4 rounded-xl border-l-4 border-naranja-vivo bg-naranja/15 px-3 py-2">
+              {promos.map((x, i) => (
+                <p key={i} className="text-sm">
+                  <span className="mr-2 rounded-full bg-naranja px-2 py-0.5 text-xs font-black">🔥 {nombrePromo(x)}</span>
+                  {explicarPromo(x)} · {hastaCorto(x.hasta)}
+                </p>
+              ))}
+              <p className="mt-1 text-xs text-white/75">Se aplica sola al reservar: elegí la cantidad y mirá el total.</p>
+            </div>
+          ) : null}
           {oferta ? (
             <div className="mt-4">
               <p className="text-xs font-bold tracking-wide text-naranja-vivo uppercase">
@@ -209,6 +236,7 @@ async function Producto({ params }: Pick<Props, "params">) {
                 franjas={franjasRetiro(franjas ?? [], ahora, cerrados)}
                 textoBoton={textoBoton}
                 precio={precioFinal}
+                promos={promos}
               />
             </Suspense>
           ) : (

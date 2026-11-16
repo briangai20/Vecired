@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { connection } from "next/server";
 import { fechaAR } from "@/lib/formato";
 import type { Database } from "@/lib/supabase/tipos";
+import type { PromoOferta } from "@/lib/promos";
 
 type Db = SupabaseClient<Database>;
 
@@ -11,6 +12,7 @@ export type Oferta = {
   titulo: string | null;
   imagen_url: string | null;
   precio_oferta: number | null;
+  promo: PromoOferta | null;
   comercio: { id: number; nombre: string };
   producto: { id: number; nombre: string; precio: number | null; foto_url: string | null } | null;
 };
@@ -22,7 +24,7 @@ export async function ofertasVigentes(db: Db, { limite = 30, comercio, comercios
   await connection();
   let q = db
     .from("ofertas")
-    .select("id, hasta, titulo, imagen_url, precio_oferta, comercio:comercios!inner(id, nombre, aprobado), producto:productos!ofertas_producto_id_fkey(id, nombre, precio, foto_url, activo)")
+    .select("id, hasta, titulo, imagen_url, precio_oferta, promo, lleva, paga, porcentaje, comercio:comercios!inner(id, nombre, aprobado), producto:productos!ofertas_producto_id_fkey(id, nombre, precio, foto_url, activo)")
     .eq("comercio.aprobado", true)
     .gte("hasta", fechaAR(new Date()))
     .order("creada_en", { ascending: false })
@@ -42,6 +44,7 @@ export async function ofertasVigentes(db: Db, { limite = 30, comercio, comercios
       titulo: o.titulo,
       imagen_url: o.imagen_url,
       precio_oferta: o.precio_oferta,
+      promo: o.promo ? { promo: o.promo, lleva: o.lleva, paga: o.paga, porcentaje: o.porcentaje } : null,
       comercio: { id: o.comercio.id, nombre: o.comercio.nombre },
       producto: o.producto ? { id: o.producto.id, nombre: o.producto.nombre, precio: o.producto.precio, foto_url: o.producto.foto_url } : null,
     }));

@@ -68,7 +68,7 @@ async function Panel({ searchParams }: Pick<PageProps<"/admin">, "searchParams">
               key={v}
               href={`/admin?ver=${v}`}
               aria-current={v === ver ? "page" : undefined}
-              className={`rounded-xl px-4 py-2 text-sm font-medium transition ${v === ver ? "bg-white text-marino" : "hover:bg-white/10"}`}
+              className={`rounded-xl px-4 py-2 text-sm font-medium transition ${v === ver ? "text-naranja-vivo underline decoration-2 underline-offset-8" : "text-white/85 hover:text-naranja-vivo active:text-naranja-vivo"}`}
             >
               {VISTAS[v]} ({cuantos(v)})
             </Link>

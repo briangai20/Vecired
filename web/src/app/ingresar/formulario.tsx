@@ -53,7 +53,7 @@ export function FormularioCuenta({ siguiente, modoInicial }: { siguiente: string
             role="tab"
             aria-selected={modo === m}
             onClick={() => elegir(m)}
-            className={`rounded-xl px-4 py-2 text-sm font-medium transition ${modo === m && !cartel ? "bg-white text-marino" : "hover:bg-white/10"}`}
+            className={`rounded-xl px-4 py-2 text-sm font-medium transition ${modo === m && !cartel ? "text-naranja-vivo underline decoration-2 underline-offset-8" : "text-white/85 hover:text-naranja-vivo active:text-naranja-vivo"}`}
           >
             {m === "ingresar" ? "Ingresar" : "Crear cuenta"}
           </button>

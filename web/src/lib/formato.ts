@@ -161,3 +161,10 @@ export const promedio = (estrellas: number[]) =>
   estrellas.length ? estrellas.reduce((a, b) => a + b, 0) / estrellas.length : null;
 
 export const nota = (v: number | null) => (v == null ? null : v.toFixed(1).replace(".", ","));
+
+// Total de una reserva: precio × cantidad, menos el descuento de la promo
+// (2x1, % en la 2da unidad…). null si el producto no tiene precio.
+export function totalReserva(r: { precio_unitario: number | null; cantidad: number; descuento?: number | null }) {
+  if (r.precio_unitario == null) return null;
+  return Math.max(0, r.precio_unitario * r.cantidad - (r.descuento ?? 0));
+}

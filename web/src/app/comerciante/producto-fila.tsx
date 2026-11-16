@@ -14,6 +14,8 @@ export function ProductoFila({ p, comercioId, ahora }: { p?: Tabla<"productos">;
       <div className="flex flex-wrap items-start justify-between gap-2">
         {p ? (
           <div className="flex min-w-0 items-center gap-3">
+            {/* Casilla para los cambios en bloque (no se manda al guardar). */}
+            <input type="checkbox" data-elegir value={p.id} aria-label={`Tildar ${p.nombre}`} className="h-5 w-5 shrink-0 accent-[#ff6b2c]" />
             <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-white/20 bg-marino-claro">
               <FotoProducto url={p.foto_url} nombre={p.nombre} sizes="56px" texto="text-xl" />
             </div>

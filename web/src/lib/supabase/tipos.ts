@@ -174,9 +174,9 @@ export type Database = {
         ]
       }
       ofertas: {
-        Row: { comercio_id: number; creada_en: string; hasta: string; id: number; imagen_url: string | null; precio_oferta: number | null; producto_id: number | null; titulo: string | null }
-        Insert: { comercio_id: number; creada_en?: string; hasta: string; id?: never; imagen_url?: string | null; precio_oferta?: number | null; producto_id?: number | null; titulo?: string | null }
-        Update: { comercio_id?: number; creada_en?: string; hasta?: string; id?: never; imagen_url?: string | null; precio_oferta?: number | null; producto_id?: number | null; titulo?: string | null }
+        Row: { comercio_id: number; creada_en: string; hasta: string; id: number; imagen_url: string | null; precio_oferta: number | null; producto_id: number | null; titulo: string | null; lleva: number | null; paga: number | null; porcentaje: number | null; promo: "nxm" | "segunda" | "porcentaje" | null }
+        Insert: { comercio_id: number; creada_en?: string; hasta: string; id?: never; imagen_url?: string | null; precio_oferta?: number | null; producto_id?: number | null; titulo?: string | null; lleva?: number | null; paga?: number | null; porcentaje?: number | null; promo?: "nxm" | "segunda" | "porcentaje" | null }
+        Update: { comercio_id?: number; creada_en?: string; hasta?: string; id?: never; imagen_url?: string | null; precio_oferta?: number | null; producto_id?: number | null; titulo?: string | null; lleva?: number | null; paga?: number | null; porcentaje?: number | null; promo?: "nxm" | "segunda" | "porcentaje" | null }
         Relationships: [
           { foreignKeyName: "ofertas_comercio_id_fkey"; columns: ["comercio_id"]; isOneToOne: false; referencedRelation: "comercios"; referencedColumns: ["id"] },
           { foreignKeyName: "ofertas_producto_id_fkey"; columns: ["producto_id"]; isOneToOne: false; referencedRelation: "productos"; referencedColumns: ["id"] },
@@ -393,6 +393,8 @@ export type Database = {
           comercio_id: number
           comprador_id: string
           creada_en: string
+          descuento: number
+          promo: string | null
           estado: Database["public"]["Enums"]["estado_reserva"]
           id: number
           medio_pago: Database["public"]["Enums"]["medio_pago"]
@@ -408,6 +410,8 @@ export type Database = {
           comercio_id: number
           comprador_id?: string
           creada_en?: string
+          descuento?: number
+          promo?: string | null
           estado?: Database["public"]["Enums"]["estado_reserva"]
           id?: never
           medio_pago?: Database["public"]["Enums"]["medio_pago"]
@@ -423,6 +427,8 @@ export type Database = {
           comercio_id?: number
           comprador_id?: string
           creada_en?: string
+          descuento?: number
+          promo?: string | null
           estado?: Database["public"]["Enums"]["estado_reserva"]
           id?: never
           medio_pago?: Database["public"]["Enums"]["medio_pago"]
@@ -539,6 +545,8 @@ export type Database = {
       responder_resena: { Args: { p_resena: number; p_texto: string }; Returns: undefined }
       responder_pregunta: { Args: { p_pregunta: number; p_texto: string }; Returns: undefined }
       dar_de_baja_mi_comercio: { Args: { p_motivo: string }; Returns: number }
+      precio_con_promo: { Args: { p_producto: number; p_cantidad: number }; Returns: { precio_unitario: number | null; descuento: number; promo: string | null }[] }
+      problema_texto: { Args: { p_texto: string; p_nivel: string }; Returns: string | null }
       precio_vigente: { Args: { p_producto: number }; Returns: number | null }
       reactivar_mi_comercio: { Args: never; Returns: undefined }
       corregir_busqueda: { Args: { p_texto: string }; Returns: string | null }

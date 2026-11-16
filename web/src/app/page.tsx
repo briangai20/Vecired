@@ -438,7 +438,7 @@ async function Resultados({ searchParams }: { searchParams: Params }) {
                     scroll={false}
                     role="tab"
                     aria-selected={activo}
-                    className={`flex-1 rounded-xl px-3 py-2 text-center text-sm font-medium transition active:bg-naranja/70 ${activo ? "bg-naranja text-white" : "hover:bg-white/10"}`}
+                    className={`flex-1 rounded-xl px-3 py-2 text-center text-sm font-medium transition ${activo ? "text-naranja-vivo underline decoration-2 underline-offset-8" : "text-white/85 hover:text-naranja-vivo active:text-naranja-vivo"}`}
                   >
                     {etiqueta}
                   </Link>
@@ -600,7 +600,7 @@ function Filtro({
   opciones: Record<Atributo, string[]>;
 }) {
   const chip = (activo: boolean) =>
-    `rounded-full border px-3 py-1.5 text-xs font-medium transition active:bg-naranja/70 ${activo ? "border-naranja bg-naranja text-white" : "border-marino/20 bg-white text-marino hover:border-naranja"}`;
+    `px-1 py-1 text-sm font-medium transition active:text-naranja ${activo ? "font-bold text-naranja underline decoration-2 underline-offset-4" : "text-marino hover:text-naranja"}`;
   const ordenes = (Object.keys(ORDENES) as Orden[]).filter((o) => deProductos || (o !== "precio" && o !== "precio_mayor"));
   const atributos = deProductos ? (Object.keys(ATRIBUTOS) as Atributo[]).filter((k) => opciones[k].length || a.atributos[k]) : [];
   const activos =
@@ -609,7 +609,7 @@ function Filtro({
   const grupo = (titulo: string, contenido: React.ReactNode) => (
     <div>
       <p className="mb-2 text-xs font-semibold tracking-wide text-marino/70 uppercase">{titulo}</p>
-      <div className="flex flex-wrap gap-2">{contenido}</div>
+      <div className="flex flex-wrap gap-x-4 gap-y-1">{contenido}</div>
     </div>
   );
 

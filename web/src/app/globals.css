@@ -218,3 +218,12 @@ a img {
   -webkit-user-drag: none;
   user-select: none;
 }
+
+/* Texto informativo resaltado (cómo funciona algo, avisos): franja naranja
+   al costado y fondo apenas anaranjado, para distinguirlo de las opciones. */
+.info {
+  border-left: 4px solid var(--color-naranja-vivo);
+  border-radius: 0.75rem;
+  background: rgb(255 107 44 / 0.12);
+  padding: 0.6rem 0.85rem;
+}

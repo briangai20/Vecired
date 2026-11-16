@@ -169,9 +169,8 @@ export async function guardarComercio(_: Estado, d: FormData): Promise<Estado> {
   return { ok: id ? "Datos guardados." : "¡Listo! Ya podés cargar tus productos. Publicamos tu comercio cuando lo revisemos." };
 }
 
-export async function guardarProducto(d: FormData) {
-  const supabase = await comerciante();
-  const id = Number(texto(d, "id")) || null;
+// Lee y limpia los datos de un producto del formulario.
+function leerProducto(d: FormData) {
   const modo = (["exacto", "semaforo", "consultar", "pedido"].includes(texto(d, "modo")) ? texto(d, "modo") : "exacto") as Enum<"modo_stock">;
   const semaforo = (["hay", "poco", "no"].includes(texto(d, "semaforo")) ? texto(d, "semaforo") : null) as Enum<"semaforo"> | null;
   const precio = numero(d, "precio");
@@ -190,18 +189,84 @@ export async function guardarProducto(d: FormData) {
     semaforo: modo === "semaforo" ? (semaforo ?? "hay") : null,
     activo: d.get("activo") === "on",
   };
+  return datos;
+}
+
+const errorProducto = (e: { message: string; code?: string }) =>
+  e.code === "P0001" ? e.message : "No pudimos guardar el producto. Probá de nuevo.";
+
+export async function guardarProducto(d: FormData) {
+  const supabase = await comerciante();
+  const id = Number(texto(d, "id")) || null;
+  const datos = leerProducto(d);
   if (!datos.nombre) return;
 
   if (id) {
-    await supabase.from("productos").update(datos).eq("id", id);
+    const { error } = await supabase.from("productos").update(datos).eq("id", id);
+    if (error) redirect(`/comerciante?seccion=productos&error=${encodeURIComponent(errorProducto(error))}`);
   } else {
     const comercioId = Number(texto(d, "comercio_id"));
     // La foto ya se subió desde el formulario; solo se acepta si está en la carpeta del comercio.
     const foto = texto(d, "foto_url");
     const carpeta = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/productos/${comercioId}/`;
-    await supabase.from("productos").insert({ ...datos, comercio_id: comercioId, foto_url: foto.startsWith(carpeta) ? foto : null });
+    const { error } = await supabase.from("productos").insert({ ...datos, comercio_id: comercioId, foto_url: foto.startsWith(carpeta) ? foto : null });
+    if (error) redirect(`/comerciante?seccion=productos&error=${encodeURIComponent(errorProducto(error))}`);
   }
   refresh();
+}
+
+// "Guardar todo": guarda de una vez todos los productos que se cambiaron.
+// Cada uno llega como la lista de campos de su formulario.
+export async function guardarVarios(formularios: [string, string][][]): Promise<{ guardados: number; errores: string[] }> {
+  const supabase = await comerciante();
+  let guardados = 0;
+  const errores: string[] = [];
+  for (const campos of formularios.slice(0, 500)) {
+    const d = new FormData();
+    for (const [k, v] of campos) if (typeof k === "string" && typeof v === "string") d.append(k, v);
+    const id = Number(texto(d, "id"));
+    const datos = leerProducto(d);
+    if (!id || !datos.nombre) continue;
+    const { error } = await supabase.from("productos").update(datos).eq("id", id);
+    if (error) errores.push(`${datos.nombre}: ${errorProducto(error)}`);
+    else guardados++;
+  }
+  refresh();
+  return { guardados, errores };
+}
+
+export type AccionLote = "sumar" | "fijar" | "precio" | "pausar" | "activar";
+
+// Cambios en bloque sobre los productos tildados: sumar o restar stock,
+// fijar el stock, cambiar el precio en % (redondeado al peso), pausar o activar.
+export async function cambiarEnBloque(ids: number[], accion: AccionLote, valor: number): Promise<{ cambiados: number; salteados: number; error?: string }> {
+  const supabase = await comerciante();
+  const lista = [...new Set(ids.filter((n) => Number.isInteger(n) && n > 0))].slice(0, 1000);
+  if (!lista.length) return { cambiados: 0, salteados: 0, error: "Tildá al menos un producto." };
+  if ((accion === "sumar" || accion === "fijar" || accion === "precio") && !Number.isFinite(valor)) return { cambiados: 0, salteados: 0, error: "Poné un número." };
+  if (accion === "precio" && (valor <= -90 || valor > 500)) return { cambiados: 0, salteados: 0, error: "El cambio de precio va de -90% a +500%." };
+  // Solo trae productos propios (reglas de la base).
+  const { data: productos, error } = await supabase.from("productos").select("id, modo, stock, precio").in("id", lista);
+  if (error) return { cambiados: 0, salteados: 0, error: "No pudimos leer los productos. Probá de nuevo." };
+  let cambiados = 0;
+  let salteados = 0;
+  for (const p of productos ?? []) {
+    let cambios: TablesUpdate<"productos"> | null = null;
+    if (accion === "pausar") cambios = { activo: false };
+    else if (accion === "activar") cambios = { activo: true };
+    else if (accion === "fijar") cambios = { modo: "exacto", stock: Math.max(0, Math.round(valor)), semaforo: null };
+    else if (accion === "sumar") cambios = { modo: "exacto", stock: Math.max(0, (p.modo === "exacto" ? (p.stock ?? 0) : 0) + Math.round(valor)), semaforo: null };
+    else if (accion === "precio") cambios = p.precio == null ? null : { precio: Math.max(0, Math.round(p.precio * (1 + valor / 100))) };
+    if (!cambios) {
+      salteados++;
+      continue;
+    }
+    const { error: e } = await supabase.from("productos").update(cambios).eq("id", p.id);
+    if (e) salteados++;
+    else cambiados++;
+  }
+  refresh();
+  return { cambiados, salteados };
 }
 
 // "Sigue igual": confirma el stock sin cambiarlo, para que no aparezca "Stock sin confirmar".
@@ -464,7 +529,9 @@ export async function crearOferta(_: EstadoOferta, d: FormData): Promise<EstadoO
     const imagen = texto(d, "imagen");
     const carpeta = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/productos/${comercioId}/`;
     if (imagen && !imagen.startsWith(carpeta)) return { error: "Esa imagen no es de tu comercio." };
-    fila = { comercio_id: comercioId, titulo, imagen_url: imagen || null, hasta };
+    const promo = leerPromo(d);
+    if ("error" in promo) return { error: promo.error };
+    fila = { comercio_id: comercioId, titulo, imagen_url: imagen || null, hasta, ...promo };
   } else {
     const producto = Number(texto(d, "producto"));
     const precio = Number(texto(d, "precio"));
@@ -492,12 +559,34 @@ export async function productosDeOferta(d: FormData) {
   const id = Number(texto(d, "oferta"));
   if (!id) return;
   const ids = [...new Set(d.getAll("productos").map(Number).filter((n) => Number.isInteger(n) && n > 0))].slice(0, 20);
+  const promo = leerPromo(d);
+  if ("error" in promo) redirect(`/comerciante?seccion=ofertas&error=${encodeURIComponent(promo.error)}`);
+  const { error: errorPromo } = await supabase.from("ofertas").update(promo).eq("id", id);
+  if (errorPromo) redirect(`/comerciante?seccion=ofertas&error=${encodeURIComponent("No pudimos guardar la promo.")}`);
   await supabase.from("oferta_productos").delete().eq("oferta_id", id);
   if (ids.length) {
     const { error } = await supabase.from("oferta_productos").insert(ids.map((producto_id) => ({ oferta_id: id, producto_id })));
     if (error) redirect(`/comerciante?seccion=ofertas&error=${encodeURIComponent("No pudimos guardar los productos de la oferta.")}`);
   }
   await listo("ofertas");
+}
+
+// Tipo de promo con sus números (ver campos-promo.tsx).
+function leerPromo(d: FormData): { promo: "nxm" | "segunda" | "porcentaje" | null; lleva: number | null; paga: number | null; porcentaje: number | null } | { error: string } {
+  const tipo = texto(d, "promo");
+  const n = (k: string) => Math.round(Number(texto(d, k)));
+  if (tipo === "nxm") {
+    const lleva = n("lleva");
+    const paga = n("paga");
+    if (!(lleva >= 2 && lleva <= 10 && paga >= 1 && paga < lleva)) return { error: "En \"Llevá X, pagá Y\", Y tiene que ser menor que X (por ejemplo, llevá 4, pagá 3)." };
+    return { promo: "nxm", lleva, paga, porcentaje: null };
+  }
+  if (tipo === "segunda" || tipo === "porcentaje") {
+    const porcentaje = n("porcentaje");
+    if (!(porcentaje >= 1 && porcentaje <= 90)) return { error: "El porcentaje de descuento va de 1 a 90." };
+    return { promo: tipo, lleva: null, paga: null, porcentaje };
+  }
+  return { promo: null, lleva: null, paga: null, porcentaje: null };
 }
 
 export async function borrarOferta(d: FormData) {

@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { descuento, hastaCorto, type Oferta } from "@/lib/ofertas";
 import { plata } from "@/lib/formato";
+import { nombrePromo } from "@/lib/promos";
 
 // Tarjeta de una oferta: producto rebajado (precio normal tachado y el de
 // oferta) o aviso libre del comercio (título e imagen).
@@ -23,7 +24,7 @@ export function TarjetaOferta({ o, className = "" }: { o: Oferta; className?: st
             🏷️
           </div>
         )}
-        <span className="absolute top-2 left-2 rounded-full bg-naranja px-2.5 py-0.5 text-xs font-black shadow">{menos ? `-${menos}%` : "Oferta"}</span>
+        <span className="absolute top-2 left-2 rounded-full bg-naranja px-2.5 py-0.5 text-xs font-black shadow">{menos ? `-${menos}%` : o.promo ? nombrePromo(o.promo) : "Oferta"}</span>
       </div>
       <div className="flex min-w-0 flex-1 flex-col p-3 sm:p-4">
         <p className="text-[11px] font-semibold tracking-wide text-naranja-vivo uppercase">🔥 Oferta · {hastaCorto(o.hasta)}</p>
