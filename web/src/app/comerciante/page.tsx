@@ -279,7 +279,7 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
       {seccion === "reservas" ? (
       <section id="reservas" className="tarjeta rounded-3xl p-6">
         <h2 className="titulo-seccion">📦 Reservas</h2>
-        <p className="info mt-2 text-sm">Respondé cada reserva dentro de las 2 horas de tu horario de atención: si no, vence sola. Las que llegan con el local cerrado empiezan a contar cuando abrís. Las aceptadas que nadie retira vencen solas un día de atención después del último horario de retiro, y el producto vuelve a tu stock.</p>
+        <p className="info mt-2 text-sm">Respondé cada reserva dentro de las 2 horas de tu horario de atención: si no, vence sola. Las que llegan con el local cerrado empiezan a contar cuando abrís. Las aceptadas que el cliente no retira en el horario que eligió vencen solas al terminar ese horario, y el producto vuelve a tu stock.</p>
         <AvisosCelular variante="panel" />
         {abiertas.length === 0 ? (
           <p className="mt-3 text-sm text-white/80">No tenés reservas para responder. Aparecen acá en cuanto un vecino reserve.</p>

@@ -125,7 +125,7 @@ export async function avisarReserva(reservaId: number, evento: Evento) {
       ],
       aceptada: [
         `${r.comercio.nombre} confirmó tu reserva`,
-        `<p>Ya te separaron <b>${producto}</b>. Pasá a retirarlo <b>${esc(r.retiro)}</b> por ${esc(r.comercio.direccion)}.</p><p>Total a pagar en el local: <b>${total}</b>.</p>${codigo}<p>Si no llegás en ese horario, te lo guardan un día de atención más; después la reserva vence.</p>`,
+        `<p>Ya te separaron <b>${producto}</b>. Pasá a retirarlo <b>${esc(r.retiro)}</b> por ${esc(r.comercio.direccion)}.</p><p>Total a pagar en el local: <b>${total}</b>.</p>${codigo}<p>Retiralo en ese horario: si no llegás, la reserva vence y el producto vuelve a estar a la venta.</p>`,
         misReservas,
       ],
       rechazada: [

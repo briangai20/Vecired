@@ -25,7 +25,7 @@ const ESTADOS: Record<Enum<"estado_reserva">, { texto: string; detalle: string }
   },
   aceptada: {
     texto: "Confirmada: pasá a retirar",
-    detalle: "Ya te lo separaron. Pagás al retirar. Si no llegás en el horario que elegiste, te lo guardan un día de atención más; después la reserva vence.",
+    detalle: "Ya te lo separaron. Pagás al retirar. Retiralo en el horario que elegiste: si no llegás, la reserva vence y el producto vuelve a estar a la venta.",
   },
   retirada: { texto: "Retirada", detalle: "" },
   no_retirada: { texto: "No la retiraste", detalle: "Pasó el plazo para retirarla y el producto volvió a estar disponible. No se cobró nada." },

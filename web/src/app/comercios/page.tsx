@@ -115,7 +115,7 @@ const PREGUNTAS: Pregunta[] = [
     p: "¿Y si el cliente no viene a retirar?",
     r: (
       <p>
-        La reserva aceptada vence sola un día de atención después del último horario de retiro, y el producto vuelve a tu stock.
+        Si el cliente no la retira en el horario que eligió, la reserva vence sola al terminar ese horario y el producto vuelve a tu stock.
         Si un cliente no retira o cancela reservas seguido, podemos limitar su cuenta.
       </p>
     ),
