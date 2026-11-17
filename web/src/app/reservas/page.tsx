@@ -128,15 +128,17 @@ async function Reservas({ searchParams }: Pick<PageProps<"/reservas">, "searchPa
                   ) : null}
                 </p>
                 {e.detalle ? <p className="mt-2 text-xs text-white/85">{e.detalle}</p> : null}
-                {["pendiente", "alternativa", "aceptada"].includes(r.estado) && r.codigo ? (
+                {r.estado === "pendiente" || r.estado === "alternativa" ? (
+                  <p className="info mt-3 text-xs">
+                    🔑 Cuando el comercio confirme tu reserva, te vamos a dar un <b>código de retiro</b> (acá y por mail). Lo mostrás en el local y
+                    con ese código retirás tu pedido.
+                  </p>
+                ) : null}
+                {r.estado === "aceptada" && r.codigo ? (
                   <div className="info mt-3 flex flex-wrap items-center justify-between gap-3">
                     <div>
                       <p className="text-sm font-semibold">Código de retiro</p>
-                      <p className="text-xs text-white/80">
-                        {r.estado === "aceptada"
-                          ? "Mostráselo al comercio cuando vayas a retirar. No lo compartas con nadie más."
-                          : "Va a servir cuando el comercio confirme la reserva. Mostráselo al retirar y no lo compartas con nadie más."}
-                      </p>
+                      <p className="text-xs text-white/80">Mostráselo al comercio cuando vayas a retirar. No lo compartas con nadie más.</p>
                     </div>
                     <p className="font-mono text-3xl font-black tracking-[0.3em] text-naranja-vivo">{r.codigo.codigo}</p>
                   </div>

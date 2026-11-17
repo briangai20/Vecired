@@ -189,3 +189,10 @@ grant update (avisos_mail) on public.perfiles to authenticated;
 -- con la reserva aceptada. Las reservas pendientes que ya existían
 -- recibieron su código.
 -- ---------------------------------------------------------------------
+
+-- ---------------------------------------------------------------------
+-- 23c · Vuelve como estaba (aplicado aparte): el código se genera recién
+-- cuando la reserva se acepta. Se borraron los códigos que 23b había
+-- creado para reservas pendientes. Mientras está pendiente, Mis reservas
+-- muestra un cartel que avisa que el código va a llegar.
+-- ---------------------------------------------------------------------
