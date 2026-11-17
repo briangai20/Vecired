@@ -286,7 +286,7 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
         ) : (
           <div className="mt-4 divide-y divide-white/15">
             {abiertas.map((r) => (
-              <ReservaEnVivo key={r.id} reserva={r.id} estado={r.estado} etiquetas={ESTADOS} accion={cambiarReserva}>
+              <ReservaEnVivo key={r.id} reserva={r.id} estado={r.estado} etiquetas={ESTADOS} accion={cambiarReserva} pagoLocal={r.medio_pago === "local"}>
               <article id={`reserva-${r.id}`} className="scroll-mt-24 py-4">
                 <div className="flex items-start justify-between gap-2">
                   <div>
@@ -300,6 +300,12 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
                   <EstadoReserva />
                 </div>
                 <Cliente comprador={r.comprador} producto={r.producto_nombre} comercio={comercio.nombre} />
+                {r.retiro_sin_codigo ? (
+                  <p className="info mt-2 text-xs">
+                    Entregada sin código: {r.retiro_sin_codigo}.
+                    {r.reclamo_en ? <b className="block mt-1">⚠ El cliente dice que no la retiró{r.reclamo ? `: “${r.reclamo}”` : ""}. Lo vamos a revisar.</b> : null}
+                  </p>
+                ) : null}
                 <p className="mt-2 text-sm">
                   Total: <b>{plata(totalReserva(r))}</b>
                   {r.promo ? <span className="ml-2 rounded-full bg-naranja px-2 py-0.5 text-[11px] font-bold">{r.promo}</span> : null}

@@ -106,3 +106,15 @@ export async function reactivarComercio() {
   if (error) redirect(`/cuenta?error=${encodeURIComponent(error.code === "P0001" ? error.message : "No pudimos reactivar el comercio. Probá de nuevo.")}`);
   redirect("/comerciante");
 }
+
+// Preferencia de mails: "importantes" o "ninguno".
+export async function guardarAvisosMail(valor: string): Promise<{ error?: string }> {
+  if (valor !== "importantes" && valor !== "ninguno") return { error: "Opción no válida." };
+  const u = await usuarioActual();
+  if (!u) return { error: "Ingresá a tu cuenta." };
+  const supabase = await supabaseServidor();
+  const { error } = await supabase.from("perfiles").update({ avisos_mail: valor }).eq("id", u.id);
+  if (error) return { error: "No pudimos guardar. Probá de nuevo." };
+  refresh();
+  return {};
+}

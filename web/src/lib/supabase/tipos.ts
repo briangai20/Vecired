@@ -182,6 +182,14 @@ export type Database = {
           { foreignKeyName: "ofertas_producto_id_fkey"; columns: ["producto_id"]; isOneToOne: false; referencedRelation: "productos"; referencedColumns: ["id"] },
         ]
       }
+      reserva_codigos: {
+        Row: { bloqueado_hasta: string | null; codigo: string; intentos: number; reserva_id: number }
+        Insert: { bloqueado_hasta?: string | null; codigo: string; intentos?: number; reserva_id: number }
+        Update: { bloqueado_hasta?: string | null; codigo?: string; intentos?: number; reserva_id?: number }
+        Relationships: [
+          { foreignKeyName: "reserva_codigos_reserva_id_fkey"; columns: ["reserva_id"]; isOneToOne: true; referencedRelation: "reservas"; referencedColumns: ["id"] },
+        ]
+      }
       preguntas: {
         Row: { autor_id: string; comercio_id: number; creada_en: string; id: number; producto_id: number; respondida_en: string | null; respuesta: string | null; texto: string }
         Insert: { autor_id?: string; comercio_id?: number; creada_en?: string; id?: never; producto_id: number; respondida_en?: string | null; respuesta?: string | null; texto: string }
@@ -200,6 +208,7 @@ export type Database = {
       perfiles: {
         Row: {
           creado_en: string
+          avisos_mail: "importantes" | "ninguno"
           foto_url: string | null
           id: string
           nombre: string
@@ -208,6 +217,7 @@ export type Database = {
         }
         Insert: {
           creado_en?: string
+          avisos_mail?: "importantes" | "ninguno"
           foto_url?: string | null
           id: string
           nombre?: string
@@ -216,6 +226,7 @@ export type Database = {
         }
         Update: {
           creado_en?: string
+          avisos_mail?: "importantes" | "ninguno"
           foto_url?: string | null
           id?: string
           nombre?: string
@@ -393,6 +404,9 @@ export type Database = {
           comercio_id: number
           comprador_id: string
           creada_en: string
+          reclamo: string | null
+          reclamo_en: string | null
+          retiro_sin_codigo: string | null
           descuento: number
           promo: string | null
           estado: Database["public"]["Enums"]["estado_reserva"]
@@ -410,6 +424,9 @@ export type Database = {
           comercio_id: number
           comprador_id?: string
           creada_en?: string
+          reclamo?: string | null
+          reclamo_en?: string | null
+          retiro_sin_codigo?: string | null
           descuento?: number
           promo?: string | null
           estado?: Database["public"]["Enums"]["estado_reserva"]
@@ -427,6 +444,9 @@ export type Database = {
           comercio_id?: number
           comprador_id?: string
           creada_en?: string
+          reclamo?: string | null
+          reclamo_en?: string | null
+          retiro_sin_codigo?: string | null
           descuento?: number
           promo?: string | null
           estado?: Database["public"]["Enums"]["estado_reserva"]
@@ -547,6 +567,9 @@ export type Database = {
       dar_de_baja_mi_comercio: { Args: { p_motivo: string }; Returns: number }
       precio_con_promo: { Args: { p_producto: number; p_cantidad: number }; Returns: { precio_unitario: number | null; descuento: number; promo: string | null }[] }
       problema_texto: { Args: { p_texto: string; p_nivel: string }; Returns: string | null }
+      confirmar_retiro: { Args: { p_reserva: number; p_codigo: string }; Returns: string | null }
+      entregar_sin_codigo: { Args: { p_reserva: number; p_motivo: string }; Returns: undefined }
+      reclamar_retiro: { Args: { p_reserva: number; p_texto: string }; Returns: undefined }
       precio_vigente: { Args: { p_producto: number }; Returns: number | null }
       reactivar_mi_comercio: { Args: never; Returns: undefined }
       corregir_busqueda: { Args: { p_texto: string }; Returns: string | null }

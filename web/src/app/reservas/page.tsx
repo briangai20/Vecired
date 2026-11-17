@@ -9,7 +9,8 @@ import { plata, totalReserva } from "@/lib/formato";
 import { usuarioActual } from "@/lib/sesion";
 import { supabaseServidor } from "@/lib/supabase/servidor";
 import type { Enum } from "@/lib/supabase/tipos";
-import { cancelar, dejarResena, elegirAlternativa } from "./acciones";
+import { cancelar, dejarResena, elegirAlternativa, reclamarRetiro } from "./acciones";
+import { BotonEnviar } from "@/components/boton-enviar";
 
 export const metadata: Metadata = { title: "Mis reservas" };
 
@@ -51,11 +52,12 @@ async function Reservas({ searchParams }: Pick<PageProps<"/reservas">, "searchPa
   const { data: reservas } = await supabase
     .from("reservas")
     .select(
-      "*, comercio:comercios(id, nombre, direccion, lat, lng), alternativas:reserva_alternativas(producto:productos(id, nombre, precio)), resena:resenas(estrellas, texto, respuesta), mensajes(id, autor_id, texto, creado_en)",
+      "*, codigo:reserva_codigos(codigo), comercio:comercios(id, nombre, direccion, lat, lng), alternativas:reserva_alternativas(producto:productos(id, nombre, precio)), resena:resenas(estrellas, texto, respuesta), mensajes(id, autor_id, texto, creado_en)",
     )
     .eq("comprador_id", usuario.id)
     .order("creada_en", { ascending: false });
 
+  const ahora = new Date();
   const lista = reservas ?? [];
   const abiertas = lista.filter((r) => ["pendiente", "alternativa", "aceptada"].includes(r.estado));
   const total = abiertas.reduce((a, r) => a + (totalReserva(r) ?? 0), 0);
@@ -126,6 +128,33 @@ async function Reservas({ searchParams }: Pick<PageProps<"/reservas">, "searchPa
                   ) : null}
                 </p>
                 {e.detalle ? <p className="mt-2 text-xs text-white/85">{e.detalle}</p> : null}
+                {r.estado === "aceptada" && r.codigo ? (
+                  <div className="info mt-3 flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold">Código de retiro</p>
+                      <p className="text-xs text-white/80">Mostráselo al comercio cuando vayas a retirar. No lo compartas con nadie más.</p>
+                    </div>
+                    <p className="font-mono text-3xl font-black tracking-[0.3em] text-naranja-vivo">{r.codigo.codigo}</p>
+                  </div>
+                ) : null}
+                {r.estado === "retirada" && r.retiro_sin_codigo ? (
+                  <div className="info mt-3 text-xs">
+                    <p>
+                      El comercio la entregó <b>sin tu código</b> ({r.retiro_sin_codigo}).
+                    </p>
+                    {r.reclamo_en ? (
+                      <p className="mt-1 font-semibold">Hiciste el reclamo: lo estamos revisando.</p>
+                    ) : ahora.getTime() - new Date(r.actualizada_en).getTime() < 48 * 3600_000 ? (
+                      <form action={reclamarRetiro} className="mt-2 flex flex-wrap gap-2">
+                        <input type="hidden" name="reserva" value={r.id} />
+                        <input name="texto" maxLength={1000} placeholder="Contanos qué pasó (opcional)" className="campo min-w-0 flex-1" />
+                        <BotonEnviar enviando="Enviando…" className="rounded-xl border border-white/50 px-4 py-2 font-semibold hover:bg-white/10">
+                          No lo retiré
+                        </BotonEnviar>
+                      </form>
+                    ) : null}
+                  </div>
+                ) : null}
 
                 {r.estado === "alternativa" && r.alternativas.length ? (
                   <div className="mt-3 space-y-2">

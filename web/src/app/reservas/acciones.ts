@@ -42,6 +42,16 @@ export async function reservar(_: EstadoReserva, d: FormData): Promise<EstadoRes
   redirect(`/reservas?nueva=${data.id}`);
 }
 
+// "No lo retiré": reclamo de una entrega hecha sin el código (48 horas).
+export async function reclamarRetiro(d: FormData) {
+  const reserva = numero(d, "reserva");
+  const supabase = await conSesion("/reservas");
+  if (!reserva) return;
+  const { error } = await supabase.rpc("reclamar_retiro", { p_reserva: reserva, p_texto: texto(d, "texto").slice(0, 1000) });
+  if (error) redirect(`/reservas?error=${encodeURIComponent(error.code === "P0001" ? error.message : "No pudimos enviar el reclamo. Probá de nuevo.")}`);
+  refresh();
+}
+
 export async function cancelar(d: FormData) {
   const supabase = await conSesion("/reservas");
   const reserva = numero(d, "reserva");

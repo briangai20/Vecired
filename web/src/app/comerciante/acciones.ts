@@ -291,13 +291,38 @@ export async function cambiarReserva(d: FormData) {
   const accion = texto(d, "accion");
   if (!reserva) return;
   const rpc =
-    accion === "aceptar" ? "aceptar_reserva" : accion === "rechazar" ? "rechazar_reserva" : accion === "retirada" ? "marcar_retirada" : null;
+    accion === "aceptar" ? "aceptar_reserva" : accion === "rechazar" ? "rechazar_reserva" : null;
   if (!rpc) return;
   const { error } = await supabase.rpc(rpc, { p_reserva: reserva });
   volverConError(error);
-  const evento: Evento = accion === "aceptar" ? "aceptada" : accion === "rechazar" ? "rechazada" : "retirada";
+  const evento: Evento = accion === "aceptar" ? "aceptada" : "rechazada";
   after(() => avisarReserva(reserva, evento));
   await listo();
+}
+
+// El retiro se confirma con el código de 4 números que muestra el cliente.
+// Devuelve el motivo si no se pudo (código incorrecto, bloqueo por intentos).
+export async function confirmarRetiro(reserva: number, codigo: string): Promise<{ error?: string }> {
+  const supabase = await comerciante();
+  const { data, error } = await supabase.rpc("confirmar_retiro", { p_reserva: reserva, p_codigo: String(codigo).slice(0, 10) });
+  if (error) return { error: "No pudimos confirmar el retiro. Probá de nuevo." };
+  if (data) return { error: data };
+  after(() => avisarReserva(reserva, "retirada"));
+  refresh();
+  return {};
+}
+
+// Salida para cuando el cliente no tiene el código (solo pago en el local):
+// queda registrado el motivo y al cliente le llega un aviso para reclamar.
+export async function entregarSinCodigo(reserva: number, motivo: string): Promise<{ error?: string }> {
+  const supabase = await comerciante();
+  const m = String(motivo).trim().slice(0, 300);
+  if (m.length < 5) return { error: "Contanos por qué la entregás sin código." };
+  const { error } = await supabase.rpc("entregar_sin_codigo", { p_reserva: reserva, p_motivo: m });
+  if (error) return { error: error.code === "P0001" ? error.message : "No pudimos registrar la entrega. Probá de nuevo." };
+  after(() => avisarReserva(reserva, "retirada"));
+  refresh();
+  return {};
 }
 
 // Después de una acción que salió bien: actualiza el panel en el lugar. Si

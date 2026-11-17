@@ -77,8 +77,20 @@ export async function avisarReserva(reservaId: number, evento: Evento) {
       return;
     }
 
+    // Mails solo de lo importante. "cancelada" y "alternativa_elegida" quedan
+    // en la campanita y el aviso del celular.
+    if (evento === "cancelada" || evento === "alternativa_elegida") return;
+    const sinCodigo = evento === "retirada" && !!r.retiro_sin_codigo;
+    // Imprescindibles (se mandan aunque la persona elija "ninguno"): la reserva
+    // nueva al comercio, el código de retiro y el aviso de entrega sin código.
+    const siempre = evento === "nueva" || evento === "aceptada" || sinCodigo;
+
     const alComercio = AL_COMERCIO.includes(evento);
     const destinatario = alComercio ? r.comercio.dueno_id : r.comprador_id;
+    if (!siempre) {
+      const { data: perfil } = await db.from("perfiles").select("avisos_mail").eq("id", destinatario).maybeSingle();
+      if (perfil?.avisos_mail === "ninguno") return;
+    }
     const { data: u, error: errorUsuario } = await db.auth.admin.getUserById(destinatario);
     const mail = u.user?.email;
     if (!mail) {
@@ -92,6 +104,12 @@ export async function avisarReserva(reservaId: number, evento: Evento) {
     const comercio = esc(r.comercio.nombre);
     const panel = { texto: "Abrir mi panel", url: `${sitio()}/comerciante#reservas` };
     const misReservas = { texto: "Ver mis reservas", url: `${sitio()}/reservas` };
+
+    const { data: cod } = evento === "aceptada" ? await db.from("reserva_codigos").select("codigo").eq("reserva_id", r.id).maybeSingle() : { data: null };
+    const codigo = cod?.codigo
+      ? `<p style="margin:16px 0 4px">Tu código de retiro:</p><p style="font-size:32px;font-weight:900;letter-spacing:8px;margin:0;color:#FF6B2C">${esc(cod.codigo)}</p><p style="font-size:12px;margin-top:4px">Mostráselo al comercio cuando retires. No lo compartas con nadie más.</p>`
+      : "";
+    const cuando = new Intl.DateTimeFormat("es-AR", { timeZone: "America/Argentina/Buenos_Aires", dateStyle: "short", timeStyle: "short" }).format(new Date(r.actualizada_en));
 
     const mensajes: Record<Evento, [string, string, { texto: string; url: string }]> = {
       nueva: [
@@ -107,7 +125,7 @@ export async function avisarReserva(reservaId: number, evento: Evento) {
       ],
       aceptada: [
         `${r.comercio.nombre} confirmó tu reserva`,
-        `<p>Ya te separaron <b>${producto}</b>. Pasá a retirarlo <b>${esc(r.retiro)}</b> por ${esc(r.comercio.direccion)}.</p><p>Total a pagar en el local: <b>${total}</b>.</p><p>Si no llegás en ese horario, te lo guardan un día de atención más; después la reserva vence.</p>`,
+        `<p>Ya te separaron <b>${producto}</b>. Pasá a retirarlo <b>${esc(r.retiro)}</b> por ${esc(r.comercio.direccion)}.</p><p>Total a pagar en el local: <b>${total}</b>.</p>${codigo}<p>Si no llegás en ese horario, te lo guardan un día de atención más; después la reserva vence.</p>`,
         misReservas,
       ],
       rechazada: [
@@ -120,11 +138,17 @@ export async function avisarReserva(reservaId: number, evento: Evento) {
         `<p>${comercio} no tiene <b>${producto}</b>, pero te ofrece alternativas. Elegí una dentro de las 2 horas (en horario del local) desde esta oferta, o cancelala sin costo.</p>`,
         misReservas,
       ],
-      retirada: [
-        `¿Cómo te fue en ${r.comercio.nombre}?`,
-        `<p>Gracias por retirar <b>${producto}</b>. Contale a tus vecinos cómo te atendieron: dejá una reseña en un minuto.</p>`,
-        { texto: "Dejar mi reseña", url: `${sitio()}/reservas` },
-      ],
+      retirada: sinCodigo
+        ? [
+            "Tu reserva figura como retirada sin código",
+            `<p>${comercio} marcó como entregada <b>${producto}</b> sin tu código de retiro (${cuando}). Motivo: ${esc(r.retiro_sin_codigo ?? "")}.</p><p><b>Si no fuiste vos</b>, entrá a Mis reservas y tocá "No lo retiré" dentro de las 48 horas. Lo revisamos.</p>`,
+            { texto: "Ver mis reservas", url: `${sitio()}/reservas#reserva-${r.id}` },
+          ]
+        : [
+            `Comprobante de retiro en ${r.comercio.nombre}`,
+            `<p>Retiraste <b>${producto}</b> en ${comercio} (${esc(r.comercio.direccion)}) el ${cuando}. Total: <b>${total}</b>.</p><p>¿Cómo te atendieron? Dejá una reseña en un minuto: ayuda a tus vecinos.</p>`,
+            { texto: "Dejar mi reseña", url: `${sitio()}/reservas` },
+          ],
     };
 
     const [asunto, cuerpo, boton] = mensajes[evento];

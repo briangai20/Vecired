@@ -8,6 +8,7 @@ import { supabaseServidor } from "@/lib/supabase/servidor";
 import { BotonEnviar } from "@/components/boton-enviar";
 import { reactivarComercio } from "./acciones";
 import { BorrarCuenta } from "./borrar-cuenta";
+import { AvisosMail } from "./avisos-mail";
 import { FormPerfil } from "./form-perfil";
 import { FotoEditable } from "./foto-editable";
 
@@ -65,6 +66,13 @@ async function Cuenta() {
           </form>
         </section>
       ) : null}
+
+      <section className="tarjeta rounded-3xl p-6">
+        <h2 className="titulo-seccion">✉️ Avisos por mail</h2>
+        <div className="mt-3">
+          <AvisosMail inicial={perfil?.avisos_mail ?? "importantes"} comerciante={usuario.rol === "comerciante"} />
+        </div>
+      </section>
 
       <section className="tarjeta rounded-3xl p-6">
         <h2 className="text-lg font-semibold">Datos de la cuenta</h2>
