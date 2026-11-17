@@ -181,3 +181,11 @@ revoke execute on function public.marcar_retirada(bigint) from public, anon, aut
 alter table public.perfiles
   add column avisos_mail text not null default 'importantes' check (avisos_mail in ('importantes', 'ninguno'));
 grant update (avisos_mail) on public.perfiles to authenticated;
+
+-- ---------------------------------------------------------------------
+-- 23b · El código se genera apenas se hace la reserva (aplicado aparte).
+-- crear_codigo_retiro() ahora crea el código en el INSERT y en los estados
+-- pendiente, alternativa y aceptada; confirmar_retiro sigue aceptándolo solo
+-- con la reserva aceptada. Las reservas pendientes que ya existían
+-- recibieron su código.
+-- ---------------------------------------------------------------------
