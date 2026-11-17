@@ -8,6 +8,7 @@ import type { Enum } from "@/lib/supabase/tipos";
 import { reactivarComercio } from "@/app/cuenta/acciones";
 import { FormOferta } from "./form-oferta";
 import { HerramientasProductos } from "./herramientas-productos";
+import { CancelarReprogramada } from "./cancelar-reprogramada";
 import { MotivoBaja } from "./motivo-baja";
 import { SelectorProductos } from "./selector-productos";
 import { CamposPromo } from "./campos-promo";
@@ -279,7 +280,7 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
       {seccion === "reservas" ? (
       <section id="reservas" className="tarjeta rounded-3xl p-6">
         <h2 className="titulo-seccion">📦 Reservas</h2>
-        <p className="info mt-2 text-sm">Respondé cada reserva dentro de las 2 horas de tu horario de atención: si no, vence sola. Las que llegan con el local cerrado empiezan a contar cuando abrís. Las aceptadas que el cliente no retira en el horario que eligió vencen solas al terminar ese horario, y el producto vuelve a tu stock.</p>
+        <p className="info mt-2 text-sm">Respondé cada reserva dentro de las 2 horas de tu horario de atención: si no, vence sola. Las que llegan con el local cerrado empiezan a contar cuando abrís. Si el cliente no retira en el horario que eligió, puede elegir otro una sola vez antes de que cierres (te avisamos y podés cancelarla con un motivo); si no, la reserva se cancela sola y el producto vuelve a tu stock.</p>
         <AvisosCelular variante="panel" />
         {abiertas.length === 0 ? (
           <p className="mt-3 text-sm text-white/80">No tenés reservas para responder. Aparecen acá en cuanto un vecino reserve.</p>
@@ -300,6 +301,14 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
                   <EstadoReserva />
                 </div>
                 <Cliente comprador={r.comprador} producto={r.producto_nombre} comercio={comercio.nombre} />
+                {r.estado === "aceptada" && r.reprogramada_en ? (
+                  <div className="info mt-2 text-xs">
+                    <p>🔁 El cliente cambió el horario de retiro a <b>{r.retiro}</b>.</p>
+                    <CancelarReprogramada reserva={r.id} />
+                  </div>
+                ) : r.estado === "aceptada" && r.reprogramar_hasta ? (
+                  <p className="info mt-2 text-xs">⏰ Se le pasó el horario al cliente: tiene hasta el cierre para elegir otro, o la reserva se cancela sola.</p>
+                ) : null}
                 {r.retiro_sin_codigo ? (
                   <p className="info mt-2 text-xs">
                     Entregada sin código: {r.retiro_sin_codigo}.

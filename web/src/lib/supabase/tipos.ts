@@ -404,6 +404,10 @@ export type Database = {
           comercio_id: number
           comprador_id: string
           creada_en: string
+          motivo_comercio: string | null
+          reprogramada_en: string | null
+          reprogramar_hasta: string | null
+          retiro_hasta: string | null
           reclamo: string | null
           reclamo_en: string | null
           retiro_sin_codigo: string | null
@@ -424,6 +428,10 @@ export type Database = {
           comercio_id: number
           comprador_id?: string
           creada_en?: string
+          motivo_comercio?: string | null
+          reprogramada_en?: string | null
+          reprogramar_hasta?: string | null
+          retiro_hasta?: string | null
           reclamo?: string | null
           reclamo_en?: string | null
           retiro_sin_codigo?: string | null
@@ -444,6 +452,10 @@ export type Database = {
           comercio_id?: number
           comprador_id?: string
           creada_en?: string
+          motivo_comercio?: string | null
+          reprogramada_en?: string | null
+          reprogramar_hasta?: string | null
+          retiro_hasta?: string | null
           reclamo?: string | null
           reclamo_en?: string | null
           retiro_sin_codigo?: string | null
@@ -570,6 +582,8 @@ export type Database = {
       confirmar_retiro: { Args: { p_reserva: number; p_codigo: string }; Returns: string | null }
       entregar_sin_codigo: { Args: { p_reserva: number; p_motivo: string }; Returns: undefined }
       reclamar_retiro: { Args: { p_reserva: number; p_texto: string }; Returns: undefined }
+      reprogramar_retiro: { Args: { p_reserva: number; p_retiro: string }; Returns: undefined }
+      cancelar_reprogramada: { Args: { p_reserva: number; p_motivo: string }; Returns: undefined }
       precio_vigente: { Args: { p_producto: number }; Returns: number | null }
       reactivar_mi_comercio: { Args: never; Returns: undefined }
       corregir_busqueda: { Args: { p_texto: string }; Returns: string | null }

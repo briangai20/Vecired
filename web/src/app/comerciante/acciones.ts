@@ -325,6 +325,19 @@ export async function entregarSinCodigo(reserva: number, motivo: string): Promis
   return {};
 }
 
+// Cancelar una reserva a la que el cliente le cambió el horario, con un
+// motivo que ve el cliente (se vendió, no llego a tenerlo, etc.).
+export async function cancelarReprogramada(reserva: number, motivo: string): Promise<{ error?: string }> {
+  const supabase = await comerciante();
+  const m = String(motivo).trim().slice(0, 300);
+  if (m.length < 5) return { error: "Contale al cliente por qué la cancelás." };
+  const { error } = await supabase.rpc("cancelar_reprogramada", { p_reserva: reserva, p_motivo: m });
+  if (error) return { error: error.code === "P0001" ? error.message : "No pudimos cancelarla. Probá de nuevo." };
+  after(() => avisarReserva(reserva, "rechazada"));
+  refresh();
+  return {};
+}
+
 // Después de una acción que salió bien: actualiza el panel en el lugar. Si
 // había un cartel de error en la dirección, vuelve a la pestaña sin él.
 // (Antes redirigía siempre a la misma dirección, y eso no recargaba los

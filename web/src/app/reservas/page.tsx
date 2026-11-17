@@ -5,11 +5,11 @@ import { ComoLlegar } from "@/components/como-llegar";
 import { redirect } from "next/navigation";
 import { Fragment, Suspense } from "react";
 import { Estrellas } from "@/components/insignias";
-import { plata, totalReserva } from "@/lib/formato";
+import { fechaAR, franjasRetiro, plata, totalReserva } from "@/lib/formato";
 import { usuarioActual } from "@/lib/sesion";
 import { supabaseServidor } from "@/lib/supabase/servidor";
 import type { Enum } from "@/lib/supabase/tipos";
-import { cancelar, dejarResena, elegirAlternativa, reclamarRetiro } from "./acciones";
+import { cancelar, dejarResena, elegirAlternativa, reclamarRetiro, reprogramarRetiro } from "./acciones";
 import { BotonEnviar } from "@/components/boton-enviar";
 
 export const metadata: Metadata = { title: "Mis reservas" };
@@ -25,7 +25,7 @@ const ESTADOS: Record<Enum<"estado_reserva">, { texto: string; detalle: string }
   },
   aceptada: {
     texto: "Confirmada: pasá a retirar",
-    detalle: "Ya te lo separaron. Pagás al retirar. Retiralo en el horario que elegiste: si no llegás, la reserva vence y el producto vuelve a estar a la venta.",
+    detalle: "Ya te lo separaron. Pagás al retirar. Retiralo en el horario que elegiste: si no llegás, podés elegir otro horario una sola vez antes de que cierre el local; si no, la reserva se cancela.",
   },
   retirada: { texto: "Retirada", detalle: "" },
   no_retirada: { texto: "No la retiraste", detalle: "Pasó el plazo para retirarla y el producto volvió a estar disponible. No se cobró nada." },
@@ -58,6 +58,21 @@ async function Reservas({ searchParams }: Pick<PageProps<"/reservas">, "searchPa
     .order("creada_en", { ascending: false });
 
   const ahora = new Date();
+  // Reservas a las que se les pasó el horario: horarios de su comercio para elegir otro.
+  const aReprogramar = (reservas ?? []).filter((x) => x.estado === "aceptada" && x.reprogramar_hasta && !x.reprogramada_en);
+  const comerciosReprogramar = [...new Set(aReprogramar.map((x) => x.comercio_id))];
+  const franjasDe = new Map<number, string[]>();
+  await Promise.all(
+    comerciosReprogramar.map(async (id) => {
+      const [{ data: horarios }, { data: cierres }] = await Promise.all([
+        supabase.from("horarios").select("dia, abre, cierra").eq("comercio_id", id),
+        supabase.rpc("dias_cerrados", { p_comercio: id, p_desde: fechaAR(ahora), p_hasta: fechaAR(ahora, 21) }),
+      ]);
+      franjasDe.set(id, franjasRetiro(horarios ?? [], ahora, (cierres ?? []).map((c) => c.fecha)));
+    }),
+  );
+  const horaCorta = (f: string) =>
+    new Intl.DateTimeFormat("es-AR", { timeZone: "America/Argentina/Buenos_Aires", hour: "2-digit", minute: "2-digit", day: "numeric", month: "numeric" }).format(new Date(f));
   const lista = reservas ?? [];
   const abiertas = lista.filter((r) => ["pendiente", "alternativa", "aceptada"].includes(r.estado));
   const total = abiertas.reduce((a, r) => a + (totalReserva(r) ?? 0), 0);
@@ -132,6 +147,37 @@ async function Reservas({ searchParams }: Pick<PageProps<"/reservas">, "searchPa
                   <p className="info mt-3 text-xs">
                     🔑 Cuando el comercio confirme tu reserva, te vamos a dar un <b>código de retiro</b> (acá y por mail). Lo mostrás en el local y
                     con ese código retirás tu pedido.
+                  </p>
+                ) : null}
+                {r.estado === "aceptada" && r.reprogramar_hasta && !r.reprogramada_en ? (
+                  <div className="info mt-3 text-sm">
+                    <p className="font-semibold">⏰ Se pasó tu horario de retiro</p>
+                    <p className="mt-1 text-xs text-white/85">
+                      Elegí otro horario antes de las <b>{horaCorta(r.reprogramar_hasta)}</b> o la reserva se cancela. Lo podés cambiar una sola vez.
+                    </p>
+                    {(franjasDe.get(r.comercio_id) ?? []).length ? (
+                      <form action={reprogramarRetiro} className="mt-2 flex flex-wrap gap-2">
+                        <input type="hidden" name="reserva" value={r.id} />
+                        <select name="retiro" className="campo min-w-0 flex-1" required>
+                          {(franjasDe.get(r.comercio_id) ?? []).map((f) => (
+                            <option key={f}>{f}</option>
+                          ))}
+                        </select>
+                        <BotonEnviar enviando="Cambiando…" className="boton rounded-xl px-4 py-2 text-xs font-semibold">
+                          Cambiar horario
+                        </BotonEnviar>
+                      </form>
+                    ) : (
+                      <p className="mt-2 text-xs">El comercio no tiene horarios disponibles en los próximos días.</p>
+                    )}
+                  </div>
+                ) : null}
+                {r.estado === "aceptada" && r.reprogramada_en ? (
+                  <p className="mt-2 text-xs text-white/75">🔁 Cambiaste el horario de retiro (ya no se puede cambiar de nuevo).</p>
+                ) : null}
+                {r.estado === "rechazada" && r.motivo_comercio ? (
+                  <p className="info mt-3 text-xs">
+                    Motivo del comercio: “{r.motivo_comercio}”
                   </p>
                 ) : null}
                 {r.estado === "aceptada" && r.codigo ? (

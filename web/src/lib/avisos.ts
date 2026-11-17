@@ -125,12 +125,14 @@ export async function avisarReserva(reservaId: number, evento: Evento) {
       ],
       aceptada: [
         `${r.comercio.nombre} confirmó tu reserva`,
-        `<p>Ya te separaron <b>${producto}</b>. Pasá a retirarlo <b>${esc(r.retiro)}</b> por ${esc(r.comercio.direccion)}.</p><p>Total a pagar en el local: <b>${total}</b>.</p>${codigo}<p>Retiralo en ese horario: si no llegás, la reserva vence y el producto vuelve a estar a la venta.</p>`,
+        `<p>Ya te separaron <b>${producto}</b>. Pasá a retirarlo <b>${esc(r.retiro)}</b> por ${esc(r.comercio.direccion)}.</p><p>Total a pagar en el local: <b>${total}</b>.</p>${codigo}<p>Retiralo en ese horario. Si no llegás, vas a poder elegir otro horario una sola vez antes de que cierre el local; si no, la reserva se cancela.</p>`,
         misReservas,
       ],
       rechazada: [
         `${r.comercio.nombre} no pudo confirmar tu reserva`,
-        `<p>${comercio} no tiene <b>${producto}</b> en este momento. No se cobró nada. Podés buscarlo en otro comercio cercano.</p>`,
+        r.motivo_comercio
+          ? `<p>${comercio} canceló tu reserva de <b>${producto}</b>. Motivo: “${esc(r.motivo_comercio)}”. No se cobró nada. Podés buscarlo en otro comercio cercano.</p>`
+          : `<p>${comercio} no tiene <b>${producto}</b> en este momento. No se cobró nada. Podés buscarlo en otro comercio cercano.</p>`,
         { texto: "Buscar en otro comercio", url: sitio() },
       ],
       alternativa: [

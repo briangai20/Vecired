@@ -52,6 +52,17 @@ export async function reclamarRetiro(d: FormData) {
   refresh();
 }
 
+// Elegir otro horario de retiro cuando se pasó el elegido (una sola vez).
+export async function reprogramarRetiro(d: FormData) {
+  const reserva = numero(d, "reserva");
+  const supabase = await conSesion("/reservas");
+  const retiro = texto(d, "retiro");
+  if (!reserva || !retiro) return;
+  const { error } = await supabase.rpc("reprogramar_retiro", { p_reserva: reserva, p_retiro: retiro.slice(0, 80) });
+  if (error) redirect(`/reservas?error=${encodeURIComponent(error.code === "P0001" ? error.message : "No pudimos cambiar el horario. Probá de nuevo.")}`);
+  refresh();
+}
+
 export async function cancelar(d: FormData) {
   const supabase = await conSesion("/reservas");
   const reserva = numero(d, "reserva");
