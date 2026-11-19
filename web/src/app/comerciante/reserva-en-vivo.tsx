@@ -64,8 +64,9 @@ export function SiEstado({ es, children }: { es: Estado; children: ReactNode }) 
 
 const SECUNDARIO = "flex-1 rounded-xl border border-white/40 py-2 text-sm hover:bg-white/10";
 
-export function BotonesReserva() {
-  const { estado, hacer } = useReserva();
+/** conRetiro: false cuando el código se carga una sola vez para todo el pedido. */
+export function BotonesReserva({ conRetiro = true }: { conRetiro?: boolean } = {}) {
+  const { estado, hacer, reserva, pagoLocal } = useReserva();
   if (estado === "pendiente")
     return (
       <div className="mt-3 flex gap-2">
@@ -85,7 +86,7 @@ export function BotonesReserva() {
         </button>
       </div>
     );
-  if (estado === "aceptada") return <ConfirmarRetiro />;
+  if (estado === "aceptada") return conRetiro ? <ConfirmarRetiro reserva={reserva} pagoLocal={pagoLocal} /> : null;
   return null;
 }
 
@@ -93,8 +94,7 @@ const MOTIVOS_SIN_CODIGO = ["El cliente no tenía el código a mano", "Al client
 
 // "Confirmar retiro": el comercio carga el código de 4 números que le muestra
 // el cliente. Si el cliente no lo tiene, "Entregar sin código" con un motivo.
-function ConfirmarRetiro() {
-  const { reserva, pagoLocal } = useReserva();
+export function ConfirmarRetiro({ reserva, pagoLocal }: { reserva: number; pagoLocal: boolean }) {
   const [codigo, setCodigo] = useState("");
   const [error, setError] = useState("");
   const [sinCodigo, setSinCodigo] = useState(false);

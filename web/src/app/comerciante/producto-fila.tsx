@@ -9,7 +9,12 @@ import { FotoNuevoProducto, FotosExtra, SubirFoto } from "./subir-foto";
 export function ProductoFila({ p, comercioId, ahora }: { p?: Tabla<"productos">; comercioId: number; ahora: Date }) {
   const d = p ? disponibilidad(p, ahora) : null;
   return (
-    <form action={guardarProducto} className="py-4">
+    <form
+      action={guardarProducto}
+      className="py-4"
+      // Para que el control de stock muestre u oculte este producto.
+      data-producto={p?.id}
+    >
       {p ? <input type="hidden" name="id" value={p.id} /> : <input type="hidden" name="comercio_id" value={comercioId} />}
       <div className="flex flex-wrap items-start justify-between gap-2">
         {p ? (

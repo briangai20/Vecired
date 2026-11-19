@@ -163,8 +163,10 @@ export function disponibilidad(p: Pick<Tabla<"productos">, "modo" | "stock" | "s
       if (dias > 7) return sinVerificar;
       const stock = p.stock ?? 0;
       if (stock <= 0) return { texto: "Agotado", tono: "no", sePuede: false, requiereConfirmacion: false };
+      // La cantidad exacta: "15 disponibles", o "Últimas 2" cuando quedan pocas.
+      if (stock === 1) return { texto: "Última unidad", tono: "poco", sePuede: true, requiereConfirmacion: false };
       if (stock <= 3) return { texto: `Últimas ${stock}`, tono: "poco", sePuede: true, requiereConfirmacion: false };
-      return { texto: "Disponible", tono: "ok", sePuede: true, requiereConfirmacion: false };
+      return { texto: `${stock} disponibles`, tono: "ok", sePuede: true, requiereConfirmacion: false };
     }
   }
 }

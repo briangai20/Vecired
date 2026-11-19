@@ -25,12 +25,11 @@ import { FormComercio } from "./form-comercio";
 import { FotosEnLote } from "./fotos-en-lote";
 import { ImportarProductos } from "./importar-productos";
 import { ProductoFila } from "./producto-fila";
-import { ListaConMas } from "@/components/lista-con-mas";
 import { LogoComercio } from "@/components/logo-comercio";
 import { BotonEnviar } from "@/components/boton-enviar";
 import { AvisosCelular } from "@/components/avisos-celular";
 import { Conversacion } from "@/components/conversacion";
-import { BotonesReserva, EstadoReserva, ReservaEnVivo, SiEstado } from "./reserva-en-vivo";
+import { BotonesReserva, ConfirmarRetiro, EstadoReserva, ReservaEnVivo, SiEstado } from "./reserva-en-vivo";
 import { FotoPerfil } from "@/components/foto-perfil";
 import { Estrellas } from "@/components/insignias";
 import { enlaceWhatsapp, numeroWhatsapp } from "@/lib/whatsapp";
@@ -128,7 +127,7 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
   }
 
   const ahora = new Date();
-  const [{ data: productos }, { data: reservas }, { data: stats }, { data: franjas }, { data: cierres }, { data: feriados }, { data: verificacion }, { data: resenas }, { data: preguntas }, { data: misOfertas }, { data: avisosMensajes }] = await Promise.all([
+  const [{ data: productos }, { data: reservas }, { data: stats }, { data: statsSemana }, { data: franjas }, { data: cierres }, { data: feriados }, { data: verificacion }, { data: resenas }, { data: preguntas }, { data: misOfertas }, { data: avisosMensajes }] = await Promise.all([
     supabase.from("productos").select("*").eq("comercio_id", comercio.id).order("nombre"),
     supabase
       .from("reservas")
@@ -136,6 +135,8 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
       .eq("comercio_id", comercio.id)
       .order("creada_en", { ascending: false })
       .limit(30),
+    // Desde siempre (no se borran) y, aparte, lo de los últimos 7 días.
+    supabase.rpc("estadisticas_comercio", { p_comercio: comercio.id, p_desde: "2000-01-01T00:00:00Z" }),
     supabase.rpc("estadisticas_comercio", { p_comercio: comercio.id }),
     supabase.from("horarios").select("*").eq("comercio_id", comercio.id),
     supabase.from("cierres").select("*").eq("comercio_id", comercio.id).gte("hasta", fechaAR(ahora)).order("desde"),
@@ -170,7 +171,7 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
   ]);
   const mensajesSinLeer = new Map<number, number>();
   for (const a of avisosMensajes ?? []) {
-    const id = Number(/#reserva-(d+)$/.exec(a.enlace ?? "")?.[1]);
+    const id = Number(/#reserva-(\d+)$/.exec(a.enlace ?? "")?.[1]);
     if (id) mensajesSinLeer.set(id, (mensajesSinLeer.get(id) ?? 0) + 1);
   }
   const sinResponder = (resenas ?? []).filter((r) => !r.respuesta).length;
@@ -178,11 +179,18 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
   const listaPreguntas = [...(preguntas ?? [])].sort((a, b) => Number(!!a.respuesta) - Number(!!b.respuesta));
   const preguntasSinResponder = listaPreguntas.filter((q) => !q.respuesta).length;
   const s = stats?.[0];
+  const semana = statsSemana?.[0];
   const enCurso = (e: string) => e === "pendiente" || e === "alternativa" || e === "aceptada";
   const abiertas = (reservas ?? []).filter((r) => enCurso(r.estado));
   const cerradas = (reservas ?? []).filter((r) => !enCurso(r.estado));
-  // Productos de cada pedido del carrito (comparten el código de retiro).
-  const enPedido = (pedido: number) => abiertas.filter((x) => x.pedido === pedido).length;
+  // Las reservas del mismo pedido del carrito van juntas en una tarjeta.
+  const grupos: (typeof abiertas)[] = [];
+  for (const r of [...abiertas].sort((x, y) => x.id - y.id)) {
+    const g = r.pedido ? grupos.find((x) => x[0].pedido === r.pedido) : undefined;
+    if (g) g.push(r);
+    else grupos.push([r]);
+  }
+  grupos.sort((x, y) => y[0].id - x[0].id);
   const totalMensajesSinLeer = abiertas.reduce((n, r) => n + (mensajesSinLeer.get(r.id) ?? 0), 0);
 
   // Qué se le puede ofrecer en lugar de lo reservado: productos publicados,
@@ -248,15 +256,19 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
           ) : null}
         </div>
         <div className="mt-6 grid gap-3 sm:grid-cols-4">
-          {[
-            ["Vistas (7 días)", s?.total_vistas ?? 0],
-            ["Reservas (7 días)", s?.total_reservas ?? 0],
-            ["Retiradas (7 días)", s?.total_retiradas ?? 0],
-            ["Valoración", s?.promedio_estrellas ? `${String(s.promedio_estrellas).replace(".", ",")} (${s.total_resenas})` : "Sin reseñas"],
-          ].map(([t, v]) => (
+          {/* Totales desde que empezó (no se borran); abajo, lo de la última semana. */}
+          {(
+            [
+              ["Vistas", s?.total_vistas ?? 0, semana?.total_vistas ?? 0],
+              ["Reservas", s?.total_reservas ?? 0, semana?.total_reservas ?? 0],
+              ["Retiradas", s?.total_retiradas ?? 0, semana?.total_retiradas ?? 0],
+              ["Valoración", s?.promedio_estrellas ? `${String(s.promedio_estrellas).replace(".", ",")} (${s.total_resenas})` : "Sin reseñas", null],
+            ] as const
+          ).map(([t, v, ultimos]) => (
             <div key={t} className="border-l-2 border-naranja-vivo/70 py-1 pl-3">
               <p className="text-xs text-white/75">{t}</p>
-              <p className="mt-1 text-2xl font-black">{v}</p>
+              <p className="mt-1 text-2xl font-black">{typeof v === "number" ? v.toLocaleString("es-AR") : v}</p>
+              {ultimos != null ? <p className="text-[11px] text-white/65">+{ultimos.toLocaleString("es-AR")} esta semana</p> : null}
             </div>
           ))}
         </div>
@@ -310,94 +322,132 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
         {abiertas.length === 0 ? (
           <p className="mt-3 text-sm text-white/80">No tenés reservas para responder. Aparecen acá en cuanto un vecino reserve.</p>
         ) : (
-          <div className="mt-4 divide-y divide-white/15">
-            {abiertas.map((r) => (
-              <ReservaEnVivo key={r.id} reserva={r.id} estado={r.estado} etiquetas={ESTADOS} accion={cambiarReserva} pagoLocal={r.medio_pago === "local"}>
-              <article id={`reserva-${r.id}`} className="scroll-mt-24 py-4">
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <p className="font-semibold">
-                      {r.producto_nombre} × {r.cantidad}
-                    </p>
-                    {r.retiro_ya || (r.pedido && enPedido(r.pedido) > 1) ? (
-                      <p className="mt-1 flex flex-wrap gap-1.5">
-                        {r.retiro_ya ? <span className="rounded-full bg-naranja px-2 py-0.5 text-[11px] font-bold">⚡ Retiro ya · ya aceptada</span> : null}
-                        {r.pedido && enPedido(r.pedido) > 1 ? (
-                          <span className="rounded-full border border-white/40 px-2 py-0.5 text-[11px] font-semibold">
-                            🛒 Pedido #{r.pedido} · {enPedido(r.pedido)} productos, un solo código
-                          </span>
-                        ) : null}
+          <div className="mt-4 space-y-4">
+            {grupos.map((g) => {
+              const r = g[0];
+              const esPedido = g.length > 1;
+              const aceptadas = g.filter((x) => x.estado === "aceptada");
+              const vencida = aceptadas.find((x) => x.retiro_hasta && new Date(x.retiro_hasta) < ahora);
+              const reprogramada = aceptadas.find((x) => x.reprogramada_en);
+              const aReprogramar = aceptadas.find((x) => x.reprogramar_hasta && !x.reprogramada_en);
+              const sinCodigo = g.find((x) => x.retiro_sin_codigo);
+              const totales = g.map((x) => totalReserva(x));
+              const total = totales.some((t) => t == null) ? null : totales.reduce<number>((a, t) => a + (t ?? 0), 0);
+              const sinLeer = g.reduce((n, x) => n + (mensajesSinLeer.get(x.id) ?? 0), 0);
+              return (
+                // Una tarjeta por pedido: si el cliente reservó varios productos con el
+                // carrito, van todos juntos y se aceptan o rechazan de a uno.
+                <article key={r.pedido ?? r.id} id={`reserva-${r.id}`} className="scroll-mt-24 rounded-2xl border border-white/20 p-4">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="font-semibold">{esPedido ? `🛒 Pedido de ${g.length} productos` : `${r.producto_nombre} × ${r.cantidad}`}</p>
+                      <p className="text-xs text-white/75">
+                        Retira: {r.retiro} · {r.medio_pago === "online" ? "Pagó online" : "Paga en el local"}
                       </p>
-                    ) : null}
-                    <p className="text-xs text-white/75">
-                      Retira: {r.retiro} · {r.medio_pago === "online" ? "Pagó online" : "Paga en el local"}
+                    </div>
+                    {r.retiro_ya ? <span className="shrink-0 rounded-full bg-naranja px-2 py-0.5 text-[11px] font-bold">⚡ Retiro ya · ya aceptada</span> : null}
+                  </div>
+                  <Cliente comprador={r.comprador} producto={esPedido ? "tu pedido" : r.producto_nombre} comercio={comercio.nombre} />
+
+                  {esPedido ? <p className="mt-3 text-xs text-white/80">Aceptá lo que tenés y rechazá o reemplazá lo que no. Con un solo código retira todo lo aceptado.</p> : null}
+                  <ul className={esPedido ? "mt-2 divide-y divide-white/10 rounded-xl bg-white/5 px-3" : ""}>
+                    {g.map((x) => (
+                      <li key={x.id} id={esPedido ? `reserva-${x.id}` : undefined} className={esPedido ? "scroll-mt-24 py-3" : ""}>
+                        <ReservaEnVivo reserva={x.id} estado={x.estado} etiquetas={ESTADOS} accion={cambiarReserva} pagoLocal={x.medio_pago === "local"}>
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0 text-sm">
+                              {esPedido ? (
+                                <p className="font-semibold">
+                                  {x.producto_nombre} × {x.cantidad}
+                                </p>
+                              ) : null}
+                              <p className={esPedido ? "text-xs text-white/75" : "mt-2"}>
+                                {esPedido ? "" : "Total: "}
+                                <b>{plata(totalReserva(x))}</b>
+                                {x.promo ? <span className="ml-2 rounded-full bg-naranja px-2 py-0.5 text-[11px] font-bold">{x.promo}</span> : null}
+                              </p>
+                            </div>
+                            <EstadoReserva />
+                          </div>
+                          {x.estado === "alternativa" ? (
+                            <p className="mt-2 text-xs text-white/85">
+                              Le ofreciste: {x.alternativas.map((a) => a.producto?.nombre).filter(Boolean).join(", ")}. Si no elige, podés rechazarlo.
+                            </p>
+                          ) : null}
+                          <BotonesReserva conRetiro={false} />
+                          <SiEstado es="pendiente">
+                            <details className="mt-2 text-sm">
+                              <summary className="cursor-pointer text-xs text-white/85">No lo tengo: ofrecer otro producto</summary>
+                              {opciones(x.producto_id, x.cantidad).length ? (
+                                <form action={ofrecerAlternativas} className="mt-2 space-y-2">
+                                  <input type="hidden" name="reserva" value={x.id} />
+                                  <p className="text-xs text-white/75">Elegí uno o más productos. El cliente elige cuál le sirve o lo saca del pedido sin costo.</p>
+                                  <div className="max-h-48 space-y-1 overflow-y-auto">
+                                    {opciones(x.producto_id, x.cantidad).map((o) => (
+                                      <label key={o.id} className="flex items-center gap-2 rounded-lg border border-white/15 px-3 py-2 text-xs">
+                                        <input type="checkbox" name="productos" value={o.id} className="h-4 w-4 accent-white" />
+                                        <span className="flex-1">{o.nombre}</span>
+                                        <span className="text-white/75">{plata(o.precio)}</span>
+                                      </label>
+                                    ))}
+                                  </div>
+                                  <BotonEnviar enviando="Enviando…" className="boton w-full rounded-xl py-2 text-sm font-semibold">
+                                    Ofrecer al cliente
+                                  </BotonEnviar>
+                                </form>
+                              ) : (
+                                <p className="mt-2 text-xs text-white/75">No tenés otros productos con stock para ofrecer. Podés rechazarlo.</p>
+                              )}
+                            </details>
+                          </SiEstado>
+                        </ReservaEnVivo>
+                      </li>
+                    ))}
+                  </ul>
+
+                  {esPedido ? (
+                    <p className="mt-3 text-sm">
+                      Total del pedido: <b>{plata(total)}</b>
                     </p>
-                  </div>
-                  <EstadoReserva />
-                </div>
-                <Cliente comprador={r.comprador} producto={r.producto_nombre} comercio={comercio.nombre} />
-                {r.estado === "aceptada" && r.reprogramada_en ? (
-                  <div className="info mt-2 text-xs">
-                    <p>🔁 El cliente cambió el horario de retiro a <b>{r.retiro}</b>.</p>
-                    <CancelarReprogramada reserva={r.id} />
-                  </div>
-                ) : r.estado === "aceptada" && r.reprogramar_hasta ? (
-                  <p className="info mt-2 text-xs">⏰ Se le pasó el horario al cliente: tiene hasta el cierre para elegir otro, o la reserva se cancela sola.</p>
-                ) : null}
-                {r.estado === "aceptada" && r.retiro_hasta && new Date(r.retiro_hasta) < ahora ? (
-                  <form action={marcarNoVino} className="mt-2 flex flex-wrap items-center gap-2 text-xs">
-                    <input type="hidden" name="reserva" value={r.id} />
-                    <span className="text-white/80">¿No vino en su horario?</span>
-                    <BotonEnviar enviando="Cerrando…" className="rounded-lg border border-white/40 px-3 py-1.5 font-semibold hover:bg-white/10">
-                      {r.pedido && enPedido(r.pedido) > 1 ? "No vino: cerrar el pedido y devolver el stock" : "No vino: cerrar y devolver el stock"}
-                    </BotonEnviar>
-                  </form>
-                ) : null}
-                {r.retiro_sin_codigo ? (
-                  <p className="info mt-2 text-xs">
-                    Entregada sin código: {r.retiro_sin_codigo}.
-                    {r.reclamo_en ? <b className="block mt-1">⚠ El cliente dice que no la retiró{r.reclamo ? `: “${r.reclamo}”` : ""}. Lo vamos a revisar.</b> : null}
-                  </p>
-                ) : null}
-                <p className="mt-2 text-sm">
-                  Total: <b>{plata(totalReserva(r))}</b>
-                  {r.promo ? <span className="ml-2 rounded-full bg-naranja px-2 py-0.5 text-[11px] font-bold">{r.promo}</span> : null}
-                </p>
-                {r.estado === "alternativa" ? (
-                  <p className="mt-2 text-xs text-white/85">
-                    Le ofreciste: {r.alternativas.map((a) => a.producto?.nombre).filter(Boolean).join(", ")}. Si no elige, podés rechazarla.
-                  </p>
-                ) : null}
-                <BotonesReserva />
-                <Conversacion reserva={r.id} yo={usuario.id} otro="el cliente" iniciales={r.mensajes} abierta sinLeer={mensajesSinLeer.get(r.id) ?? 0} />
-                <SiEstado es="pendiente">
-                  <details className="mt-3 text-sm">
-                    <summary className="cursor-pointer text-white/85">No lo tengo: ofrecer otra cosa</summary>
-                    {opciones(r.producto_id, r.cantidad).length ? (
-                      <form action={ofrecerAlternativas} className="mt-2 space-y-2">
-                        <input type="hidden" name="reserva" value={r.id} />
-                        <p className="text-xs text-white/75">Elegí uno o más productos. El cliente elige cuál le sirve o cancela sin costo.</p>
-                        <div className="max-h-48 space-y-1 overflow-y-auto">
-                          {opciones(r.producto_id, r.cantidad).map((p) => (
-                            <label key={p.id} className="flex items-center gap-2 rounded-lg border border-white/15 px-3 py-2 text-xs">
-                              <input type="checkbox" name="productos" value={p.id} className="h-4 w-4 accent-white" />
-                              <span className="flex-1">{p.nombre}</span>
-                              <span className="text-white/75">{plata(p.precio)}</span>
-                            </label>
-                          ))}
-                        </div>
-                        <BotonEnviar enviando="Enviando…" className="boton w-full rounded-xl py-2 text-sm font-semibold">
-                          Ofrecer al cliente
-                        </BotonEnviar>
-                      </form>
-                    ) : (
-                      <p className="mt-2 text-xs text-white/75">No tenés otros productos con stock para ofrecer. Podés rechazar la reserva.</p>
-                    )}
-                  </details>
-                </SiEstado>
-              </article>
-              </ReservaEnVivo>
-            ))}
+                  ) : null}
+                  {reprogramada ? (
+                    <div className="info mt-2 text-xs">
+                      <p>🔁 El cliente cambió el horario de retiro a <b>{reprogramada.retiro}</b>.</p>
+                      <CancelarReprogramada reserva={reprogramada.id} />
+                    </div>
+                  ) : aReprogramar ? (
+                    <p className="info mt-2 text-xs">⏰ Se le pasó el horario al cliente: tiene hasta el cierre para elegir otro, o la reserva se cancela sola.</p>
+                  ) : null}
+                  {sinCodigo ? (
+                    <p className="info mt-2 text-xs">
+                      Entregada sin código: {sinCodigo.retiro_sin_codigo}.
+                      {sinCodigo.reclamo_en ? <b className="mt-1 block">⚠ El cliente dice que no la retiró{sinCodigo.reclamo ? `: “${sinCodigo.reclamo}”` : ""}. Lo vamos a revisar.</b> : null}
+                    </p>
+                  ) : null}
+                  {/* Un solo código para retirar todo lo aceptado. */}
+                  {aceptadas.length ? (
+                    <div className="mt-3">
+                      {esPedido ? (
+                        <p className="text-xs font-semibold">
+                          Retiro: {aceptadas.length} de {g.length} productos aceptados
+                        </p>
+                      ) : null}
+                      <ConfirmarRetiro reserva={aceptadas[0].id} pagoLocal={aceptadas[0].medio_pago === "local"} />
+                    </div>
+                  ) : null}
+                  {vencida ? (
+                    <form action={marcarNoVino} className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+                      <input type="hidden" name="reserva" value={vencida.id} />
+                      <span className="text-white/80">¿No vino en su horario?</span>
+                      <BotonEnviar enviando="Cerrando…" className="rounded-lg border border-white/40 px-3 py-1.5 font-semibold hover:bg-white/10">
+                        {esPedido ? "No vino: cerrar el pedido y devolver el stock" : "No vino: cerrar y devolver el stock"}
+                      </BotonEnviar>
+                    </form>
+                  ) : null}
+                  <Conversacion reserva={r.id} yo={usuario.id} otro="el cliente" iniciales={g.flatMap((x) => x.mensajes)} abierta sinLeer={sinLeer} />
+                </article>
+              );
+            })}
           </div>
         )}
         {cerradas.length ? (
@@ -447,16 +497,40 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
             </div>
           </details>
         ) : null}
-        <div className="mt-4 divide-y divide-white/15">
+        {/* Cada parte se abre al tocar el título, para que la sección no sea larguísima. */}
+        <details className="mt-4 border-t border-white/15 pt-4" open={!(productos ?? []).length}>
+          <summary className="cursor-pointer font-semibold">➕ Agregar un producto a mano</summary>
           <ProductoFila comercioId={comercio.id} ahora={ahora} />
-          <HerramientasProductos>
-          <ListaConMas deA={15} que="productos" className="divide-y divide-white/15">
-            {(productos ?? []).map((p) => (
-              <ProductoFila key={p.id} p={p} comercioId={comercio.id} ahora={ahora} />
-            ))}
-          </ListaConMas>
-          </HerramientasProductos>
-        </div>
+        </details>
+        {(productos ?? []).length ? (
+          <details className="mt-4 border-t border-white/15 pt-4" id="stock">
+            <summary className="cursor-pointer font-semibold">
+              📦 Control de stock
+              <span className="font-normal text-white/70"> · {(productos ?? []).length} productos</span>
+            </summary>
+            <p className="mt-2 text-xs text-white/75">Buscá un producto o filtralo, cambiá el stock o el precio y guardá. Con las casillas cambiás varios de una vez.</p>
+            <div className="mt-3">
+              <HerramientasProductos
+                items={(productos ?? []).map((p) => {
+                  const d = disponibilidad(p, ahora);
+                  return {
+                    id: p.id,
+                    texto: [p.nombre, p.marca, p.codigo, p.grupo, p.medida, p.material].filter(Boolean).join(" "),
+                    marca: p.marca?.trim() ?? "",
+                    grupo: p.grupo?.trim() ?? "",
+                    activo: p.activo ? "1" : "0",
+                    stock: d.texto === "Stock sin confirmar" ? "sin-confirmar" : d.tono === "no" ? "sin-stock" : d.tono === "poco" ? "poco" : "ok",
+                    foto: p.foto_url ? "1" : "0",
+                  } as const;
+                })}
+              >
+                {(productos ?? []).map((p) => (
+                  <ProductoFila key={p.id} p={p} comercioId={comercio.id} ahora={ahora} />
+                ))}
+              </HerramientasProductos>
+            </div>
+          </details>
+        ) : null}
       </section>
       ) : null}
 

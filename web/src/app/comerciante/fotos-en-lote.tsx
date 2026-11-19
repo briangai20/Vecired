@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { ElegirProducto } from "@/components/elegir-producto";
 import { useListo } from "@/components/use-listo";
 import { emparejarFoto, type Coincidencia, type ProductoFoto } from "@/lib/fotos";
 import { refrescarPanel } from "./acciones";
@@ -140,25 +141,12 @@ function Varias({ comercioId, productos }: { comercioId: number; productos: Prod
                     <p className="truncate text-white/70" title={e.archivo.name}>
                       {e.archivo.name}
                     </p>
-                    <select
-                      value={e.productoId ?? ""}
+                    <ElegirProducto
+                      productos={productos}
+                      valor={e.productoId}
                       disabled={subiendo || estado === "listo"}
-                      onChange={(ev) =>
-                        setElegidas((l) =>
-                          l.map((x) => (x.clave === e.clave ? { ...x, productoId: ev.target.value ? Number(ev.target.value) : null, como: null } : x)),
-                        )
-                      }
-                      className="campo mt-1 py-1.5 text-xs"
-                    >
-                      <option value="">No subir</option>
-                      {productos.map((x) => (
-                        <option key={x.id} value={x.id}>
-                          {x.nombre}
-                          {x.codigo ? ` · ${x.codigo}` : ""}
-                          {x.foto_url ? " (ya tiene foto)" : ""}
-                        </option>
-                      ))}
-                    </select>
+                      alElegir={(id) => setElegidas((l) => l.map((x) => (x.clave === e.clave ? { ...x, productoId: id, como: null } : x)))}
+                    />
                     <p className="mt-1">
                       {estado === "subiendo" ? (
                         "Subiendo…"

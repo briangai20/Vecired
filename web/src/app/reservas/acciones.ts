@@ -67,9 +67,16 @@ export async function reprogramarRetiro(d: FormData) {
 
 export async function cancelar(d: FormData) {
   const supabase = await conSesion("/reservas");
-  const reserva = numero(d, "reserva");
-  const { error } = await supabase.rpc("cancelar_reserva", { p_reserva: reserva });
-  if (!error) after(() => avisarReserva(reserva, "cancelada"));
+  // Una reserva o todo un pedido del carrito (varias "reserva" en el formulario).
+  const ids = d
+    .getAll("reserva")
+    .map((v) => Number(v))
+    .filter((n) => Number.isInteger(n) && n > 0)
+    .slice(0, 30);
+  for (const reserva of ids) {
+    const { error } = await supabase.rpc("cancelar_reserva", { p_reserva: reserva });
+    if (!error) after(() => avisarReserva(reserva, "cancelada"));
+  }
   redirect("/reservas"); // sin "?nueva=1", para que no quede el cartel de "¡Listo, reservaste!"
 }
 
