@@ -17,13 +17,14 @@
 }
 
 html {
+  background: var(--color-marino);
   /* Que el celular no agrande las letras por su cuenta al girar o acercar. */
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
 }
 
 body {
-  background: var(--color-crema);
+  background: var(--color-marino);
   color: var(--color-marino);
   /* Nada se sale de costado: sin scroll horizontal ni palabras cortadas. */
   overflow-x: clip;

@@ -88,8 +88,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             </Suspense>
           </div>
         </header>
-        <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 lg:px-6">{children}</main>
-        <footer className="mt-6 bg-marino text-white">
+        {/* El fondo crema va acá y no en el body: el body es azul para que el iPhone pinte
+            de azul la franja de la hora, arriba, en vez de un degradado gris borroso. */}
+        <div className="flex-1 bg-crema pb-6">
+          <main className="mx-auto w-full max-w-7xl px-4 py-6 lg:px-6">{children}</main>
+        </div>
+        <footer className="bg-marino text-white">
           <div className="mx-auto grid max-w-7xl gap-6 px-4 py-8 text-sm sm:grid-cols-3 lg:px-6">
             <div>
               <Link href="/" className="flex items-center gap-2">
