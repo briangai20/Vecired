@@ -16,6 +16,16 @@
   --font-sans: var(--font-geist-sans);
 }
 
+/* Alto del encabezado fijo antes de que se mida (ver components/alto-encabezado.tsx). */
+:root {
+  --alto-encabezado: calc(125px + env(safe-area-inset-top));
+}
+@media (width >= 64rem) {
+  :root {
+    --alto-encabezado: calc(69px + env(safe-area-inset-top));
+  }
+}
+
 html {
   background: var(--color-marino);
   /* Que el celular no agrande las letras por su cuenta al girar o acercar. */

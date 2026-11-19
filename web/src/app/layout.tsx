@@ -12,6 +12,7 @@ import { PantallaInicio } from "@/components/pantalla-inicio";
 import { UbicacionAlAbrir } from "@/components/ubicacion-al-abrir";
 import { DESCRIPCION_SITIO, SITIO } from "@/lib/sitio";
 import { CUIT, MAIL_CONTACTO, TITULAR } from "@/lib/legal";
+import { AltoEncabezado } from "@/components/alto-encabezado";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -56,7 +57,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <Suspense fallback={null}>
           <UbicacionAlAbrir />
         </Suspense>
-        <header className="sticky top-0 z-40 border-b border-white/10 bg-marino pt-[env(safe-area-inset-top)] shadow-lg shadow-black/30">
+        {/* Fijo (no "sticky"): así Safari del iPhone lo toma como barra de arriba y pinta
+            la zona de la hora de azul liso, sin difuminar el logo. */}
+        <header id="encabezado" className="fixed inset-x-0 top-0 z-40 border-b border-white/10 bg-marino pt-[env(safe-area-inset-top)] shadow-lg shadow-black/30">
           <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-3 lg:gap-5 lg:px-6">
             <Link href="/" className="mr-auto flex min-w-0 items-center gap-2.5 sm:gap-3 lg:mr-0 lg:shrink-0">
               <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl border border-white/30">
@@ -88,6 +91,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             </Suspense>
           </div>
         </header>
+        {/* Lugar que ocupa el encabezado fijo, para que no tape el contenido. */}
+        <div aria-hidden className="h-(--alto-encabezado) shrink-0" />
+        <AltoEncabezado />
         {/* El fondo crema va acá y no en el body: el body es azul para que el iPhone pinte
             de azul la franja de la hora, arriba, en vez de un degradado gris borroso. */}
         <div className="flex-1 bg-crema pb-6">
