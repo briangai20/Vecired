@@ -89,11 +89,33 @@ function leerElegido(sp: SP) {
   return Number.isInteger(n) && n > 0 ? n : undefined;
 }
 
+// "Comercios" de la barra de abajo (?ver=comercios, sin búsqueda): solo los
+// comercios cercanos, sin la bienvenida, las ofertas ni las vidrieras.
+const soloComercios = (sp: SP) => texto(sp, "ver") === "comercios" && !texto(sp, "q").trim();
+
+// Muestra su contenido salvo en la vista de solo comercios.
+async function FueraDeComercios({ searchParams, children }: { searchParams: Params; children: React.ReactNode }) {
+  return soloComercios(await searchParams) ? null : children;
+}
+
+async function TituloComercios({ searchParams }: { searchParams: Params }) {
+  if (!soloComercios(await searchParams)) return null;
+  return (
+    <div className="px-1">
+      <h1 className="text-2xl font-bold">🏪 Comercios cerca tuyo</h1>
+      <p className="text-sm text-marino/80">Elegí la zona y el radio, y tocá un comercio para ver su catálogo.</p>
+    </div>
+  );
+}
+
 export default function Inicio({ searchParams }: PageProps<"/">) {
   return (
     <div className="space-y-6">
       <Suspense fallback={null}>
-        <Portada searchParams={searchParams} />
+        <FueraDeComercios searchParams={searchParams}>
+          <Portada searchParams={searchParams} />
+        </FueraDeComercios>
+        <TituloComercios searchParams={searchParams} />
       </Suspense>
       {/* Enseguida de la bienvenida, la búsqueda y el mapa; las vidrieras de productos van al final. */}
       <div id="resultados" className="grid scroll-mt-32 gap-6 lg:grid-cols-[320px_1fr]">
@@ -109,10 +131,14 @@ export default function Inicio({ searchParams }: PageProps<"/">) {
         </section>
       </div>
       <Suspense fallback={null}>
-        <VistosRecientes />
+        <FueraDeComercios searchParams={searchParams}>
+          <VistosRecientes />
+        </FueraDeComercios>
       </Suspense>
       <Suspense fallback={<FilasCargando />}>
-        <FilasDeProductos searchParams={searchParams} />
+        <FueraDeComercios searchParams={searchParams}>
+          <FilasDeProductos searchParams={searchParams} />
+        </FueraDeComercios>
       </Suspense>
     </div>
   );

@@ -47,7 +47,10 @@ export function BarraInferior({ children }: { children: ReactNode }) {
     return () => document.removeEventListener("pointerdown", fuera);
   }, [mas]);
 
-  const actual = (href: string) => (href === "/" ? ruta === "/" && !mas : ruta.startsWith(href) && !mas) || undefined;
+  // "Comercios" es la portada con ?ver=comercios: Inicio no se pinta ahí.
+  const enComercios = ruta === "/" && params.get("ver") === "comercios";
+  const actual = (href: string) =>
+    (href === "/comercios" ? enComercios && !mas : href === "/" ? ruta === "/" && !enComercios && !mas : ruta.startsWith(href) && !mas) || undefined;
 
   return (
     <div ref={caja} className="lg:hidden">
@@ -68,7 +71,7 @@ export function BarraInferior({ children }: { children: ReactNode }) {
           <Icono d={ICONOS.inicio} />
           Inicio
         </Link>
-        <Link href="/#resultados" className={item}>
+        <Link href="/?ver=comercios" aria-current={actual("/comercios") && "page"} className={item}>
           <Icono d={ICONOS.comercios} />
           Comercios
         </Link>
