@@ -186,19 +186,19 @@ async function Comercio({ params, searchParams }: Pick<Props, "params" | "search
 function TarjetaProducto({ p, ahora }: { p: Tabla<"productos">; ahora: Date }) {
   const d = disponibilidad(p, ahora);
   return (
-    <Link href={`/producto/${p.id}`} className="group block overflow-hidden rounded-2xl border border-white/20 transition hover:-translate-y-0.5 hover:border-white/60">
-      <div className="relative aspect-[4/3] overflow-hidden bg-marino-claro">
-        <FotoProducto url={p.foto_url} nombre={p.nombre} sizes="(min-width: 1280px) 33vw, (min-width: 640px) 50vw, 100vw" />
-        <span className="absolute top-3 left-3">
+    <Link href={`/producto/${p.id}`} className="group flex h-full min-w-0 flex-col overflow-hidden rounded-2xl border border-white/20 transition hover:-translate-y-0.5 hover:border-white/60">
+      <div className="relative aspect-square overflow-hidden bg-marino-claro sm:aspect-[4/3]">
+        <FotoProducto url={p.foto_url} nombre={p.nombre} sizes="(min-width: 1280px) 33vw, 50vw" />
+        <span className="absolute top-2 left-2 sm:top-3 sm:left-3">
           <Stock d={d} />
         </span>
       </div>
-      <div className="p-4">
+      <div className="flex flex-1 flex-col p-3 sm:p-4">
         {p.marca ? <p className="text-[11px] tracking-wider text-white/70 uppercase">{p.marca}</p> : null}
-        <h3 className="leading-snug font-semibold">{p.nombre}</h3>
-        <p className="mt-1 line-clamp-2 min-h-10 text-xs text-white/75">{p.descripcion}</p>
-        <p className="mt-3 text-xl font-black">{plata(p.precio)}</p>
-        <span className="boton mt-4 block w-full rounded-xl px-4 py-2.5 text-center text-sm font-semibold">
+        <h3 className="line-clamp-2 text-sm leading-snug font-semibold sm:text-base">{p.nombre}</h3>
+        <p className="mt-1 line-clamp-2 hidden min-h-10 text-xs text-white/75 sm:block">{p.descripcion}</p>
+        <p className="mt-auto pt-2 text-lg font-black sm:pt-3 sm:text-xl">{plata(p.precio)}</p>
+        <span className="boton mt-3 block w-full rounded-xl px-2 py-2 text-center text-xs font-semibold sm:mt-4 sm:px-4 sm:py-2.5 sm:text-sm">
           {d.sePuede ? "Ver y reservar" : d.texto}
         </span>
       </div>
@@ -213,21 +213,21 @@ function TarjetaGrupo({ lista }: { lista: Tabla<"productos">[] }) {
   const marcas = [...new Set(lista.map((p) => p.marca).filter(Boolean))];
   const conFoto = lista.find((p) => p.foto_url) ?? primero;
   return (
-    <Link href={`/producto/${primero.id}`} className="group block overflow-hidden rounded-2xl border border-white/20 transition hover:-translate-y-0.5 hover:border-white/60">
-      <div className="relative aspect-[4/3] overflow-hidden bg-marino-claro">
-        <FotoProducto url={conFoto.foto_url} nombre={primero.grupo ?? primero.nombre} sizes="(min-width: 1280px) 33vw, (min-width: 640px) 50vw, 100vw" />
-        <span className="absolute top-3 left-3 rounded-full border border-white bg-marino px-2.5 py-0.5 text-[11px] font-semibold">
+    <Link href={`/producto/${primero.id}`} className="group flex h-full min-w-0 flex-col overflow-hidden rounded-2xl border border-white/20 transition hover:-translate-y-0.5 hover:border-white/60">
+      <div className="relative aspect-square overflow-hidden bg-marino-claro sm:aspect-[4/3]">
+        <FotoProducto url={conFoto.foto_url} nombre={primero.grupo ?? primero.nombre} sizes="(min-width: 1280px) 33vw, 50vw" />
+        <span className="absolute top-2 left-2 rounded-full border border-white bg-marino px-2.5 py-0.5 text-[11px] font-semibold sm:top-3 sm:left-3">
           {lista.length} variantes
         </span>
       </div>
-      <div className="p-4">
-        <h3 className="leading-snug font-semibold">{primero.grupo}</h3>
-        <p className="mt-1 line-clamp-2 min-h-10 text-xs text-white/75">{marcas.length ? marcas.join(" · ") : "Varias opciones"}</p>
-        <p className="mt-3 text-xl font-black">
-          {desde != null ? <span className="mr-1 text-xs font-normal text-white/80">Desde</span> : null}
+      <div className="flex flex-1 flex-col p-3 sm:p-4">
+        <h3 className="line-clamp-2 text-sm leading-snug font-semibold sm:text-base">{primero.grupo}</h3>
+        <p className="mt-1 line-clamp-2 hidden min-h-10 text-xs text-white/75 sm:block">{marcas.length ? marcas.join(" · ") : "Varias opciones"}</p>
+        <p className="mt-auto pt-2 text-lg font-black sm:pt-3 sm:text-xl">
+          {desde != null ? <span className="block text-xs font-normal text-white/80 sm:mr-1 sm:inline">Desde</span> : null}
           {plata(desde)}
         </p>
-        <span className="boton mt-4 block w-full rounded-xl px-4 py-2.5 text-center text-sm font-semibold">Elegir variante</span>
+        <span className="boton mt-3 block w-full rounded-xl px-2 py-2 text-center text-xs font-semibold sm:mt-4 sm:px-4 sm:py-2.5 sm:text-sm">Elegir variante</span>
       </div>
     </Link>
   );

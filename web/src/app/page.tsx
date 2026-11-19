@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { ComoLlegar } from "@/components/como-llegar";
 import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { Filtros, type ValoresFiltro } from "@/components/filtros";
 import { Abierto, Estrellas } from "@/components/insignias";
@@ -12,6 +11,7 @@ import { MapaComercios } from "@/components/mapa-comercios";
 import { abiertoAhora, disponibilidad, fechaAR, horario, km, nota, promedio, viaje } from "@/lib/formato";
 import { iconoRubro, nombreRubro, sinAcentos } from "@/lib/rubros";
 import { supabasePublico } from "@/lib/supabase/publico";
+import type { Tabla } from "@/lib/supabase/tipos";
 import { CENTROS, RADIO_INICIAL, ZONA_INICIAL } from "@/lib/zonas";
 import { VistosRecientes } from "@/components/vistos-recientes";
 import { Carrusel } from "@/components/carrusel";
@@ -19,6 +19,7 @@ import { ComercioAlInstante } from "@/components/comercio-al-instante";
 import { CarruselOfertas } from "@/components/carrusel-ofertas";
 import { TarjetaOferta } from "@/components/tarjeta-oferta";
 import { ofertasVigentes, preciosDeOferta } from "@/lib/ofertas";
+import { coincideAprox, coincideExacto, corregir, palabrasBuscadas, palabrasDe, parecido, vocabulario } from "@/lib/busqueda";
 import { COOKIE_UBICACION, leerUbicacion, type Ubicacion } from "@/lib/ubicacion";
 
 type Params = PageProps<"/">["searchParams"];
@@ -327,51 +328,95 @@ async function Resultados({ searchParams }: { searchParams: Params }) {
   const centro = f.lat != null && f.lng != null ? { lat: f.lat, lng: f.lng } : CENTROS[f.zona];
   const db = supabasePublico();
 
-  const { data: comercios, error } = await db.rpc("comercios_cercanos", {
-    p_lat: centro.lat,
-    p_lng: centro.lng,
-    p_radio_km: f.radio,
-    p_busqueda: f.q || undefined,
-  });
-
-  if (error) {
+  const cercanos = (busqueda?: string) =>
+    db.rpc("comercios_cercanos", { p_lat: centro.lat, p_lng: centro.lng, p_radio_km: f.radio, p_busqueda: busqueda || undefined });
+  const res = await cercanos(f.q);
+  if (res.error) {
     return <Vacio>No pudimos cargar los resultados. Probá de nuevo en un rato.</Vacio>;
   }
+  let comercios = res.data ?? [];
+  const buscadas = palabrasBuscadas(f.q);
 
-  const ids = (comercios ?? []).map((c) => c.id);
-  const [{ data: resenas }, { data: horarios }, { data: productosTodos }] = ids.length
+  // Nada tal cual (un error de tipeo, "martiyo", o palabras en otro orden,
+  // "alimento perro"): se busca lo parecido entre todos los productos cerca.
+  // Si tampoco hay nada parecido, se ofrecen otros productos para seguir mirando.
+  let productosTodos: Tabla<"productos">[] | null = null;
+  let aproximado = false;
+  let corregida: string | null = null;
+  let otros: { p: Tabla<"productos">; c: (typeof comercios)[number] }[] = [];
+  if (f.q && !comercios.length && buscadas.length) {
+    const cerca = (await cercanos()).data ?? [];
+    const { data: deCerca } = cerca.length
+      ? await db.from("productos").select("*").in("comercio_id", cerca.map((c) => c.id)).eq("activo", true).limit(2000)
+      : { data: [] };
+    const conPalabras = (deCerca ?? []).map((p) => ({ p, palabras: palabrasDe(textoProducto(p)) }));
+    const conProducto = new Set(conPalabras.filter((x) => coincideAprox(x.palabras, buscadas)).map((x) => x.p.comercio_id));
+    const parecidos = cerca.filter((c) => conProducto.has(c.id) || coincideAprox(palabrasDe(`${c.nombre} ${c.rubro}`), buscadas));
+    if (parecidos.length) {
+      aproximado = true;
+      comercios = parecidos;
+      const deEstos = new Set(parecidos.map((c) => c.id));
+      productosTodos = (deCerca ?? []).filter((p) => deEstos.has(p.comercio_id));
+      corregida = corregir(
+        f.q,
+        vocabulario([...(deCerca ?? []).map((p) => `${p.nombre} ${p.marca ?? ""} ${p.grupo ?? ""}`), ...cerca.map((c) => `${c.nombre} ${c.rubro}`)]),
+      );
+    } else {
+      // Primero lo que más se parece; entre iguales, los comercios se van
+      // intercalando (uno de cada uno) para que no salga todo del mismo local.
+      const deId = new Map(cerca.map((c) => [c.id, c]));
+      const turno = new Map<number, number>();
+      otros = conPalabras
+        .map((x) => ({ p: x.p, c: deId.get(x.p.comercio_id)!, s: parecido(x.palabras, buscadas) }))
+        .sort((x, y) => y.s - x.s || Number(!!y.p.foto_url) - Number(!!x.p.foto_url) || x.c.distancia_km - y.c.distancia_km)
+        .map((x) => {
+          const n = turno.get(x.c.id) ?? 0;
+          turno.set(x.c.id, n + 1);
+          return { ...x, n };
+        })
+        .sort((x, y) => y.s - x.s || x.n - y.n || x.c.distancia_km - y.c.distancia_km)
+        .slice(0, 12);
+    }
+  }
+
+  const ids = comercios.map((c) => c.id);
+  const idsDatos = [...new Set([...ids, ...otros.map((x) => x.c.id)])];
+  const [{ data: resenas }, { data: horarios }, { data: traidos }] = idsDatos.length
     ? await Promise.all([
-        db.from("resenas").select("comercio_id, estrellas").in("comercio_id", ids),
-        db.from("horarios").select("*").in("comercio_id", ids),
-        f.q ? db.from("productos").select("*").in("comercio_id", ids).eq("activo", true).limit(1000) : Promise.resolve({ data: [] }),
+        db.from("resenas").select("comercio_id, estrellas").in("comercio_id", idsDatos),
+        db.from("horarios").select("*").in("comercio_id", idsDatos),
+        f.q && ids.length && !productosTodos ? db.from("productos").select("*").in("comercio_id", ids).eq("activo", true).limit(1000) : Promise.resolve({ data: [] }),
       ])
     : [{ data: [] }, { data: [] }, { data: [] }];
+  const todosLosProductos = productosTodos ?? traidos ?? [];
   const ahora = new Date();
   // Qué comercios están cerrados hoy por feriado o cierre puntual.
   const cerradosHoy = new Set(
     (
-      await Promise.all(ids.map((id) => db.rpc("dias_cerrados", { p_comercio: id, p_desde: fechaAR(ahora), p_hasta: fechaAR(ahora) })))
-    ).flatMap((r, i) => (r.data?.length ? [ids[i]] : [])),
+      await Promise.all(idsDatos.map((id) => db.rpc("dias_cerrados", { p_comercio: id, p_desde: fechaAR(ahora), p_hasta: fechaAR(ahora) })))
+    ).flatMap((r, i) => (r.data?.length ? [idsDatos[i]] : [])),
   );
   const franjasDe = (id: number) => (horarios ?? []).filter((h) => h.comercio_id === id);
-  const abierto = new Map(ids.map((id) => [id, abiertoAhora(franjasDe(id), ahora, cerradosHoy.has(id) ? [fechaAR(ahora)] : [])]));
+  const abierto = new Map(idsDatos.map((id) => [id, abiertoAhora(franjasDe(id), ahora, cerradosHoy.has(id) ? [fechaAR(ahora)] : [])]));
   const valoracion = new Map(ids.map((id) => [id, promedio((resenas ?? []).filter((r) => r.comercio_id === id).map((r) => r.estrellas))]));
 
   // Comercios: abiertos ahora si se pidió, y en el orden elegido.
-  let lista = (comercios ?? []).filter((c) => !a.soloAbiertos || abierto.get(c.id));
+  let lista = comercios.filter((c) => !a.soloAbiertos || abierto.get(c.id));
   if (a.orden === "valorados") lista = [...lista].sort((x, y) => (valoracion.get(y.id) ?? 0) - (valoracion.get(x.id) ?? 0));
   const comercioDe = new Map(lista.map((c) => [c.id, c]));
 
   // Productos: coinciden con lo buscado (o son de un comercio que coincide por nombre o rubro).
-  const buscado = sinAcentos(f.q);
+  // Cada palabra buscada tiene que estar en el producto ("collar rojo" encuentra
+  // "Collar de cuero rojo"); en la búsqueda aproximada, alcanza con que se parezca.
+  const coincide = (t: string) => (aproximado ? coincideAprox(palabrasDe(t), buscadas) : coincideExacto(t, buscadas));
   // Primero los que tienen la palabra en el propio producto; después el resto
   // del catálogo de un comercio que coincide por nombre o rubro.
-  let productos = (productosTodos ?? [])
+  let productos = todosLosProductos
     .filter((p) => comercioDe.has(p.comercio_id))
     .map((p) => {
       const c = comercioDe.get(p.comercio_id)!;
-      const directo = sinAcentos([p.nombre, p.marca, p.medida, p.material, p.descripcion, p.grupo, p.codigo].filter(Boolean).join(" ")).includes(buscado);
-      return { p, c, d: disponibilidad(p, ahora), directo, sirve: directo || sinAcentos(`${c.nombre} ${c.rubro}`).includes(buscado) };
+      const directo = coincide(textoProducto(p));
+      return { p, c, d: disponibilidad(p, ahora), directo, sirve: directo || coincide(`${c.nombre} ${c.rubro}`) };
     })
     .filter((x) => x.sirve && (!a.conStock || x.d.sePuede));
   // Opciones de Marca, Medida y Material: las que aparecen en estos resultados.
@@ -395,15 +440,7 @@ async function Resultados({ searchParams }: { searchParams: Params }) {
         : x.c.distancia_km - y.c.distancia_km),
   );
 
-  // Nada con lo que escribió: si parece un error de tipeo ("cillar"), se
-  // busca lo corregido ("collar") y se le avisa arriba.
-  const buscaste = texto(sp, "buscaste").slice(0, 80);
-  if (f.q && !productos.length && !lista.length && !buscaste) {
-    const { data: corregida } = await db.rpc("corregir_busqueda", { p_texto: f.q });
-    if (corregida && corregida !== sinAcentos(f.q)) redirect(con(sp, { q: corregida, buscaste: f.q }));
-  }
-
-  const ofertaDe = await preciosDeOferta(db, productos.map((x) => x.p.id));
+  const ofertaDe = await preciosDeOferta(db, [...productos, ...otros].map((x) => x.p.id));
   const elegido = lista.find((c) => c.id === leerElegido(sp));
   const conBusqueda = Boolean(f.q);
   const verProductos = conBusqueda && !a.verComercios;
@@ -420,9 +457,20 @@ async function Resultados({ searchParams }: { searchParams: Params }) {
             <h1 className="text-lg font-semibold break-words">
               Resultados para “{f.q}” <span className="font-normal text-white/75">a menos de {f.radio} km</span>
             </h1>
-            {buscaste ? (
+            {aproximado ? (
               <p className="mt-1 text-sm text-white/80">
-                No encontramos “{buscaste}”: te mostramos resultados de <b className="text-naranja-vivo">“{f.q}”</b>.
+                No encontramos “{f.q}” tal cual:{" "}
+                {corregida ? (
+                  <>
+                    te mostramos resultados de{" "}
+                    <Link href={con(sp, { q: corregida, comercio: null })} className="font-bold text-naranja-vivo underline">
+                      “{corregida}”
+                    </Link>
+                    .
+                  </>
+                ) : (
+                  "te mostramos lo más parecido."
+                )}
               </p>
             ) : null}
             <div className="mt-3 flex gap-2" role="tablist" aria-label="Qué ver">
@@ -473,17 +521,46 @@ async function Resultados({ searchParams }: { searchParams: Params }) {
 
       {verProductos ? (
         productos.length === 0 ? (
-          <Vacio>
-            No encontramos productos con “{f.q}” {a.soloAbiertos || a.conStock || Object.values(a.atributos).some(Boolean) ? "con esos filtros " : ""}a menos de {f.radio} km.
-            <br />
-            Probá con otra palabra, ampliá el radio o{" "}
-            <Link href={con(sp, { ver: "comercios" })} className="underline">
-              mirá los comercios
-            </Link>
-            .
-          </Vacio>
+          <>
+            <Vacio>
+              No encontramos productos con “{f.q}” {a.soloAbiertos || a.conStock || Object.values(a.atributos).some(Boolean) ? "con esos filtros " : ""}a menos de {f.radio} km.
+              <br />
+              {otros.length ? (
+                "Probá con otra palabra o ampliá el radio. Mientras, mirá otros productos que hay cerca tuyo."
+              ) : (
+                <>
+                  Probá con otra palabra, ampliá el radio o{" "}
+                  <Link href={con(sp, { ver: "comercios" })} className="underline">
+                    mirá los comercios
+                  </Link>
+                  .
+                </>
+              )}
+            </Vacio>
+            {otros.length ? (
+              <section aria-label="Otros productos cerca tuyo">
+                <h2 className="titulo-seccion mb-3 px-1 text-marino">🛍️ Otros productos cerca tuyo</h2>
+                <ListaConMas deA={12} deACelular={6} que="productos" className="grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-3 xl:grid-cols-4">
+                  {otros.map(({ p, c }) => (
+                    <TarjetaProducto
+                      key={p.id}
+                      id={p.id}
+                      nombre={p.nombre}
+                      precio={p.precio}
+                      foto={p.foto_url}
+                      d={disponibilidad(p, ahora)}
+                      comercio={c.nombre}
+                      distancia={c.distancia_km}
+                      abierto={abierto.get(c.id) ?? null}
+                      oferta={ofertaDe.get(p.id) ?? null}
+                    />
+                  ))}
+                </ListaConMas>
+              </section>
+            ) : null}
+          </>
         ) : (
-          <ListaConMas deA={12} deACelular={5} que="productos" className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
+          <ListaConMas deA={12} deACelular={6} que="productos" className="grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-3 xl:grid-cols-4">
             {productos.map(({ p, c, d }) => (
               <TarjetaProducto
                 key={p.id}
@@ -542,7 +619,7 @@ async function Resultados({ searchParams }: { searchParams: Params }) {
                   : `Todavía no hay comercios cargados dentro de ${f.radio} km. Estamos sumando locales de a uno.`}
             </Vacio>
           ) : (
-            <ListaConMas deA={9} que="comercios" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            <ListaConMas deA={9} deACelular={6} que="comercios" className="grid grid-cols-2 gap-2 sm:gap-3 xl:grid-cols-3">
               {lista.map(tarjeta)}
             </ListaConMas>
           )}
@@ -558,28 +635,32 @@ async function Resultados({ searchParams }: { searchParams: Params }) {
       <Link
         key={c.id}
         href={`/comercio/${c.id}`}
-        className="tarjeta block rounded-2xl p-4 transition hover:-translate-y-0.5 hover:border-white/60"
+        className="tarjeta block min-w-0 rounded-2xl p-3 transition hover:-translate-y-0.5 hover:border-white/60 sm:p-4"
       >
-        <div className="flex items-start gap-3">
-          <LogoComercio url={c.logo_url} nombre={c.nombre} />
-          <div className="min-w-0 flex-1">
-            <p className="leading-snug font-semibold break-words">{c.nombre}</p>
+        {/* En el celular van dos por fila: el nombre baja debajo del logo. */}
+        <div className="flex flex-wrap items-start gap-x-3 gap-y-2">
+          <LogoComercio url={c.logo_url} nombre={c.nombre} className="h-10 w-10 text-xs sm:h-12 sm:w-12 sm:text-sm" />
+          <div className="order-last min-w-0 basis-full sm:order-none sm:flex-1 sm:basis-0">
+            <p className="text-sm leading-snug font-semibold break-words sm:text-base">{c.nombre}</p>
             <p className="text-xs text-white/80">{c.rubro}</p>
           </div>
-          <Abierto abierto={abierto.get(c.id) ?? null} />
+          <span className="ml-auto sm:ml-0">
+            <Abierto abierto={abierto.get(c.id) ?? null} />
+          </span>
         </div>
-        <div className="mt-2 flex items-center gap-2 text-xs">
+        <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs">
           <Estrellas valor={prom} />
           <span className="text-white/80">{nota(prom) ?? "Nuevo"}</span>
         </div>
-        <div className="mt-3 flex flex-wrap justify-between gap-x-3 gap-y-1 text-xs text-white/80">
+        <div className="mt-2 flex flex-wrap justify-between gap-x-3 gap-y-0.5 text-xs text-white/80 sm:mt-3">
           <span className="font-semibold text-white">{km(c.distancia_km)}</span>
-          <span>
+          <span className="sm:hidden">🚶 {t.aPie} min</span>
+          <span className="hidden sm:inline">
             A pie {t.aPie} min · En auto {t.enAuto} min
           </span>
         </div>
-        <p className="mt-2 text-xs break-words text-white/70">{c.direccion}</p>
-        <p className="mt-1 text-xs text-white/70">Horario {horario(franjasDe(c.id))}</p>
+        <p className="mt-2 line-clamp-2 text-xs break-words text-white/70">{c.direccion}</p>
+        <p className="mt-1 hidden text-xs text-white/70 sm:block">Horario {horario(franjasDe(c.id))}</p>
       </Link>
     );
   }
@@ -686,4 +767,9 @@ function Cargando() {
 
 function Vacio({ children }: { children: React.ReactNode }) {
   return <div className="tarjeta rounded-3xl p-8 text-center text-sm">{children}</div>;
+}
+
+// Todo lo que se mira de un producto al buscar.
+function textoProducto(p: Tabla<"productos">) {
+  return [p.nombre, p.marca, p.medida, p.material, p.descripcion, p.grupo, p.codigo].filter(Boolean).join(" ");
 }

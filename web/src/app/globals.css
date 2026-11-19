@@ -227,3 +227,13 @@ a img {
   background: rgb(255 107 44 / 0.12);
   padding: 0.6rem 0.85rem;
 }
+
+/* En el celular, los campos de texto van a 16px: con letra más chica, el
+   iPhone agranda la pantalla al tocar el buscador y no la vuelve a su tamaño. */
+@media (width < 48rem) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}

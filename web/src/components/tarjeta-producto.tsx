@@ -42,15 +42,15 @@ export function TarjetaProducto({
         ) : null}
         {oferta != null ? <span className="absolute top-2 right-2 rounded-full bg-naranja px-2 py-0.5 text-[11px] font-black text-white shadow">Oferta</span> : null}
       </div>
-      <div className="flex flex-1 flex-col p-3 text-white">
+      <div className="flex flex-1 flex-col p-2.5 text-white sm:p-3">
         <p className="line-clamp-2 text-sm leading-snug font-medium">{nombre}</p>
         {oferta != null ? (
           <p className="mt-1 flex flex-wrap items-baseline gap-x-1.5">
-            <span className="text-lg font-black text-white">{plata(oferta)}</span>
+            <span className="text-base font-black text-white sm:text-lg">{plata(oferta)}</span>
             <span className="text-xs text-white/60 line-through">{plata(precio)}</span>
           </p>
         ) : (
-          <p className="mt-1 text-lg font-black text-white">{plata(precio)}</p>
+          <p className="mt-1 text-base font-black text-white sm:text-lg">{plata(precio)}</p>
         )}
         <p className="mt-auto pt-2 text-xs break-words text-white/80">
           {comercio}

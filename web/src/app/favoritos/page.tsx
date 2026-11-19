@@ -87,16 +87,16 @@ async function Lista() {
       {comercios.length ? (
         <section className="mt-8">
           <h2 className="titulo-seccion">🏪 Comercios ({comercios.length})</h2>
-          <ul className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          <ul className="mt-3 grid grid-cols-2 gap-2 sm:gap-3 xl:grid-cols-3">
             {comercios.map((c) => (
-              <li key={c.id} className="flex items-center gap-3 rounded-2xl border border-white/20 p-4">
-                <LogoComercio url={c.logo_url} nombre={c.nombre} />
+              <li key={c.id} className="relative flex min-w-0 flex-col gap-2 rounded-2xl border border-white/20 p-3 sm:flex-row sm:items-center sm:gap-3 sm:p-4">
+                <LogoComercio url={c.logo_url} nombre={c.nombre} className="h-10 w-10 text-xs sm:h-12 sm:w-12 sm:text-sm" />
                 <Link href={`/comercio/${c.id}`} className="min-w-0 flex-1">
-                  <span className="block font-semibold break-words hover:underline">{c.nombre}</span>
+                  <span className="block text-sm font-semibold break-words hover:underline sm:text-base">{c.nombre}</span>
                   <span className="block text-xs text-white/75">{c.rubro}</span>
                   <span className="block text-xs break-words text-white/60">{c.direccion}</span>
                 </Link>
-                <Corazon tipo="comercio" id={c.id} guardado conSesion />
+                <Corazon tipo="comercio" id={c.id} guardado conSesion className="absolute top-2 right-2 sm:static" />
               </li>
             ))}
           </ul>
