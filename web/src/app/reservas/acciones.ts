@@ -29,13 +29,15 @@ export async function reservar(_: EstadoReserva, d: FormData): Promise<EstadoRes
   const productoId = numero(d, "producto");
   const supabase = await conSesion(`/producto/${productoId}`);
   const cantidad = numero(d, "cantidad");
-  const retiro = texto(d, "retiro");
+  const ya = texto(d, "retiro_ya") === "1";
+  // Con "Retiro ya" el horario lo arma la base (desde ahora hasta 2 horas o el cierre).
+  const retiro = ya ? "Ya" : texto(d, "retiro");
   if (!productoId || !Number.isInteger(cantidad) || cantidad < 1 || cantidad > 20) return { error: "Elegí una cantidad entre 1 y 20." };
   if (!retiro) return { error: "Elegí un horario de retiro." };
 
   // Precio, comercio y estado los completa la base (trigger preparar_reserva).
-  // El comprador solo tiene permiso para mandar estas cuatro columnas.
-  const fila = { producto_id: productoId, cantidad, retiro, medio_pago: "local" } as TablesInsert<"reservas">;
+  // El comprador solo tiene permiso para mandar estas columnas.
+  const fila = { producto_id: productoId, cantidad, retiro, medio_pago: "local", ...(ya ? { retiro_ya: true } : {}) } as TablesInsert<"reservas">;
   const { data, error } = await supabase.from("reservas").insert(fila).select("id").single();
   if (error) return { error: mensaje(error) };
   after(() => avisarReserva(data.id, "nueva"));
@@ -80,12 +82,18 @@ export async function elegirAlternativa(d: FormData) {
   redirect("/reservas");
 }
 
-export async function dejarResena(d: FormData) {
+export type EstadoResena = { error?: string };
+
+// Si el texto tiene datos que no se pueden publicar, la base lo rechaza con el
+// motivo en castellano y el formulario lo muestra en un cartel.
+export async function dejarResena(_: EstadoResena, d: FormData): Promise<EstadoResena> {
   const supabase = await conSesion("/reservas");
   const estrellas = numero(d, "estrellas");
-  if (!(estrellas >= 1 && estrellas <= 5)) return;
+  if (!(estrellas >= 1 && estrellas <= 5)) return { error: "Elegí de 1 a 5 estrellas." };
   // Comercio, autor y fecha los completa la base (trigger preparar_resena).
   const fila = { reserva_id: numero(d, "reserva"), estrellas, texto: texto(d, "texto").slice(0, 1000) || null } as TablesInsert<"resenas">;
-  await supabase.from("resenas").insert(fila);
+  const { error } = await supabase.from("resenas").insert(fila);
+  if (error) return { error: error.code === "P0001" ? error.message : "No pudimos publicar la reseña. Probá de nuevo en un rato." };
   refresh();
+  return {};
 }

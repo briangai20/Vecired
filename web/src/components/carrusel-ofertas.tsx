@@ -3,9 +3,9 @@
 import Link from "next/link";
 import { Children, useEffect, useRef, useState, type ReactNode } from "react";
 
-const CADA = 6000; // milisegundos entre una oferta y la siguiente
+const CADA = 4000; // milisegundos entre una oferta y la siguiente
 
-// Ofertas que van pasando solas cada 6 segundos. Se frena mientras el mouse
+// Ofertas que van pasando solas cada 4 segundos. Se frena mientras el mouse
 // está encima o la persona la está deslizando con el dedo, y tiene puntitos
 // para ir a una en particular.
 export function CarruselOfertas({ children }: { children: ReactNode }) {

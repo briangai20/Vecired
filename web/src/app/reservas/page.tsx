@@ -3,13 +3,14 @@ import { Conversacion } from "@/components/conversacion";
 import Link from "next/link";
 import { ComoLlegar } from "@/components/como-llegar";
 import { redirect } from "next/navigation";
-import { Fragment, Suspense } from "react";
+import { Suspense } from "react";
 import { Estrellas } from "@/components/insignias";
 import { fechaAR, franjasRetiro, plata, totalReserva } from "@/lib/formato";
 import { usuarioActual } from "@/lib/sesion";
 import { supabaseServidor } from "@/lib/supabase/servidor";
 import type { Enum } from "@/lib/supabase/tipos";
-import { cancelar, dejarResena, elegirAlternativa, reclamarRetiro, reprogramarRetiro } from "./acciones";
+import { cancelar, elegirAlternativa, reclamarRetiro, reprogramarRetiro } from "./acciones";
+import { FormResena } from "./form-resena";
 import { BotonEnviar } from "@/components/boton-enviar";
 
 export const metadata: Metadata = { title: "Mis reservas" };
@@ -49,13 +50,22 @@ async function Reservas({ searchParams }: Pick<PageProps<"/reservas">, "searchPa
   const nueva = typeof nuevaParam === "string" ? nuevaParam : undefined;
 
   const supabase = await supabaseServidor();
-  const { data: reservas } = await supabase
-    .from("reservas")
-    .select(
-      "*, codigo:reserva_codigos(codigo), comercio:comercios(id, nombre, direccion, lat, lng), alternativas:reserva_alternativas(producto:productos(id, nombre, precio)), resena:resenas(estrellas, texto, respuesta), mensajes(id, autor_id, texto, creado_en)",
-    )
-    .eq("comprador_id", usuario.id)
-    .order("creada_en", { ascending: false });
+  const [{ data: reservas }, { data: avisosMensajes }] = await Promise.all([
+    supabase
+      .from("reservas")
+      .select(
+        "*, codigo:reserva_codigos(codigo), comercio:comercios(id, nombre, direccion, lat, lng), alternativas:reserva_alternativas(producto:productos(id, nombre, precio)), resena:resenas(estrellas, texto, respuesta), mensajes(id, autor_id, texto, creado_en)",
+      )
+      .eq("comprador_id", usuario.id)
+      .order("creada_en", { ascending: false }),
+    // Mensajes del comercio sin leer (un aviso "Mensaje de…" por mensaje).
+    supabase.from("notificaciones").select("enlace").eq("usuario_id", usuario.id).is("leida_en", null).like("titulo", "Mensaje de %").limit(200),
+  ]);
+  const mensajesSinLeer = new Map<number, number>();
+  for (const a of avisosMensajes ?? []) {
+    const id = Number(/#reserva-(d+)$/.exec(a.enlace ?? "")?.[1]);
+    if (id) mensajesSinLeer.set(id, (mensajesSinLeer.get(id) ?? 0) + 1);
+  }
 
   const ahora = new Date();
   // Reservas a las que se les pasó el horario: horarios de su comercio para elegir otro.
@@ -74,6 +84,8 @@ async function Reservas({ searchParams }: Pick<PageProps<"/reservas">, "searchPa
   const horaCorta = (f: string) =>
     new Intl.DateTimeFormat("es-AR", { timeZone: "America/Argentina/Buenos_Aires", hour: "2-digit", minute: "2-digit", day: "numeric", month: "numeric" }).format(new Date(f));
   const lista = reservas ?? [];
+  // Productos de cada pedido del carrito.
+  const delPedido = (pedido: number) => lista.filter((x) => x.pedido === pedido).length;
   const abiertas = lista.filter((r) => ["pendiente", "alternativa", "aceptada"].includes(r.estado));
   const total = abiertas.reduce((a, r) => a + (totalReserva(r) ?? 0), 0);
 
@@ -119,6 +131,14 @@ async function Reservas({ searchParams }: Pick<PageProps<"/reservas">, "searchPa
                     <h2 className="font-semibold">
                       {r.producto_nombre} × {r.cantidad}
                     </h2>
+                    {r.retiro_ya || (r.pedido && delPedido(r.pedido) > 1) ? (
+                      <p className="mt-1 flex flex-wrap gap-1.5">
+                        {r.retiro_ya ? <span className="rounded-full bg-naranja px-2 py-0.5 text-[11px] font-bold">⚡ Retiro ya</span> : null}
+                        {r.pedido && delPedido(r.pedido) > 1 ? (
+                          <span className="rounded-full border border-white/40 px-2 py-0.5 text-[11px] font-semibold">🛒 Pedido de {delPedido(r.pedido)} productos · mismo código</span>
+                        ) : null}
+                      </p>
+                    ) : null}
                   </div>
                   <span className="shrink-0 rounded-full border border-white/40 px-2.5 py-1 text-[11px] font-semibold">{e.texto}</span>
                 </div>
@@ -184,7 +204,11 @@ async function Reservas({ searchParams }: Pick<PageProps<"/reservas">, "searchPa
                   <div className="info mt-3 flex flex-wrap items-center justify-between gap-3">
                     <div>
                       <p className="text-sm font-semibold">Código de retiro</p>
-                      <p className="text-xs text-white/80">Mostráselo al comercio cuando vayas a retirar. No lo compartas con nadie más.</p>
+                      <p className="text-xs text-white/80">
+                        {r.pedido && delPedido(r.pedido) > 1
+                          ? "Es el mismo código para todo el pedido: con uno solo retirás todos los productos que aceptó el comercio. No lo compartas con nadie más."
+                          : "Mostráselo al comercio cuando vayas a retirar. No lo compartas con nadie más."}
+                      </p>
                     </div>
                     <p className="font-mono text-3xl font-black tracking-[0.3em] text-naranja-vivo">{r.codigo.codigo}</p>
                   </div>
@@ -231,6 +255,7 @@ async function Reservas({ searchParams }: Pick<PageProps<"/reservas">, "searchPa
                   otro="el comercio"
                   iniciales={r.mensajes}
                   abierta={["pendiente", "alternativa", "aceptada"].includes(r.estado)}
+                  sinLeer={mensajesSinLeer.get(r.id) ?? 0}
                 />
 
                 {["pendiente", "alternativa", "aceptada"].includes(r.estado) ? (
@@ -254,23 +279,7 @@ async function Reservas({ searchParams }: Pick<PageProps<"/reservas">, "searchPa
                       ) : null}
                     </div>
                   ) : (
-                    <form action={dejarResena} className="mt-4 space-y-2 rounded-xl border border-white/25 p-3">
-                      <input type="hidden" name="reserva" value={r.id} />
-                      <p className="text-sm font-semibold">¿Cómo te atendieron?</p>
-                      <fieldset className="calificar" aria-label="Calificación de 1 a 5 estrellas">
-                        {/* Van de 5 a 1: la hoja de estilos las da vuelta y pinta la elegida y las anteriores. */}
-                        {[5, 4, 3, 2, 1].map((n) => (
-                          <Fragment key={n}>
-                            <input type="radio" id={`e${r.id}-${n}`} name="estrellas" value={n} required />
-                            <label htmlFor={`e${r.id}-${n}`} title={`${n} ${n === 1 ? "estrella" : "estrellas"}`}>
-                              ★<span className="sr-only">{n} {n === 1 ? "estrella" : "estrellas"}</span>
-                            </label>
-                          </Fragment>
-                        ))}
-                      </fieldset>
-                      <textarea name="texto" rows={2} maxLength={1000} placeholder="Contá tu experiencia (opcional)" className="campo" />
-                      <button className="boton rounded-lg px-4 py-2 text-sm font-semibold">Publicar reseña</button>
-                    </form>
+                    <FormResena reserva={r.id} />
                   )
                 ) : null}
               </article>

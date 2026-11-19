@@ -8,15 +8,49 @@ import type { Tabla } from "@/lib/supabase/tipos";
 import { AvisosCelular } from "./avisos-celular";
 
 type Notificacion = Tabla<"notificaciones">;
+type Categoria = Notificacion["categoria"];
 
-// Color de cada aviso: naranja si hay que hacer algo (y los viejos, sin tono),
-// verde si salió bien (aceptada, publicado) y rojo si no (rechazada, vencida).
-const TONO = {
-  accion: { punto: "bg-naranja-vivo", borde: "border-l-naranja-vivo", icono: "🔔" },
-  bien: { punto: "bg-verde", borde: "border-l-verde", icono: "✅" },
-  mal: { punto: "bg-rojo", borde: "border-l-rojo", icono: "❌" },
-} as const;
-const tono = (n: Notificacion) => TONO[n.tono ?? "accion"];
+// Los avisos se borran solos a los 7 días (en la base); acá tampoco se
+// muestran los más viejos, por si todavía no pasó el borrado del día.
+const SIETE_DIAS = 7 * 24 * 60 * 60 * 1000;
+
+const ICONO: Record<Categoria, string> = {
+  reservas: "📦",
+  mensajes: "💬",
+  ofertas: "🏷️",
+  favoritos: "❤️",
+  resenas: "⭐",
+  cuenta: "🏪",
+};
+
+// Misma regla que la base (categoria_aviso), para los avisos que llegaron
+// antes de que existiera la categoría.
+function categoriaDe(n: Notificacion): Categoria {
+  if (n.categoria && n.categoria !== "cuenta") return n.categoria;
+  const t = n.titulo;
+  const e = n.enlace ?? "";
+  if (t.startsWith("Mensaje de ")) return "mensajes";
+  if (/^Nueva (pregunta|reseña)|respondió tu (pregunta|reseña)$|^¿Cómo te fue en /.test(t)) return "resenas";
+  if (e.includes("seccion=reservas") || e.startsWith("/reservas") || t.startsWith("Reclamo")) return "reservas";
+  return n.categoria ?? "cuenta";
+}
+
+// Destacadas: las que piden que hagas algo (una reserva nueva, un mensaje, se
+// pasa el horario...). No las de ofertas, favoritos ni las que salieron bien o mal.
+const destacada = (n: Notificacion) => (n.tono ?? "accion") === "accion" && ["reservas", "mensajes", "resenas"].includes(categoriaDe(n));
+
+type Filtro = "todas" | "destacadas" | Categoria;
+const FILTROS: [Filtro, string][] = [
+  ["todas", "Todas"],
+  ["destacadas", "Destacadas"],
+  ["reservas", "Reservas"],
+  ["mensajes", "Mensajes"],
+  ["ofertas", "Ofertas"],
+  ["favoritos", "Comercios favoritos"],
+  ["resenas", "Reseñas y preguntas"],
+  ["cuenta", "Mi cuenta"],
+];
+const pasa = (n: Notificacion, f: Filtro) => (f === "todas" ? true : f === "destacadas" ? destacada(n) : categoriaDe(n) === f);
 
 const SIN_SONIDO = "vecired-sin-sonido";
 
@@ -56,12 +90,13 @@ const hace = (iso: string) => {
   return new Date(iso).toLocaleDateString("es-AR", { day: "numeric", month: "numeric" });
 };
 
-// Campanita del encabezado: lista de avisos, contador de no leídos, sonido y
-// cartelito cuando llega uno nuevo con la página abierta.
+// Campanita del encabezado: lista de avisos por categoría, contador de no
+// leídos, sonido y cartelito cuando llega uno nuevo con la página abierta.
 export function Campanita({ yo }: { yo: string }) {
   const router = useRouter();
   const [lista, setLista] = useState<Notificacion[]>([]);
   const [abierta, setAbierta] = useState(false);
+  const [filtro, setFiltro] = useState<Filtro>("todas");
   const [cartel, setCartel] = useState<Notificacion | null>(null);
   // Solo se muestra dentro de la lista (cerrada al cargar), así que leerlo acá no desacomoda la página.
   const [silencio, setSilencio] = useState(() => {
@@ -73,14 +108,18 @@ export function Campanita({ yo }: { yo: string }) {
   });
   const caja = useRef<HTMLDivElement>(null);
   const noLeidas = lista.filter((n) => !n.leida_en).length;
+  const visibles = lista.filter((n) => pasa(n, filtro));
+  // Solo las pestañas que tienen algo (Todas siempre).
+  const filtros = FILTROS.filter(([f]) => f === "todas" || f === filtro || lista.some((n) => pasa(n, f)));
 
   const cargar = useCallback(async () => {
     const { data } = await supabaseNavegador()
       .from("notificaciones")
       .select("*")
       .eq("usuario_id", yo)
+      .gte("creada_en", new Date(Date.now() - SIETE_DIAS).toISOString())
       .order("creada_en", { ascending: false })
-      .limit(30);
+      .limit(100);
     if (data) setLista(data);
   }, [yo]);
 
@@ -105,9 +144,18 @@ export function Campanita({ yo }: { yo: string }) {
         // Que la pantalla muestre la reserva, el mensaje o el estado nuevo.
         router.refresh();
       })
+      // Leídos desde otro aparato con la misma cuenta.
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "notificaciones", filter: `usuario_id=eq.${yo}` }, (p) => {
+        const n = p.new as Notificacion;
+        setLista((l) => l.map((x) => (x.id === n.id ? { ...x, leida_en: n.leida_en } : x)));
+      })
       .subscribe();
     // Al volver a la pestaña, por si llegó algo mientras la conexión estaba dormida.
-    const alVolver = () => document.visibilityState === "visible" && void cargar();
+    const alVolver = () => {
+      if (document.visibilityState !== "visible") return;
+      void cargar();
+      router.refresh();
+    };
     document.addEventListener("visibilitychange", alVolver);
     return () => {
       clearTimeout(primera);
@@ -158,6 +206,8 @@ export function Campanita({ yo }: { yo: string }) {
     }
   }
 
+  const sinLeerDe = (f: Filtro) => lista.filter((n) => !n.leida_en && pasa(n, f)).length;
+
   return (
     <div ref={caja} className="sm:relative">
       <button
@@ -184,8 +234,8 @@ export function Campanita({ yo }: { yo: string }) {
       {abierta ? (
         // En el celular cuelga del encabezado, a lo ancho de la pantalla (pegado a
         // la campanita se salía por la izquierda); en la compu cuelga del botón.
-        <div className="absolute inset-x-4 top-full z-50 mt-2 overflow-hidden rounded-2xl border border-white/20 bg-marino text-white shadow-2xl shadow-black/50 sm:inset-x-auto sm:right-0 sm:w-[22rem]">
-          <div className="flex items-center justify-between gap-2 border-b border-white/15 px-4 py-3">
+        <div className="absolute inset-x-4 top-full z-50 mt-2 overflow-hidden rounded-2xl border border-marino/15 bg-white text-marino shadow-2xl shadow-black/40 sm:inset-x-auto sm:right-0 sm:w-[24rem]">
+          <div className="flex items-center justify-between gap-2 border-b border-marino/10 px-4 py-3">
             <p className="font-semibold">Avisos</p>
             <div className="flex items-center gap-3 text-xs">
               <button type="button" onClick={cambiarSonido} className="underline" aria-pressed={!silencio}>
@@ -198,39 +248,75 @@ export function Campanita({ yo }: { yo: string }) {
               ) : null}
             </div>
           </div>
-          <ul className="max-h-[60vh] overflow-y-auto">
-            {lista.length === 0 ? (
-              <li className="px-4 py-6 text-center text-sm text-white/70">Todavía no tenés avisos.</li>
+          {/* Pestañas por tipo de aviso; se desliza de costado si no entran. */}
+          <div role="tablist" aria-label="Tipo de aviso" className="sin-barra flex gap-1.5 overflow-x-auto border-b border-marino/10 px-3 py-2">
+            {filtros.map(([f, etiqueta]) => {
+              const n = sinLeerDe(f);
+              const activo = f === filtro;
+              return (
+                <button
+                  key={f}
+                  type="button"
+                  role="tab"
+                  aria-selected={activo}
+                  onClick={() => setFiltro(f)}
+                  className={`shrink-0 rounded-full border px-3 py-1 text-xs font-medium transition ${activo ? "border-marino bg-marino text-white" : "border-marino/20 text-marino hover:bg-marino/5"}`}
+                >
+                  {etiqueta}
+                  {n ? <span className="ml-1 font-bold">({n})</span> : null}
+                </button>
+              );
+            })}
+          </div>
+          <ul className="max-h-[55vh] overflow-y-auto">
+            {visibles.length === 0 ? (
+              <li className="px-4 py-6 text-center text-sm text-marino/60">
+                {lista.length === 0 ? "No tenés avisos de los últimos 7 días." : "No hay avisos de este tipo."}
+              </li>
             ) : (
-              lista.map((n) => (
-                <li key={n.id} className="border-b border-white/10 last:border-0">
+              visibles.map((n) => (
+                <li key={n.id} className="border-b border-marino/10 last:border-0">
                   <Link
                     href={n.enlace ?? "#"}
                     onClick={() => {
                       void marcar([n.id]);
                       setAbierta(false);
                     }}
-                    className={`flex gap-3 border-l-4 px-4 py-3 text-sm transition hover:bg-white/5 ${tono(n).borde} ${n.leida_en ? "text-white/70" : "bg-white/[0.04]"}`}
+                    className={`flex gap-3 px-4 py-3 text-sm transition hover:bg-marino/5 ${n.leida_en ? "text-marino/65" : "bg-marino/[0.04]"}`}
                   >
-                    <span aria-hidden className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${n.leida_en ? "bg-transparent" : tono(n).punto}`} />
+                    <span aria-hidden className="shrink-0 text-base leading-5">
+                      {ICONO[categoriaDe(n)]}
+                    </span>
                     <span className="min-w-0 flex-1">
-                      <span className={`block ${n.leida_en ? "" : "font-semibold"}`}>{n.titulo}</span>
-                      {n.cuerpo ? <span className="mt-0.5 block text-xs text-white/75">{n.cuerpo}</span> : null}
-                      <span className="mt-1 block text-[11px] text-white/55">{hace(n.creada_en)}</span>
+                      {/* Título a la izquierda y la fecha arriba a la derecha. */}
+                      <span className="flex items-start justify-between gap-2">
+                        <span className={`min-w-0 ${n.leida_en ? "" : "font-semibold"}`}>
+                          {n.leida_en ? null : <span aria-label="Sin leer" className="mr-1.5 inline-block h-2 w-2 rounded-full bg-marino align-middle" />}
+                          {n.titulo}
+                        </span>
+                        <span className="shrink-0 pt-0.5 text-[11px] whitespace-nowrap text-marino/55">{hace(n.creada_en)}</span>
+                      </span>
+                      {n.cuerpo ? <span className="mt-0.5 block text-xs text-marino/75">{n.cuerpo}</span> : null}
                     </span>
                   </Link>
                 </li>
               ))
             )}
           </ul>
+          <p className="border-t border-marino/10 px-4 py-2 text-[11px] text-marino/55">Los avisos se borran solos a los 7 días.</p>
           <AvisosCelular />
         </div>
       ) : null}
 
       {cartel ? (
-        <div role="status" className={`fixed right-4 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-50 lg:bottom-4 w-[min(22rem,calc(100vw-2rem))] rounded-2xl border border-l-8 border-white/30 ${tono(cartel).borde} bg-marino p-4 text-white shadow-2xl shadow-black/50`}>
+        <div
+          role="status"
+          className="fixed right-4 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-50 w-[min(22rem,calc(100vw-2rem))] rounded-2xl border border-marino/15 bg-white p-4 text-marino shadow-2xl shadow-black/40 lg:bottom-4"
+        >
           <div className="flex items-start gap-3">
-            <span aria-hidden className="text-xl">{tono(cartel).icono}</span>
+            <span aria-hidden className="text-xl">
+              {ICONO[categoriaDe(cartel)]}
+            </span>
             <Link
               href={cartel.enlace ?? "#"}
               onClick={() => {
@@ -240,9 +326,9 @@ export function Campanita({ yo }: { yo: string }) {
               className="min-w-0 flex-1"
             >
               <span className="block font-semibold">{cartel.titulo}</span>
-              {cartel.cuerpo ? <span className="mt-0.5 block text-sm text-white/80">{cartel.cuerpo}</span> : null}
+              {cartel.cuerpo ? <span className="mt-0.5 block text-sm text-marino/75">{cartel.cuerpo}</span> : null}
             </Link>
-            <button type="button" onClick={() => setCartel(null)} aria-label="Cerrar aviso" className="text-white/70 hover:text-white">
+            <button type="button" onClick={() => setCartel(null)} aria-label="Cerrar aviso" className="text-marino/60 hover:text-marino">
               ✕
             </button>
           </div>

@@ -97,6 +97,18 @@ export function abiertoAhora(franjas: Franja[], ahora: Date, cerrados: string[] 
   );
 }
 
+// "Retiro ya": si el local está abierto y le quedan al menos 15 minutos a la
+// franja de atención, hasta qué hora se puede retirar (2 horas o el cierre de
+// la franja, lo que pase primero). null si no se puede. Misma regla que la base
+// (preparar_retiro_ya); las franjas que cruzan la medianoche no cuentan.
+export function retiroYaHasta(franjas: Franja[], ahora: Date, cerrados: string[] = []) {
+  if (!franjas.length || cerrados.includes(fechaAR(ahora))) return null;
+  const { dia, minuto } = enArgentina(ahora);
+  const franja = delDia(franjas, dia).find(([a, b]) => b <= 1440 && minuto >= a && minuto < b);
+  if (!franja || franja[1] - minuto < 15) return null;
+  return deMinutos(Math.min(franja[1], minuto + 120));
+}
+
 // Franjas de retiro de 2 horas dentro del horario: las que quedan hoy (con al
 // menos una hora de margen) y las de los dos próximos días que abre, salteando
 // las fechas cerradas (feriados y cierres puntuales).

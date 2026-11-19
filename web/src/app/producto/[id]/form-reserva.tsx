@@ -14,12 +14,15 @@ type Props = {
   precio: number | null;
   /** Promos vigentes del producto (4x3, % en la 2da…), para mostrar el total. */
   promos?: PromoOferta[];
+  /** "Retiro ya": hasta qué hora se puede retirar si va ahora (null si no se puede). */
+  retiroYa?: string | null;
 };
 
-export function FormReserva({ productoId, maximo, franjas, textoBoton, precio, promos = [] }: Props) {
+export function FormReserva({ productoId, maximo, franjas, textoBoton, precio, promos = [], retiroYa = null }: Props) {
   const [estado, accion, enviando] = useActionState<EstadoReserva, FormData>(reservar, {});
   const listo = useListo();
   const [cantidad, setCantidad] = useState(1);
+  const [ya, setYa] = useState(false);
   // Mismo cálculo que hace la base al reservar.
   const promo = precio == null ? null : mejorPromo(promos, precio, cantidad);
   const total = precio == null ? null : precio * cantidad - (promo?.descuento ?? 0);
@@ -35,6 +38,29 @@ export function FormReserva({ productoId, maximo, franjas, textoBoton, precio, p
       className="mt-5"
     >
       <input type="hidden" name="producto" value={productoId} />
+      {ya ? <input type="hidden" name="retiro_ya" value="1" /> : null}
+      {retiroYa ? (
+        // Para el que está apurado: si hay stock confirmado y el local está
+        // abierto, queda aceptada al instante, sin esperar al comercio.
+        <div role="radiogroup" aria-label="Cuándo retirás" className="mb-3 grid grid-cols-2 gap-2">
+          {[
+            [true, "⚡ Retiro ya", `Voy ahora · hasta las ${retiroYa}`],
+            [false, "📅 Elegir horario", "Hoy o los próximos días"],
+          ].map(([valor, titulo, detalle]) => (
+            <button
+              key={String(valor)}
+              type="button"
+              role="radio"
+              aria-checked={ya === valor}
+              onClick={() => setYa(valor as boolean)}
+              className={`rounded-xl border px-3 py-2 text-left transition ${ya === valor ? "border-naranja-vivo bg-naranja/20" : "border-white/25 hover:bg-white/10"}`}
+            >
+              <span className="block text-sm font-semibold">{titulo}</span>
+              <span className="block text-[11px] text-white/80">{detalle}</span>
+            </button>
+          ))}
+        </div>
+      ) : null}
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="block text-xs">
           Cantidad
@@ -46,14 +72,20 @@ export function FormReserva({ productoId, maximo, franjas, textoBoton, precio, p
             ))}
           </select>
         </label>
-        <label className="block text-xs">
-          Horario de retiro
-          <select name="retiro" className="campo mt-1">
-            {franjas.map((f) => (
-              <option key={f}>{f}</option>
-            ))}
-          </select>
-        </label>
+        {ya ? (
+          <p className="self-end rounded-xl border border-white/25 px-3 py-2.5 text-xs">
+            Retirás <b>hoy hasta las {retiroYa}</b>. Queda confirmada al instante, sin esperar al comercio.
+          </p>
+        ) : (
+          <label className="block text-xs">
+            Horario de retiro
+            <select name="retiro" className="campo mt-1">
+              {franjas.map((f) => (
+                <option key={f}>{f}</option>
+              ))}
+            </select>
+          </label>
+        )}
       </div>
       {total != null ? (
         <div className="mt-3 flex flex-wrap items-baseline justify-between gap-2 rounded-xl border-l-4 border-naranja-vivo bg-naranja/15 px-3 py-2">
@@ -71,7 +103,7 @@ export function FormReserva({ productoId, maximo, franjas, textoBoton, precio, p
         Pagás en el local al retirar{precio == null ? " (el precio te lo confirma el comercio)" : ""}. El pago online con Mercado Pago llega pronto.
       </p>
       <button disabled={enviando || !listo} className="boton mt-4 w-full rounded-xl px-4 py-3 text-sm font-semibold">
-        {enviando ? "Reservando…" : textoBoton}
+        {enviando ? "Reservando…" : ya ? "⚡ Reservar y voy ahora" : textoBoton}
       </button>
       <p role="status" className="mt-2 min-h-5 text-sm text-[#ffb4a2]">
         {estado.error}

@@ -13,7 +13,7 @@ import { MotivoBaja } from "./motivo-baja";
 import { SelectorProductos } from "./selector-productos";
 import { CamposPromo } from "./campos-promo";
 import { descuento, hastaCorto } from "@/lib/ofertas";
-import { agregarCierre, borrarCierre, borrarOferta, productosDeOferta, borrarPreguntaComercio, darDeBajaComercio, cambiarReserva, ofrecerAlternativas, responderPregunta, responderResena } from "./acciones";
+import { agregarCierre, borrarCierre, borrarOferta, productosDeOferta, borrarPreguntaComercio, darDeBajaComercio, cambiarReserva, marcarNoVino, ofrecerAlternativas, responderPregunta, responderResena } from "./acciones";
 
 const fechaCorta = (f: string) => `${Number(f.slice(8))}/${Number(f.slice(5, 7))}`;
 
@@ -128,7 +128,7 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
   }
 
   const ahora = new Date();
-  const [{ data: productos }, { data: reservas }, { data: stats }, { data: franjas }, { data: cierres }, { data: feriados }, { data: verificacion }, { data: resenas }, { data: preguntas }, { data: misOfertas }] = await Promise.all([
+  const [{ data: productos }, { data: reservas }, { data: stats }, { data: franjas }, { data: cierres }, { data: feriados }, { data: verificacion }, { data: resenas }, { data: preguntas }, { data: misOfertas }, { data: avisosMensajes }] = await Promise.all([
     supabase.from("productos").select("*").eq("comercio_id", comercio.id).order("nombre"),
     supabase
       .from("reservas")
@@ -159,7 +159,20 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
       .eq("comercio_id", comercio.id)
       .order("hasta", { ascending: false })
       .limit(50),
+    // Mensajes de clientes sin leer: un aviso "Mensaje de…" por mensaje.
+    supabase
+      .from("notificaciones")
+      .select("enlace")
+      .eq("usuario_id", usuario.id)
+      .is("leida_en", null)
+      .like("titulo", "Mensaje de %")
+      .limit(200),
   ]);
+  const mensajesSinLeer = new Map<number, number>();
+  for (const a of avisosMensajes ?? []) {
+    const id = Number(/#reserva-(d+)$/.exec(a.enlace ?? "")?.[1]);
+    if (id) mensajesSinLeer.set(id, (mensajesSinLeer.get(id) ?? 0) + 1);
+  }
   const sinResponder = (resenas ?? []).filter((r) => !r.respuesta).length;
   // Primero las que esperan respuesta.
   const listaPreguntas = [...(preguntas ?? [])].sort((a, b) => Number(!!a.respuesta) - Number(!!b.respuesta));
@@ -168,6 +181,9 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
   const enCurso = (e: string) => e === "pendiente" || e === "alternativa" || e === "aceptada";
   const abiertas = (reservas ?? []).filter((r) => enCurso(r.estado));
   const cerradas = (reservas ?? []).filter((r) => !enCurso(r.estado));
+  // Productos de cada pedido del carrito (comparten el código de retiro).
+  const enPedido = (pedido: number) => abiertas.filter((x) => x.pedido === pedido).length;
+  const totalMensajesSinLeer = abiertas.reduce((n, r) => n + (mensajesSinLeer.get(r.id) ?? 0), 0);
 
   // Qué se le puede ofrecer en lugar de lo reservado: productos publicados,
   // con stock para esa cantidad, primero los del mismo grupo de variantes.
@@ -271,6 +287,15 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
                 ) : k === "productos" ? (
                   <span className="text-xs opacity-70">({productos?.length ?? 0})</span>
                 ) : null}
+                {k === "reservas" && totalMensajesSinLeer ? (
+                  <span
+                    className="grid h-5 min-w-5 place-items-center rounded-full bg-naranja px-1.5 text-[11px] font-bold text-white"
+                    aria-label={`${totalMensajesSinLeer} mensajes sin leer`}
+                    title={`${totalMensajesSinLeer} mensajes sin leer`}
+                  >
+                    💬 {totalMensajesSinLeer}
+                  </span>
+                ) : null}
               </Link>
             );
           })}
@@ -294,6 +319,16 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
                     <p className="font-semibold">
                       {r.producto_nombre} × {r.cantidad}
                     </p>
+                    {r.retiro_ya || (r.pedido && enPedido(r.pedido) > 1) ? (
+                      <p className="mt-1 flex flex-wrap gap-1.5">
+                        {r.retiro_ya ? <span className="rounded-full bg-naranja px-2 py-0.5 text-[11px] font-bold">⚡ Retiro ya · ya aceptada</span> : null}
+                        {r.pedido && enPedido(r.pedido) > 1 ? (
+                          <span className="rounded-full border border-white/40 px-2 py-0.5 text-[11px] font-semibold">
+                            🛒 Pedido #{r.pedido} · {enPedido(r.pedido)} productos, un solo código
+                          </span>
+                        ) : null}
+                      </p>
+                    ) : null}
                     <p className="text-xs text-white/75">
                       Retira: {r.retiro} · {r.medio_pago === "online" ? "Pagó online" : "Paga en el local"}
                     </p>
@@ -308,6 +343,15 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
                   </div>
                 ) : r.estado === "aceptada" && r.reprogramar_hasta ? (
                   <p className="info mt-2 text-xs">⏰ Se le pasó el horario al cliente: tiene hasta el cierre para elegir otro, o la reserva se cancela sola.</p>
+                ) : null}
+                {r.estado === "aceptada" && r.retiro_hasta && new Date(r.retiro_hasta) < ahora ? (
+                  <form action={marcarNoVino} className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+                    <input type="hidden" name="reserva" value={r.id} />
+                    <span className="text-white/80">¿No vino en su horario?</span>
+                    <BotonEnviar enviando="Cerrando…" className="rounded-lg border border-white/40 px-3 py-1.5 font-semibold hover:bg-white/10">
+                      {r.pedido && enPedido(r.pedido) > 1 ? "No vino: cerrar el pedido y devolver el stock" : "No vino: cerrar y devolver el stock"}
+                    </BotonEnviar>
+                  </form>
                 ) : null}
                 {r.retiro_sin_codigo ? (
                   <p className="info mt-2 text-xs">
@@ -325,7 +369,7 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
                   </p>
                 ) : null}
                 <BotonesReserva />
-                <Conversacion reserva={r.id} yo={usuario.id} otro="el cliente" iniciales={r.mensajes} abierta />
+                <Conversacion reserva={r.id} yo={usuario.id} otro="el cliente" iniciales={r.mensajes} abierta sinLeer={mensajesSinLeer.get(r.id) ?? 0} />
                 <SiEstado es="pendiente">
                   <details className="mt-3 text-sm">
                     <summary className="cursor-pointer text-white/85">No lo tengo: ofrecer otra cosa</summary>

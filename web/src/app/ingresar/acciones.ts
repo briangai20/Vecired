@@ -116,9 +116,11 @@ export async function registrarse(_: EstadoCuenta, datos: FormData): Promise<Est
   return { enviado: email };
 }
 
+// Cierra la sesión solo en este aparato: la misma cuenta puede estar abierta
+// a la vez en varias compus y celulares (antes, salir en uno cerraba todos).
 export async function salir() {
   const supabase = await supabaseServidor();
-  await supabase.auth.signOut();
+  await supabase.auth.signOut({ scope: "local" });
   redirect("/");
 }
 

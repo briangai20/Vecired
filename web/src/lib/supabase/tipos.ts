@@ -159,8 +159,8 @@ export type Database = {
         ]
       }
       notificaciones: {
-        Row: { creada_en: string; cuerpo: string | null; enlace: string | null; id: number; leida_en: string | null; push_enviada_en: string | null; titulo: string; tono: "accion" | "bien" | "mal" | null; usuario_id: string }
-        Insert: { creada_en?: string; cuerpo?: string | null; enlace?: string | null; id?: never; leida_en?: string | null; push_enviada_en?: string | null; titulo: string; tono?: "accion" | "bien" | "mal" | null; usuario_id: string }
+        Row: { categoria: "reservas" | "mensajes" | "ofertas" | "favoritos" | "resenas" | "cuenta"; creada_en: string; cuerpo: string | null; enlace: string | null; id: number; leida_en: string | null; push_enviada_en: string | null; titulo: string; tono: "accion" | "bien" | "mal" | null; usuario_id: string }
+        Insert: { categoria?: string; creada_en?: string; cuerpo?: string | null; enlace?: string | null; id?: never; leida_en?: string | null; push_enviada_en?: string | null; titulo: string; tono?: "accion" | "bien" | "mal" | null; usuario_id: string }
         Update: { creada_en?: string; cuerpo?: string | null; enlace?: string | null; id?: never; leida_en?: string | null; push_enviada_en?: string | null; titulo?: string; tono?: "accion" | "bien" | "mal" | null; usuario_id?: string }
         Relationships: []
       }
@@ -408,6 +408,9 @@ export type Database = {
           reprogramada_en: string | null
           reprogramar_hasta: string | null
           retiro_hasta: string | null
+          pedido: number | null
+          retiro_ya: boolean
+          recordada_en: string | null
           reclamo: string | null
           reclamo_en: string | null
           retiro_sin_codigo: string | null
@@ -432,6 +435,9 @@ export type Database = {
           reprogramada_en?: string | null
           reprogramar_hasta?: string | null
           retiro_hasta?: string | null
+          pedido?: number | null
+          retiro_ya?: boolean
+          recordada_en?: string | null
           reclamo?: string | null
           reclamo_en?: string | null
           retiro_sin_codigo?: string | null
@@ -456,6 +462,9 @@ export type Database = {
           reprogramada_en?: string | null
           reprogramar_hasta?: string | null
           retiro_hasta?: string | null
+          pedido?: number | null
+          retiro_ya?: boolean
+          recordada_en?: string | null
           reclamo?: string | null
           reclamo_en?: string | null
           retiro_sin_codigo?: string | null
@@ -583,6 +592,8 @@ export type Database = {
       entregar_sin_codigo: { Args: { p_reserva: number; p_motivo: string }; Returns: undefined }
       reclamar_retiro: { Args: { p_reserva: number; p_texto: string }; Returns: undefined }
       reprogramar_retiro: { Args: { p_reserva: number; p_retiro: string }; Returns: undefined }
+      reservar_pedido: { Args: { p_items: { producto: number; cantidad: number }[]; p_retiro: string; p_ya?: boolean }; Returns: number }
+      marcar_no_vino: { Args: { p_reserva: number }; Returns: undefined }
       cancelar_reprogramada: { Args: { p_reserva: number; p_motivo: string }; Returns: undefined }
       precio_vigente: { Args: { p_producto: number }; Returns: number | null }
       reactivar_mi_comercio: { Args: never; Returns: undefined }

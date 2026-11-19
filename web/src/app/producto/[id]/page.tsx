@@ -10,7 +10,8 @@ import { MapaComercios } from "@/components/mapa-comercios";
 import { Abierto, Estrellas, Stock } from "@/components/insignias";
 import { RegistrarVista } from "@/components/registrar-vista";
 import { AvisoCierres } from "@/components/aviso-cierres";
-import { abiertoAhora, fechaAR, disponibilidad, franjasRetiro, horario, nota, plata, promedio } from "@/lib/formato";
+import { abiertoAhora, fechaAR, disponibilidad, franjasRetiro, horario, nota, plata, promedio, retiroYaHasta } from "@/lib/formato";
+import { AgregarCarrito } from "@/components/agregar-carrito";
 import { usuarioActual } from "@/lib/sesion";
 import { FormReserva } from "./form-reserva";
 import { FormPregunta } from "./form-pregunta";
@@ -237,6 +238,17 @@ async function Producto({ params }: Pick<Props, "params">) {
                 textoBoton={textoBoton}
                 precio={precioFinal}
                 promos={promos}
+                retiroYa={p.modo === "exacto" && !d.requiereConfirmacion ? retiroYaHasta(franjas ?? [], ahora, cerrados) : null}
+              />
+              <AgregarCarrito
+                comercio={{ id: c.id, nombre: c.nombre }}
+                item={{
+                  id: p.id,
+                  nombre: p.nombre,
+                  precio: precioFinal,
+                  foto: p.foto_url,
+                  maximo: p.modo === "exacto" && !d.requiereConfirmacion ? Math.min(Math.max(p.stock ?? 1, 1), 20) : 10,
+                }}
               />
             </Suspense>
           ) : (

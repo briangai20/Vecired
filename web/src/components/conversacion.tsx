@@ -16,20 +16,39 @@ export function Conversacion({
   otro,
   iniciales,
   abierta,
+  sinLeer = 0,
 }: {
   reserva: number;
   yo: string;
   otro: string; // "el comercio" / "el cliente", para los textos
   iniciales: Mensaje[];
   abierta: boolean; // si la reserva sigue en curso se puede escribir
+  /** Mensajes del otro que todavía no leíste (avisos sin leer de esta reserva). */
+  sinLeer?: number;
 }) {
   const [mensajes, setMensajes] = useState<Mensaje[]>(() => [...iniciales].sort((a, b) => a.id - b.id));
+  // Si la página se actualiza (llegó un aviso, volviste a la pestaña), se suman
+  // los mensajes que trajo el servidor: así se ven también en la compu aunque
+  // la conexión en vivo se haya cortado.
+  const [antes, setAntes] = useState(iniciales);
+  if (iniciales !== antes) {
+    setAntes(iniciales);
+    setMensajes((ms) => {
+      const ids = new Set(ms.map((m) => m.id));
+      return [...ms, ...iniciales.filter((m) => !ids.has(m.id))].sort((a, b) => a.id - b.id);
+    });
+  }
+  const [nuevos, setNuevos] = useState(sinLeer);
+  const [antesSinLeer, setAntesSinLeer] = useState(sinLeer);
+  if (sinLeer !== antesSinLeer) {
+    setAntesSinLeer(sinLeer);
+    setNuevos(sinLeer);
+  }
   const [texto, setTexto] = useState("");
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState("");
-  const [mostrar, setMostrar] = useState(false);
+  const [mostrar, setMostrar] = useState(sinLeer > 0);
   const lista = useRef<HTMLDivElement>(null);
-  const nuevosDelOtro = mensajes.filter((m) => m.autor_id !== yo).length;
 
   const sumar = (m: Mensaje) => setMensajes((ms) => (ms.some((x) => x.id === m.id) ? ms : [...ms, m].sort((a, b) => a.id - b.id)));
 
@@ -40,7 +59,10 @@ export function Conversacion({
       .channel(`mensajes-${reserva}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "mensajes", filter: `reserva_id=eq.${reserva}` }, (p) => {
         sumar(p.new as Mensaje);
-        if ((p.new as Mensaje).autor_id !== yo) setMostrar(true);
+        if ((p.new as Mensaje).autor_id !== yo) {
+          setMostrar(true);
+          setNuevos((n) => n + 1);
+        }
       })
       .subscribe();
     return () => {
@@ -51,6 +73,22 @@ export function Conversacion({
   useEffect(() => {
     if (mostrar) lista.current?.scrollTo({ top: lista.current.scrollHeight });
   }, [mostrar, mensajes.length]);
+
+  // Al ver la conversación, sus avisos de "Mensaje de…" quedan leídos.
+  useEffect(() => {
+    if (!mostrar || !nuevos) return;
+    const t = setTimeout(() => {
+      setNuevos(0);
+      void supabaseNavegador()
+        .from("notificaciones")
+        .update({ leida_en: new Date().toISOString() })
+        .eq("usuario_id", yo)
+        .is("leida_en", null)
+        .like("titulo", "Mensaje de %")
+        .like("enlace", `%#reserva-${reserva}`);
+    }, 1500);
+    return () => clearTimeout(t);
+  }, [mostrar, nuevos, reserva, yo]);
 
   // Si se abre desde un aviso (…#reserva-12), se despliega sola.
   useEffect(() => {
@@ -82,16 +120,20 @@ export function Conversacion({
   if (!abierta && mensajes.length === 0) return null;
 
   return (
-    <div className="mt-3 rounded-xl border border-white/20">
+    <div className={`mt-3 rounded-xl border ${nuevos ? "border-naranja-vivo" : "border-white/20"}`}>
       <button
         type="button"
         onClick={() => setMostrar((v) => !v)}
         aria-expanded={mostrar}
         className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm"
       >
-        <span>
+        <span className="flex items-center gap-2">
           💬 Mensajes{mensajes.length ? ` (${mensajes.length})` : ""}
-          {!mostrar && nuevosDelOtro ? <span className="ml-2 text-xs text-naranja-vivo">de {otro}</span> : null}
+          {nuevos ? (
+            <span className="rounded-full bg-naranja px-2 py-0.5 text-[11px] font-bold text-white">
+              {nuevos} {nuevos === 1 ? "nuevo" : "nuevos"} de {otro}
+            </span>
+          ) : null}
         </span>
         <span aria-hidden className="text-white/70">{mostrar ? "−" : "+"}</span>
       </button>

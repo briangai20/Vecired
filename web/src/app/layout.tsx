@@ -6,6 +6,7 @@ import { LogoVeciRed } from "@/components/logo";
 import { MenuCuenta } from "@/components/menu-cuenta";
 import { BarraInferior } from "@/components/barra-inferior";
 import { Avisos } from "@/components/avisos";
+import { IconoCarrito } from "@/components/icono-carrito";
 import { Buscador, BuscadorCargando } from "@/components/buscador";
 import { InstalarApp } from "@/components/instalar-app";
 import { PantallaInicio } from "@/components/pantalla-inicio";
@@ -82,6 +83,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
                 <MenuCuenta />
               </Suspense>
             </nav>
+            <IconoCarrito />
             <Suspense fallback={null}>
               <Avisos />
             </Suspense>

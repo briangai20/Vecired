@@ -342,6 +342,17 @@ export async function cancelarReprogramada(reserva: number, motivo: string): Pro
 // había un cartel de error en la dirección, vuelve a la pestaña sin él.
 // (Antes redirigía siempre a la misma dirección, y eso no recargaba los
 // datos hasta el clic siguiente.)
+// "No vino": pasado su horario de retiro, el cliente no apareció. Se cierra
+// la reserva (todo el pedido, si es del carrito) y el stock vuelve al instante.
+export async function marcarNoVino(d: FormData) {
+  const supabase = await comerciante();
+  const reserva = Number(texto(d, "reserva"));
+  if (!reserva) return;
+  const { error } = await supabase.rpc("marcar_no_vino", { p_reserva: reserva });
+  volverConError(error);
+  await listo();
+}
+
 async function listo(seccion = "reservas") {
   const desde = (await headers()).get("referer") ?? "";
   if (desde.includes("error=")) redirect(`/comerciante?seccion=${seccion}`);

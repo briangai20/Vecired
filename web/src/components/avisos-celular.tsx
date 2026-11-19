@@ -95,11 +95,11 @@ export function AvisosCelular({ variante = "campanita" }: { variante?: "campanit
   const caja =
     variante === "panel"
       ? "mt-4 flex flex-col gap-3 rounded-2xl border border-naranja-vivo/70 p-4 sm:flex-row sm:items-center"
-      : "border-t border-white/15 px-4 py-3 text-xs";
+      : "border-t border-marino/10 px-4 py-3 text-xs text-marino";
 
   return (
     <div className={caja}>
-      <p className={variante === "panel" ? "flex-1 text-sm" : "text-white/85"}>
+      <p className={variante === "panel" ? "flex-1 text-sm" : "text-marino/80"}>
         {estado === "activado" ? (
           <>📱 Avisos en este aparato: <b>activados</b>. Te llegan aunque VeciRed esté cerrada.</>
         ) : estado === "bloqueado" ? (
