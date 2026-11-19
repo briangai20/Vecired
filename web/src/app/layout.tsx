@@ -57,9 +57,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <Suspense fallback={null}>
           <UbicacionAlAbrir />
         </Suspense>
-        {/* Fijo (no "sticky"): así Safari del iPhone lo toma como barra de arriba y pinta
-            la zona de la hora de azul liso, sin difuminar el logo. */}
-        <header id="encabezado" className="fixed inset-x-0 top-0 z-40 border-b border-white/10 bg-marino pt-[env(safe-area-inset-top)] shadow-lg shadow-black/30">
+        {/* Fijo arriba. El iPhone difumina una franja debajo de la hora: por eso, si hay
+            zona de la hora (safe-area), se suma hasta 36px de margen para que el logo
+            quede por debajo y se vea nítido. En la compu la zona es 0 y no cambia nada. */}
+        <header id="encabezado" className="fixed inset-x-0 top-0 z-40 border-b border-white/10 bg-marino pt-[calc(env(safe-area-inset-top)+min(env(safe-area-inset-top),2.25rem))] shadow-lg shadow-black/30">
           <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-3 lg:gap-5 lg:px-6">
             <Link href="/" className="mr-auto flex min-w-0 items-center gap-2.5 sm:gap-3 lg:mr-0 lg:shrink-0">
               <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl border border-white/30">

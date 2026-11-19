@@ -18,11 +18,11 @@
 
 /* Alto del encabezado fijo antes de que se mida (ver components/alto-encabezado.tsx). */
 :root {
-  --alto-encabezado: calc(125px + env(safe-area-inset-top));
+  --alto-encabezado: calc(125px + env(safe-area-inset-top) + min(env(safe-area-inset-top), 2.25rem));
 }
 @media (width >= 64rem) {
   :root {
-    --alto-encabezado: calc(69px + env(safe-area-inset-top));
+    --alto-encabezado: calc(69px + env(safe-area-inset-top) + min(env(safe-area-inset-top), 2.25rem));
   }
 }
 
