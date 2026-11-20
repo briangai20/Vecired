@@ -5,7 +5,8 @@ import { avisarNavegacion } from "./barra-carga";
 import type { GeoJSONSource, Map as MapaMapLibre, Marker } from "maplibre-gl";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { enlaceComoLlegar, ubicacionDelNavegador } from "@/lib/ubicacion";
+import { enlaceComoLlegar } from "@/lib/ubicacion";
+import { abrirComoLlegar } from "@/components/como-llegar";
 import { EVENTO_ELEGIDO } from "@/components/comercio-al-instante";
 import { iniciales } from "@/lib/formato";
 
@@ -228,9 +229,10 @@ export function MapaComercios({
       const ir = document.createElement("a");
       ir.className = "mt-1 block text-xs underline";
       ir.href = enlaceComoLlegar(c);
-      // Al tocar, con tu ubicación del GPS como punto de partida.
-      ir.onclick = () => {
-        ir.href = enlaceComoLlegar(c, ubicacionDelNavegador());
+      // Al tocar, elegís con qué app ir (Google Maps, Waze o Apple).
+      ir.onclick = (e) => {
+        e.preventDefault();
+        abrirComoLlegar({ lat: c.lat, lng: c.lng });
       };
       ir.target = "_blank";
       ir.rel = "noopener noreferrer";

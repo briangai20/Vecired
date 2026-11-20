@@ -6,6 +6,7 @@ import { LogoVeciRed } from "@/components/logo";
 import { MenuCuenta } from "@/components/menu-cuenta";
 import { BarraInferior } from "@/components/barra-inferior";
 import { BarraCarga } from "@/components/barra-carga";
+import { ElegirMapa } from "@/components/como-llegar";
 import { Avisos } from "@/components/avisos";
 import { IconoCarrito } from "@/components/icono-carrito";
 import { Buscador, BuscadorCargando } from "@/components/buscador";
@@ -62,6 +63,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <Suspense fallback={null}>
           <BarraCarga />
         </Suspense>
+        <ElegirMapa />
         {/* Fijo arriba. El iPhone difumina una franja debajo de la hora: por eso, si hay
             zona de la hora (safe-area), se suma hasta 36px de margen para que el logo
             quede por debajo y se vea nítido. En la compu la zona es 0 y no cambia nada. */}

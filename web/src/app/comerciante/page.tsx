@@ -277,6 +277,12 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
             </div>
           ))}
         </div>
+        <Link
+          href="/comerciante/estadisticas"
+          className="mt-4 inline-flex items-center gap-2 rounded-xl bg-white/10 px-4 py-2.5 text-sm font-semibold transition hover:bg-white/15 active:bg-naranja/70"
+        >
+          📊 Ver estadísticas completas <span aria-hidden>›</span>
+        </Link>
         <nav className="mt-6 grid grid-cols-2 gap-1 sm:grid-cols-3 lg:grid-cols-6" aria-label="Secciones del panel">
           {(Object.keys(SECCIONES) as Seccion[]).map((k) => {
             const pendientes =

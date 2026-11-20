@@ -72,3 +72,21 @@ export function enlaceComoLlegar(destino: { lat: number; lng: number }, desde?: 
   if (desde?.gps && desde.lat != null && desde.lng != null) p.set("origin", `${desde.lat},${desde.lng}`);
   return `https://www.google.com/maps/dir/?${p}`;
 }
+
+export type AppMapa = "google" | "waze" | "apple";
+
+// Enlaces para navegar hasta el comercio en cada app. En el celular abren la
+// app con el recorrido armado desde donde estás y el botón para iniciar el
+// viaje (Google necesita `dir_action=navigate` y que no le pasemos un origen;
+// Waze, `navigate=yes`; Apple Maps arma la ruta con `daddr`).
+export function enlaceNavegar(app: AppMapa, destino: { lat: number; lng: number }, desde?: Ubicacion, celular = true) {
+  const d = `${destino.lat},${destino.lng}`;
+  if (app === "waze") return `https://waze.com/ul?${new URLSearchParams({ ll: d, navigate: "yes" })}`;
+  if (app === "apple") {
+    const p = new URLSearchParams({ daddr: d, dirflg: "d" });
+    if (!celular && desde?.gps && desde.lat != null && desde.lng != null) p.set("saddr", `${desde.lat},${desde.lng}`);
+    return `https://maps.apple.com/?${p}`;
+  }
+  if (celular) return `https://www.google.com/maps/dir/?${new URLSearchParams({ api: "1", destination: d, dir_action: "navigate" })}`;
+  return enlaceComoLlegar(destino, desde);
+}
