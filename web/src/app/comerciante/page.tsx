@@ -462,7 +462,7 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
                   <span>
                     {r.producto_nombre} × {r.cantidad} · {r.comprador?.nombre || "Cliente"}
                   </span>
-                  <span className="text-white/70">{ESTADOS[r.estado]}</span>
+                  <span className="chip-estado h-fit shrink-0 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold">{ESTADOS[r.estado]}</span>
                 </li>
               ))}
             </ul>

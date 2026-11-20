@@ -65,45 +65,33 @@ body {
   }
 }
 
+/* Todo lo que se escribe o se elige (campos, cajas de texto, listas): blanco
+   con letra azul, como el buscador principal. */
 @utility campo {
   width: 100%;
   border-radius: 0.75rem;
-  border: 1px solid rgb(255 255 255 / 0.25);
-  background: var(--color-marino-claro);
+  border: 1px solid rgb(20 33 61 / 0.2);
+  background: #fff;
   padding: 0.625rem 0.75rem;
   font-size: 0.875rem;
-  color: #fff;
+  color: var(--color-marino);
   &::placeholder {
-    color: rgb(255 255 255 / 0.55);
+    color: rgb(20 33 61 / 0.55);
   }
   &:focus {
     outline: none;
     border-color: #fff;
-    box-shadow: 0 0 0 2px rgb(255 255 255 / 0.3);
+    box-shadow: 0 0 0 2px var(--color-naranja-vivo);
+  }
+  &:disabled {
+    background: rgb(255 255 255 / 0.7);
   }
   /* Campo que está mal: recuadro rojo bien visible (ver components/error-campo.tsx). */
   &[aria-invalid="true"] {
     border: 2px solid #ff6b6b;
-    background: rgb(255 107 107 / 0.12);
-    box-shadow: 0 0 0 3px rgb(255 107 107 / 0.25);
+    background: #fff0f0;
+    box-shadow: 0 0 0 3px rgb(255 107 107 / 0.35);
   }
-}
-
-/* Buscadores: blancos, como el buscador principal de arriba. */
-.campo[type="search"],
-.campo[data-buscar] {
-  border-color: rgb(255 255 255 / 0.3);
-  background: #fff;
-  color: var(--color-marino);
-}
-.campo[type="search"]::placeholder,
-.campo[data-buscar]::placeholder {
-  color: rgb(20 33 61 / 0.55);
-}
-.campo[type="search"]:focus,
-.campo[data-buscar]:focus {
-  border-color: #fff;
-  box-shadow: 0 0 0 2px var(--color-naranja-vivo);
 }
 
 /* Calificar con estrellas (reseñas): se pintan de amarillo la elegida y las
@@ -146,8 +134,8 @@ input[type="range"] {
 }
 
 select option {
-  background: var(--color-marino);
-  color: #fff;
+  background: #fff;
+  color: var(--color-marino);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -279,4 +267,12 @@ a img {
 }
 @media (prefers-reduced-motion: reduce) {
   .barra-carga { animation: none; width: 60%; }
+}
+
+/* Carteles de estado ya cerrados (retirada, cancelada, vencida…): azul más
+   clarito, para que se distingan del fondo azul marino. */
+.chip-estado {
+  border-color: #7d9ad6;
+  background: #3d5c9c;
+  color: #fff;
 }
