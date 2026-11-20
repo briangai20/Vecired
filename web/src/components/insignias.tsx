@@ -1,11 +1,11 @@
 import type { Disponibilidad } from "@/lib/formato";
 
-export function Estrellas({ valor, className = "text-sm" }: { valor: number | null; className?: string }) {
+export function Estrellas({ valor, className = "text-sm", vacias = "text-white/35" }: { valor: number | null; className?: string; vacias?: string }) {
   const llenas = Math.round(valor ?? 0);
   return (
     <span className={`${className} tracking-tight whitespace-nowrap`} aria-label={valor ? `${valor.toFixed(1)} de 5` : "Sin reseñas"}>
       <span className="text-estrella">{"★".repeat(llenas)}</span>
-      <span className="text-white/35">{"★".repeat(5 - llenas)}</span>
+      <span className={vacias}>{"★".repeat(5 - llenas)}</span>
     </span>
   );
 }
