@@ -310,7 +310,7 @@ async function Reservas({ searchParams }: Pick<PageProps<"/reservas">, "searchPa
 
         {retirada ? (
           retirada.resena ? (
-            <div className="mt-3 rounded-xl border border-[#7d9ad6] bg-[#3d5c9c] p-3 text-sm">
+            <div className="mt-3 chip-estado rounded-xl border p-3 text-sm">
               <p className="text-xs text-white/80">Tu reseña</p>
               <Estrellas valor={retirada.resena.estrellas} />
               {retirada.resena.texto ? <p className="mt-1">{retirada.resena.texto}</p> : null}
