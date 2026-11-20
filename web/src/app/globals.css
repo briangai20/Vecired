@@ -280,12 +280,3 @@ a img {
 @media (prefers-reduced-motion: reduce) {
   .barra-carga { animation: none; width: 60%; }
 }
-
-/* Carteles de estado (retirada, cancelada, vencida…) y lo que el cliente
-   escribió y quedó guardado (su reseña): azul intermedio, más claro que el
-   fondo azul marino. */
-.chip-estado {
-  border-color: #5a76b3;
-  background: #2c4377;
-  color: #fff;
-}

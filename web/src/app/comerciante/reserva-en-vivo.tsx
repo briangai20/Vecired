@@ -52,7 +52,7 @@ export function ReservaEnVivo({
 export function EstadoReserva() {
   const { estado, etiquetas } = useReserva();
   return (
-    <span className="chip-estado shrink-0 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold">{etiquetas[estado]}</span>
+    <span className="shrink-0 rounded-full border border-white/40 px-2.5 py-0.5 text-[11px] font-semibold">{etiquetas[estado]}</span>
   );
 }
 

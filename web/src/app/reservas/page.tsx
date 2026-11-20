@@ -36,11 +36,11 @@ const ESTADOS: Record<Estado, { texto: string; detalle: string; color: string }>
     detalle: "Ya te lo separaron. Mostrá el código en el local y pagás al retirar.",
     color: "border-verde bg-verde/15 text-verde",
   },
-  retirada: { texto: "Retirada", detalle: "", color: "chip-estado" },
-  no_retirada: { texto: "No la retiraste", detalle: "Pasó el plazo y el producto volvió a estar disponible. No se cobró nada.", color: "chip-estado" },
-  rechazada: { texto: "No la pudo confirmar", detalle: "El comercio no la pudo confirmar. No se cobró nada.", color: "chip-estado" },
-  cancelada: { texto: "Cancelada", detalle: "", color: "chip-estado" },
-  vencida: { texto: "Vencida", detalle: "El comercio no respondió a tiempo. No se cobró nada.", color: "chip-estado" },
+  retirada: { texto: "Retirada", detalle: "", color: "border-white/30 text-white/80" },
+  no_retirada: { texto: "No la retiraste", detalle: "Pasó el plazo y el producto volvió a estar disponible. No se cobró nada.", color: "border-white/30 text-white/70" },
+  rechazada: { texto: "No la pudo confirmar", detalle: "El comercio no la pudo confirmar. No se cobró nada.", color: "border-white/30 text-white/70" },
+  cancelada: { texto: "Cancelada", detalle: "", color: "border-white/30 text-white/70" },
+  vencida: { texto: "Vencida", detalle: "El comercio no respondió a tiempo. No se cobró nada.", color: "border-white/30 text-white/70" },
 };
 const EN_CURSO: Estado[] = ["pendiente", "alternativa", "aceptada"];
 
@@ -167,7 +167,7 @@ async function Reservas({ searchParams }: Pick<PageProps<"/reservas">, "searchPa
                   {x.promo ? <span className="ml-1 font-bold text-naranja-vivo">· {x.promo}</span> : null}
                 </p>
               </div>
-              {esPedido && x.estado !== estado ? <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-semibold ${ESTADOS[x.estado].color}`}>{ESTADOS[x.estado].texto}</span> : null}
+              {esPedido && x.estado !== estado ? <span className="shrink-0 text-[11px] text-white/70">{ESTADOS[x.estado].texto}</span> : null}
             </li>
           ))}
         </ul>
@@ -310,12 +310,12 @@ async function Reservas({ searchParams }: Pick<PageProps<"/reservas">, "searchPa
 
         {retirada ? (
           retirada.resena ? (
-            <div className="mt-3 chip-estado rounded-xl border p-3 text-sm">
-              <p className="text-xs text-white/80">Tu reseña</p>
+            <div className="mt-3 rounded-xl border border-white/25 p-3 text-sm">
+              <p className="text-xs text-white/75">Tu reseña</p>
               <Estrellas valor={retirada.resena.estrellas} />
               {retirada.resena.texto ? <p className="mt-1">{retirada.resena.texto}</p> : null}
               {retirada.resena.respuesta ? (
-                <div className="mt-2 rounded-lg border-l-2 border-naranja-vivo bg-white/10 p-2">
+                <div className="mt-2 rounded-lg border-l-2 border-naranja-vivo bg-white/5 p-2">
                   <p className="text-xs font-semibold text-white/80">Respuesta de {c?.nombre}</p>
                   <p className="mt-0.5">{retirada.resena.respuesta}</p>
                 </div>
