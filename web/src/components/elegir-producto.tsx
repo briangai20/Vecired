@@ -103,6 +103,7 @@ export function ElegirProducto({
         aria-controls={lista}
         aria-autocomplete="list"
         autoComplete="off"
+        data-buscar
         className="campo py-1.5 text-xs"
       />
       {abierto ? (

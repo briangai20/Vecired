@@ -89,6 +89,23 @@ body {
   }
 }
 
+/* Buscadores: blancos, como el buscador principal de arriba. */
+.campo[type="search"],
+.campo[data-buscar] {
+  border-color: rgb(255 255 255 / 0.3);
+  background: #fff;
+  color: var(--color-marino);
+}
+.campo[type="search"]::placeholder,
+.campo[data-buscar]::placeholder {
+  color: rgb(20 33 61 / 0.55);
+}
+.campo[type="search"]:focus,
+.campo[data-buscar]:focus {
+  border-color: #fff;
+  box-shadow: 0 0 0 2px var(--color-naranja-vivo);
+}
+
 /* Calificar con estrellas (reseñas): se pintan de amarillo la elegida y las
    anteriores, y al pasar el mouse. Las estrellas van de 5 a 1 en el HTML. */
 .calificar {
