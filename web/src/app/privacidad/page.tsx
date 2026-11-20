@@ -18,6 +18,10 @@ export default function PaginaPrivacidad() {
           El responsable de la base de datos es {TITULAR}, CUIT {CUIT}, con domicilio en {DOMICILIO}. Para cualquier consulta sobre
           tus datos escribinos a {MAIL_CONTACTO}.
         </p>
+        <p>
+          La inscripción de esta base de datos en el Registro Nacional de Bases de Datos Personales de la Agencia de Acceso a la
+          Información Pública está en trámite.
+        </p>
       </Seccion>
 
       <Seccion titulo="2. Qué datos usamos">
@@ -45,7 +49,8 @@ export default function PaginaPrivacidad() {
           </li>
           <li>
             <strong>Datos del comercio:</strong> nombre, rubro, dirección, ubicación en el mapa, WhatsApp, horarios, días cerrados,
-            productos, precios, stock y fotos.
+            productos, precios, stock y fotos. Si el comercio pide la verificación, también su CUIT, sus redes sociales y una
+            foto del local, que solo ve el equipo de VeciRed.
           </li>
           <li>
             <strong>Tu ubicación:</strong> solo si tocás “Usar mi ubicación”, para mostrarte los comercios más cercanos. No la
@@ -90,7 +95,7 @@ export default function PaginaPrivacidad() {
           <li>
             <strong>Con los proveedores que hacen funcionar la app</strong>, que solo pueden usar los datos para prestarnos su
             servicio: Supabase (base de datos, cuentas y fotos), Vercel (servidores del sitio), OpenFreeMap (mapas: tu
-            navegador les pide las imágenes del mapa) y el servicio que usemos para mandar mails.
+            navegador les pide las imágenes del mapa) y Resend (envío de mails).
           </li>
           <li>Con autoridades, cuando una ley u orden judicial nos obligue.</li>
         </ul>
@@ -98,8 +103,8 @@ export default function PaginaPrivacidad() {
 
       <Seccion titulo="5. Dónde se guardan">
         <p>
-          Los datos se guardan en servidores de Supabase y Vercel ubicados en Estados Unidos. Al usar VeciRed aceptás esta
-          transferencia internacional. Elegimos proveedores que aplican medidas de seguridad adecuadas, como cifrado de las
+          Los datos se guardan en servidores de Supabase y Vercel ubicados en Estados Unidos, y los mails salen por servidores de
+          Resend en Brasil. Al usar VeciRed aceptás esta transferencia internacional. Elegimos proveedores que aplican medidas de seguridad adecuadas, como cifrado de las
           comunicaciones y control de acceso a los datos.
         </p>
       </Seccion>
