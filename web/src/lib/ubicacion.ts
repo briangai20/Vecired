@@ -90,3 +90,30 @@ export function enlaceNavegar(app: AppMapa, destino: { lat: number; lng: number 
   if (celular) return `https://www.google.com/maps/dir/?${new URLSearchParams({ api: "1", destination: d, dir_action: "navigate" })}`;
   return enlaceComoLlegar(destino, desde);
 }
+
+export type Sistema = "ios" | "android" | "otro";
+
+export function sistemaDelCelular(): Sistema {
+  const ua = navigator.userAgent;
+  if (/android/i.test(ua)) return "android";
+  // iPad con iPadOS se presenta como Mac, pero tiene pantalla táctil.
+  if (/iphone|ipad|ipod/i.test(ua) || (/macintosh/i.test(ua) && navigator.maxTouchPoints > 1)) return "ios";
+  return "otro";
+}
+
+// Enlace que abre directo la APP de mapas (no la página web, que solo muestra el
+// recorrido y no deja iniciar el viaje). null = no hay app para ese celular.
+export function enlaceApp(app: AppMapa, destino: { lat: number; lng: number }, sistema: Sistema) {
+  const d = `${destino.lat},${destino.lng}`;
+  if (sistema === "ios") {
+    if (app === "google") return `comgooglemaps://?daddr=${d}&directionsmode=driving`;
+    if (app === "waze") return `waze://?ll=${d}&navigate=yes`;
+    return `maps://?daddr=${d}&dirflg=d`;
+  }
+  if (sistema === "android") {
+    // Arranca la navegación de Google Maps directamente.
+    if (app === "google") return `google.navigation:q=${d}`;
+    if (app === "waze") return `waze://?ll=${d}&navigate=yes`;
+  }
+  return null;
+}

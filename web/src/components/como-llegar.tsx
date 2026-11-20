@@ -1,10 +1,27 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
-import { enlaceComoLlegar, enlaceNavegar, ubicacionDelNavegador, type AppMapa } from "@/lib/ubicacion";
+import { enlaceApp, enlaceComoLlegar, enlaceNavegar, sistemaDelCelular, ubicacionDelNavegador, type AppMapa } from "@/lib/ubicacion";
 
 type Destino = { lat: number; lng: number };
 const EVENTO = "vecired:como-llegar";
+
+// Abre la app de mapas; si a los 2 segundos seguimos acá (no está instalada),
+// abre la versión web.
+function abrirApp(app: string, web: string) {
+  let salio = false;
+  const marcar = () => {
+    if (document.visibilityState === "hidden") salio = true;
+  };
+  document.addEventListener("visibilitychange", marcar);
+  window.addEventListener("pagehide", marcar);
+  window.location.href = app;
+  window.setTimeout(() => {
+    document.removeEventListener("visibilitychange", marcar);
+    window.removeEventListener("pagehide", marcar);
+    if (!salio && document.visibilityState === "visible") window.location.href = web;
+  }, 2000);
+}
 
 // Abre el cartel para elegir con qué app ir (sirve también desde código que no
 // es React, como los globitos del mapa).
@@ -38,7 +55,7 @@ const APPS: { app: AppMapa; nombre: string; detalle: string; icono: ReactNode }[
     icono: <span className="text-2xl">🗺️</span>,
   },
   { app: "waze", nombre: "Waze", detalle: "Arranca a guiarte directo", icono: <span className="text-2xl">🚗</span> },
-  { app: "apple", nombre: "Mapas de Apple", detalle: "En iPhone: recorrido y “Ir”", icono: <span className="text-2xl">🧭</span> },
+  { app: "apple", nombre: "Mapas de Apple", detalle: "Recorrido y botón “Ir”", icono: <span className="text-2xl">🧭</span> },
 ];
 
 // Cartel único (va en el layout) que se abre con abrirComoLlegar().
@@ -62,6 +79,7 @@ export function ElegirMapa() {
   // Celular o tablet: la app arranca la navegación desde donde estás.
   const celular = window.matchMedia("(pointer: coarse)").matches;
   const desde = ubicacionDelNavegador();
+  const sistema = sistemaDelCelular();
 
   return (
     <div className="fixed inset-0 z-[90] flex items-end justify-center bg-black/50 p-3 sm:items-center" onClick={() => setDestino(null)}>
@@ -87,7 +105,14 @@ export function ElegirMapa() {
                 href={enlaceNavegar(a.app, destino, desde, celular)}
                 target="_blank"
                 rel="noopener noreferrer"
-                onClick={() => setDestino(null)}
+                onClick={(e) => {
+                  const app = enlaceApp(a.app, destino, sistema);
+                  if (app) {
+                    e.preventDefault();
+                    abrirApp(app, enlaceNavegar(a.app, destino, desde, celular));
+                  }
+                  setDestino(null);
+                }}
                 className="flex items-center gap-3 rounded-2xl border border-marino/15 px-4 py-3 transition hover:border-naranja hover:bg-naranja/10 active:bg-naranja/20"
               >
                 {a.icono}
@@ -100,7 +125,7 @@ export function ElegirMapa() {
             </li>
           ))}
         </ul>
-        <p className="mt-3 text-[11px] text-marino/65">Si no tenés la app instalada, se abre en el navegador.</p>
+        <p className="mt-3 text-[11px] text-marino/65">Se abre la app. Si te pregunta “¿Abrir en…?”, tocá Abrir. Si no la tenés instalada, se abre en el navegador.</p>
       </div>
     </div>
   );
