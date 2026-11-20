@@ -191,9 +191,9 @@ export type Database = {
         ]
       }
       preguntas: {
-        Row: { autor_id: string; comercio_id: number; creada_en: string; id: number; producto_id: number; respondida_en: string | null; respuesta: string | null; texto: string }
-        Insert: { autor_id?: string; comercio_id?: number; creada_en?: string; id?: never; producto_id: number; respondida_en?: string | null; respuesta?: string | null; texto: string }
-        Update: { autor_id?: string; comercio_id?: number; creada_en?: string; id?: never; producto_id?: number; respondida_en?: string | null; respuesta?: string | null; texto?: string }
+        Row: { autor_id: string; comercio_id: number; creada_en: string; id: number; producto_id: number; respondida_en: string | null; respuesta: string | null; respuesta_borrada_en: string | null; texto: string }
+        Insert: { autor_id?: string; comercio_id?: number; creada_en?: string; id?: never; producto_id: number; respondida_en?: string | null; respuesta?: string | null; respuesta_borrada_en?: string | null; texto: string }
+        Update: { autor_id?: string; comercio_id?: number; creada_en?: string; id?: never; producto_id?: number; respondida_en?: string | null; respuesta?: string | null; respuesta_borrada_en?: string | null; texto?: string }
         Relationships: [
           { foreignKeyName: "preguntas_producto_id_fkey"; columns: ["producto_id"]; isOneToOne: false; referencedRelation: "productos"; referencedColumns: ["id"] },
           { foreignKeyName: "preguntas_comercio_id_fkey"; columns: ["comercio_id"]; isOneToOne: false; referencedRelation: "comercios"; referencedColumns: ["id"] },
@@ -315,6 +315,7 @@ export type Database = {
           reserva_id: number
           respondida_en: string | null
           respuesta: string | null
+          respuesta_borrada_en: string | null
           texto: string | null
         }
         Insert: {
@@ -328,6 +329,7 @@ export type Database = {
           reserva_id: number
           respondida_en?: string | null
           respuesta?: string | null
+          respuesta_borrada_en?: string | null
           texto?: string | null
         }
         Update: {
@@ -341,6 +343,7 @@ export type Database = {
           reserva_id?: number
           respondida_en?: string | null
           respuesta?: string | null
+          respuesta_borrada_en?: string | null
           texto?: string | null
         }
         Relationships: [

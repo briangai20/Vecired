@@ -22,6 +22,7 @@ const fechaCorta = (f: string) => `${Number(f.slice(8))}/${Number(f.slice(5, 7))
 const SECCIONES = { reservas: "Reservas", productos: "Productos", preguntas: "Preguntas", ofertas: "Ofertas", resenas: "Reseñas", configuracion: "Configuración del comercio" } as const;
 type Seccion = keyof typeof SECCIONES;
 import { FormComercio } from "./form-comercio";
+import { BorrarRespuesta } from "./borrar-respuesta";
 import { FotosEnLote } from "./fotos-en-lote";
 import { ImportarProductos } from "./importar-productos";
 import { ProductoFila } from "./producto-fila";
@@ -149,13 +150,13 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
     supabase.from("verificaciones_comercio").select("*").eq("comercio_id", comercio.id).maybeSingle(),
     supabase
       .from("resenas")
-      .select("id, estrellas, texto, autor_nombre, autor_foto_url, creada_en, respuesta")
+      .select("id, estrellas, texto, autor_nombre, autor_foto_url, creada_en, respuesta, respuesta_borrada_en")
       .eq("comercio_id", comercio.id)
       .order("creada_en", { ascending: false })
       .limit(50),
     supabase
       .from("preguntas")
-      .select("id, texto, creada_en, respuesta, producto:productos(id, nombre)")
+      .select("id, texto, creada_en, respuesta, respuesta_borrada_en, producto:productos(id, nombre)")
       .eq("comercio_id", comercio.id)
       .order("creada_en", { ascending: false })
       .limit(100),
@@ -179,10 +180,11 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
     const id = Number(/#reserva-(\d+)$/.exec(a.enlace ?? "")?.[1]);
     if (id) mensajesSinLeer.set(id, (mensajesSinLeer.get(id) ?? 0) + 1);
   }
-  const sinResponder = (resenas ?? []).filter((r) => !r.respuesta).length;
+  const sinResponder = (resenas ?? []).filter((r) => !r.respuesta && !r.respuesta_borrada_en).length;
   // Primero las que esperan respuesta.
-  const listaPreguntas = [...(preguntas ?? [])].sort((a, b) => Number(!!a.respuesta) - Number(!!b.respuesta));
-  const preguntasSinResponder = listaPreguntas.filter((q) => !q.respuesta).length;
+  const cerrada = (q: { respuesta: string | null; respuesta_borrada_en: string | null }) => !!q.respuesta || !!q.respuesta_borrada_en;
+  const listaPreguntas = [...(preguntas ?? [])].sort((a, b) => Number(cerrada(a)) - Number(cerrada(b)));
+  const preguntasSinResponder = listaPreguntas.filter((q) => !cerrada(q)).length;
   const s = stats?.[0];
   const semana = statsSemana?.[0];
   const enCurso = (e: string) => e === "pendiente" || e === "alternativa" || e === "aceptada";
@@ -543,12 +545,12 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
       <section id="preguntas" className="tarjeta rounded-3xl p-6">
         <h2 className="titulo-seccion">💬 Preguntas de los vecinos</h2>
         <p className="info mt-2 text-sm">
-          Lo que preguntan en la página de tus productos. Respondé rápido: la pregunta y tu respuesta quedan a la vista de todos y le avisamos al vecino. Si una pregunta es ofensiva o no tiene que ver, podés borrarla.
+          Lo que preguntan en la página de tus productos. Respondé rápido: la pregunta y tu respuesta quedan a la vista de todos y le avisamos al vecino. Se responde una sola vez: no se puede modificar, solo borrar. Si una pregunta es ofensiva o no tiene que ver, podés borrarla.
         </p>
         {listaPreguntas.length ? (
           <div className="mt-4 divide-y divide-white/15">
             {listaPreguntas.map((q) => (
-              <article key={q.id} className={`rounded-2xl border p-4 ${q.respuesta ? "border-white/20" : "border-naranja-vivo/70"}`}>
+              <article key={q.id} className={`rounded-2xl border p-4 ${cerrada(q) ? "border-white/20" : "border-naranja-vivo/70"}`}>
                 <div className="flex flex-wrap items-baseline justify-between gap-2 text-xs text-white/70">
                   {q.producto ? (
                     <Link href={`/producto/${q.producto.id}#preguntas`} className="font-semibold text-white underline-offset-2 hover:underline">
@@ -558,16 +560,29 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
                   <span>{new Date(q.creada_en).toLocaleDateString("es-AR", { timeZone: "America/Argentina/Buenos_Aires" })}</span>
                 </div>
                 <p className="mt-2 text-sm break-words">“{q.texto}”</p>
+                {q.respuesta ? (
+                  <div className="mt-3 rounded-lg border-l-2 border-naranja-vivo bg-white/5 p-2 text-sm">
+                    <p className="text-xs font-semibold text-white/80">Tu respuesta</p>
+                    <p className="mt-0.5 break-words">{q.respuesta}</p>
+                  </div>
+                ) : q.respuesta_borrada_en ? (
+                  <p className="mt-3 text-xs text-white/65">Borraste tu respuesta: esta pregunta ya no se puede volver a responder.</p>
+                ) : null}
                 <form action={responderPregunta} className="mt-3 space-y-2">
                   <input type="hidden" name="pregunta" value={q.id} />
-                  <label className="block text-xs text-white/80">
-                    {q.respuesta ? "Tu respuesta (podés cambiarla)" : "Tu respuesta"}
-                    <textarea key={q.respuesta ?? ""} name="respuesta" maxLength={1000} rows={2} defaultValue={q.respuesta ?? ""} className="campo mt-1" placeholder="¡Hola! Sí, lo tenemos. Te esperamos." />
-                  </label>
+                  {cerrada(q) ? null : (
+                    <label className="block text-xs text-white/80">
+                      Tu respuesta <span className="text-white/60">(se envía una sola vez: después no se puede modificar, solo borrar)</span>
+                      <textarea name="respuesta" required maxLength={1000} rows={2} className="campo mt-1" placeholder="¡Hola! Sí, lo tenemos. Te esperamos." />
+                    </label>
+                  )}
                   <div className="flex flex-wrap items-center gap-3">
-                    <BotonEnviar enviando="Guardando…" className="boton rounded-xl px-4 py-2 text-sm font-semibold">
-                      {q.respuesta ? "Guardar respuesta" : "Responder"}
-                    </BotonEnviar>
+                    {cerrada(q) ? null : (
+                      <BotonEnviar enviando="Enviando…" className="boton rounded-xl px-4 py-2 text-sm font-semibold">
+                        Responder
+                      </BotonEnviar>
+                    )}
+                    {q.respuesta ? <BorrarRespuesta accion={responderPregunta} campo="pregunta" id={q.id} que="pregunta" /> : null}
                     <BotonEnviar
                       formAction={borrarPreguntaComercio}
                       name="borrar"
@@ -658,7 +673,7 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
       <section id="resenas" className="tarjeta rounded-3xl p-6">
         <h2 className="titulo-seccion">⭐ Reseñas</h2>
         <p className="info mt-2 text-sm">
-          Lo que opinan tus clientes después de retirar. Respondé con amabilidad: tu respuesta se ve en tu página, debajo de la reseña, y le avisamos al cliente.
+          Lo que opinan tus clientes después de retirar. Respondé con amabilidad: tu respuesta se ve en tu página, debajo de la reseña, y le avisamos al cliente. Se responde una sola vez: no se puede modificar, solo borrar.
         </p>
         {resenas?.length ? (
           <div className="mt-4 divide-y divide-white/15">
@@ -675,16 +690,30 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
                   </div>
                 </div>
                 {r.texto ? <p className="mt-3 text-sm">{r.texto}</p> : <p className="mt-3 text-sm text-white/60">Sin comentario.</p>}
-                <form action={responderResena} className="mt-3 space-y-2">
-                  <input type="hidden" name="resena" value={r.id} />
-                  <label className="block text-xs text-white/80">
-                    {r.respuesta ? "Tu respuesta (podés cambiarla o borrarla)" : "Tu respuesta"}
-                    <textarea key={r.respuesta ?? ""} name="respuesta" maxLength={1000} rows={2} defaultValue={r.respuesta ?? ""} className="campo mt-1" placeholder="¡Gracias por venir! Te esperamos de nuevo." />
-                  </label>
-                  <BotonEnviar enviando="Guardando…" className="boton rounded-xl px-4 py-2 text-sm font-semibold">
-                    {r.respuesta ? "Guardar respuesta" : "Responder"}
-                  </BotonEnviar>
-                </form>
+                {r.respuesta ? (
+                  <>
+                    <div className="mt-3 rounded-lg border-l-2 border-naranja-vivo bg-white/5 p-2 text-sm">
+                      <p className="text-xs font-semibold text-white/80">Tu respuesta</p>
+                      <p className="mt-0.5 break-words">{r.respuesta}</p>
+                    </div>
+                    <div className="mt-2">
+                      <BorrarRespuesta accion={responderResena} campo="resena" id={r.id} que="reseña" />
+                    </div>
+                  </>
+                ) : r.respuesta_borrada_en ? (
+                  <p className="mt-3 text-xs text-white/65">Borraste tu respuesta: esta reseña ya no se puede volver a responder.</p>
+                ) : (
+                  <form action={responderResena} className="mt-3 space-y-2">
+                    <input type="hidden" name="resena" value={r.id} />
+                    <label className="block text-xs text-white/80">
+                      Tu respuesta <span className="text-white/60">(se envía una sola vez: después no se puede modificar, solo borrar)</span>
+                      <textarea name="respuesta" required maxLength={1000} rows={2} className="campo mt-1" placeholder="¡Gracias por venir! Te esperamos de nuevo." />
+                    </label>
+                    <BotonEnviar enviando="Enviando…" className="boton rounded-xl px-4 py-2 text-sm font-semibold">
+                      Responder
+                    </BotonEnviar>
+                  </form>
+                )}
               </article>
             ))}
           </div>
