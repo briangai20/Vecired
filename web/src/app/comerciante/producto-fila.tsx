@@ -11,7 +11,8 @@ export function ProductoFila({ p, comercioId, ahora }: { p?: Tabla<"productos">;
   return (
     <form
       action={guardarProducto}
-      className="py-4"
+      // Tildado para cambiar en bloque: la fila se resalta en naranja.
+      className="-mx-2 rounded-xl px-2 py-4 transition-colors has-[input[data-elegir]:checked]:bg-naranja/15"
       // Para que el control de stock muestre u oculte este producto.
       data-producto={p?.id}
     >
@@ -20,7 +21,10 @@ export function ProductoFila({ p, comercioId, ahora }: { p?: Tabla<"productos">;
         {p ? (
           <div className="flex min-w-0 items-center gap-3">
             {/* Casilla para los cambios en bloque (no se manda al guardar). */}
-            <input type="checkbox" data-elegir value={p.id} aria-label={`Tildar ${p.nombre}`} className="h-5 w-5 shrink-0 accent-[#ff6b2c]" />
+            <label className="flex shrink-0 cursor-pointer flex-col items-center gap-0.5 text-[10px] font-semibold text-white/75">
+              <input type="checkbox" data-elegir value={p.id} aria-label={`Tildar ${p.nombre}`} className="h-6 w-6 accent-[#ff6b2c]" />
+              Elegir
+            </label>
             <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-white/20 bg-marino-claro">
               <FotoProducto url={p.foto_url} nombre={p.nombre} sizes="56px" texto="text-xl" />
             </div>

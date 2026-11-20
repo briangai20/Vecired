@@ -221,52 +221,63 @@ export function HerramientasProductos({ items, children }: { items: ItemStock[];
         ) : null}
       </div>
 
-      {/* Cambios en bloque y "Guardar todo" */}
-      <div className="sticky top-28 z-20 -mx-2 my-2 rounded-2xl bg-marino-claro px-3 py-3 shadow-lg shadow-black/30 lg:top-20">
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs">
-          <span className="font-semibold">
-            {tildados} {tildados === 1 ? "tildado" : "tildados"}
-          </span>
-          <button type="button" onClick={() => tildarTodos(true)} className="font-medium text-white/85 hover:text-naranja-vivo active:text-naranja-vivo">
-            Tildar los que se ven
-          </button>
-          {tildados ? (
-            <button type="button" onClick={() => tildarTodos(false)} className="font-medium text-white/85 hover:text-naranja-vivo active:text-naranja-vivo">
-              Destildar
-            </button>
-          ) : null}
+      {/* Cambios en bloque y "Guardar todo": siempre a la vista, con los pasos. */}
+      <div className="sticky top-28 z-20 -mx-2 my-2 rounded-2xl border-2 border-naranja-vivo/70 bg-marino-claro px-3 py-3 shadow-lg shadow-black/30 lg:top-20">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-sm font-bold">✏️ Modificar stock, precio y más</p>
           <button
             type="button"
             onClick={guardarTodo}
             disabled={!cambiados || trabajando}
-            className="boton ml-auto rounded-xl px-4 py-2 text-xs font-semibold"
+            className="boton rounded-xl px-4 py-2 text-xs font-semibold"
           >
             {trabajando && cambiados ? "Guardando…" : `Guardar todo${cambiados ? ` (${cambiados})` : ""}`}
           </button>
         </div>
-        {tildados ? (
-          <div className="mt-2 flex flex-wrap items-end gap-2 text-xs">
-            <label className="block">
-              Cambio para los tildados
-              <select value={accion} onChange={(e) => setAccion(e.target.value as AccionLote)} className="campo mt-1">
-                {ACCIONES.map((a) => (
-                  <option key={a.valor} value={a.valor}>
-                    {a.texto}
-                  </option>
-                ))}
-              </select>
-            </label>
-            {pide ? (
-              <label className="block">
-                {pide}
-                <input value={valor} onChange={(e) => setValor(e.target.value)} inputMode="decimal" className="campo mt-1 w-32" />
-              </label>
-            ) : null}
-            <button type="button" onClick={aplicar} disabled={trabajando} className="boton rounded-xl px-4 py-2.5 text-xs font-semibold">
-              {trabajando ? "Aplicando…" : `Aplicar a ${tildados}`}
+        {tildados ? null : (
+          <ol className="mt-2 list-decimal space-y-0.5 pl-5 text-xs text-white/85">
+            <li>
+              Tocá la casilla <span className="inline-block h-3.5 w-3.5 translate-y-0.5 rounded border-2 border-naranja-vivo" aria-hidden /> de cada producto que querés cambiar (o “Tildar los que se ven”).
+            </li>
+            <li>Elegí qué cambiar (sumar stock, fijarlo, precio en %, pausar…) y cuánto.</li>
+            <li>Tocá “Aplicar”.</li>
+          </ol>
+        )}
+        <p className="mt-1 text-[11px] text-white/65">¿Uno solo? Cambiá sus datos en el producto y tocá “Guardar” (o “Guardar todo” si cambiaste varios).</p>
+        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+          <span className={`font-semibold ${tildados ? "text-naranja-vivo" : ""}`}>
+            {tildados} {tildados === 1 ? "producto tildado" : "productos tildados"}
+          </span>
+          <button type="button" onClick={() => tildarTodos(true)} className="font-medium text-white/85 underline hover:text-naranja-vivo active:text-naranja-vivo">
+            Tildar los que se ven
+          </button>
+          {tildados ? (
+            <button type="button" onClick={() => tildarTodos(false)} className="font-medium text-white/85 underline hover:text-naranja-vivo active:text-naranja-vivo">
+              Destildar
             </button>
-          </div>
-        ) : null}
+          ) : null}
+        </div>
+        <div className="mt-2 flex flex-wrap items-end gap-2 text-xs">
+          <label className="block">
+            Qué cambiar
+            <select value={accion} onChange={(e) => setAccion(e.target.value as AccionLote)} className="campo mt-1">
+              {ACCIONES.map((a) => (
+                <option key={a.valor} value={a.valor}>
+                  {a.texto}
+                </option>
+              ))}
+            </select>
+          </label>
+          {pide ? (
+            <label className="block">
+              {pide}
+              <input value={valor} onChange={(e) => setValor(e.target.value)} inputMode="decimal" className="campo mt-1 w-32" />
+            </label>
+          ) : null}
+          <button type="button" onClick={aplicar} disabled={trabajando || !tildados} className="boton rounded-xl px-4 py-2.5 text-xs font-semibold">
+            {trabajando && tildados ? "Aplicando…" : tildados ? `Aplicar a ${tildados}` : "Aplicar (tildá productos)"}
+          </button>
+        </div>
         {aviso ? (
           <p role="status" className={`mt-2 text-xs font-semibold ${aviso.error ? "text-[#ffb4a2]" : "text-verde"}`}>
             {aviso.texto}

@@ -1,6 +1,7 @@
 "use client";
 
 import "maplibre-gl/dist/maplibre-gl.css";
+import { avisarNavegacion } from "./barra-carga";
 import type { GeoJSONSource, Map as MapaMapLibre, Marker } from "maplibre-gl";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -218,7 +219,10 @@ export function MapaComercios({
         ver.type = "button";
         ver.className = "mt-2 rounded-lg bg-naranja px-3 py-1 text-xs font-semibold text-white";
         ver.textContent = "Ver catálogo";
-        ver.onclick = () => router.push(`/comercio/${c.id}`);
+        ver.onclick = () => {
+          avisarNavegacion();
+          router.push(`/comercio/${c.id}`);
+        };
         tarjeta.append(ver);
       }
       const ir = document.createElement("a");

@@ -5,6 +5,7 @@ import { Suspense } from "react";
 import { LogoVeciRed } from "@/components/logo";
 import { MenuCuenta } from "@/components/menu-cuenta";
 import { BarraInferior } from "@/components/barra-inferior";
+import { BarraCarga } from "@/components/barra-carga";
 import { Avisos } from "@/components/avisos";
 import { IconoCarrito } from "@/components/icono-carrito";
 import { Buscador, BuscadorCargando } from "@/components/buscador";
@@ -57,6 +58,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <PantallaInicio />
         <Suspense fallback={null}>
           <UbicacionAlAbrir />
+        </Suspense>
+        <Suspense fallback={null}>
+          <BarraCarga />
         </Suspense>
         {/* Fijo arriba. El iPhone difumina una franja debajo de la hora: por eso, si hay
             zona de la hora (safe-area), se suma hasta 36px de margen para que el logo

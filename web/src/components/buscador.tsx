@@ -1,6 +1,7 @@
 "use client";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { avisarNavegacion } from "./barra-carga";
 import { useEffect, useId, useRef, useState } from "react";
 import { guardarBusqueda, sacarBusqueda, useBusquedas } from "@/lib/historial";
 import { iconoRubro } from "@/lib/rubros";
@@ -124,6 +125,7 @@ export function Buscador({ className = "" }: { className?: string }) {
     setAbierto(false);
     setActiva(-1);
     campo.current?.blur();
+    avisarNavegacion();
     router.push(`/${p.size ? `?${p}` : ""}`);
   }
 
@@ -132,6 +134,7 @@ export function Buscador({ className = "" }: { className?: string }) {
       setAbierto(false);
       setActiva(-1);
       campo.current?.blur();
+      avisarNavegacion();
       router.push(`/comercio/${s.id}`);
     } else irA(s.texto);
   }

@@ -30,6 +30,8 @@ export function BarraInferior({ children }: { children: ReactNode }) {
   const ruta = usePathname();
   const params = useSearchParams();
   const [mas, setMas] = useState(false);
+  // El botón tocado se pinta al instante, sin esperar a que llegue la página.
+  const [tocado, setTocado] = useState<string | null>(null);
   const caja = useRef<HTMLDivElement>(null);
   const [antes, setAntes] = useState({ ruta, params: params.toString() });
 
@@ -37,6 +39,7 @@ export function BarraInferior({ children }: { children: ReactNode }) {
   if (antes.ruta !== ruta || antes.params !== params.toString()) {
     setAntes({ ruta, params: params.toString() });
     setMas(false);
+    setTocado(null);
   }
 
   // Tocar afuera lo cierra.
@@ -50,7 +53,13 @@ export function BarraInferior({ children }: { children: ReactNode }) {
   // "Comercios" es la portada con ?ver=comercios: Inicio no se pinta ahí.
   const enComercios = ruta === "/" && params.get("ver") === "comercios";
   const actual = (href: string) =>
-    (href === "/comercios" ? enComercios && !mas : href === "/" ? ruta === "/" && !enComercios && !mas : ruta.startsWith(href) && !mas) || undefined;
+    (tocado
+      ? tocado === href && !mas
+      : href === "/comercios"
+        ? enComercios && !mas
+        : href === "/"
+          ? ruta === "/" && !enComercios && !mas
+          : ruta.startsWith(href) && !mas) || undefined;
 
   return (
     <div ref={caja} className="lg:hidden">
@@ -67,19 +76,20 @@ export function BarraInferior({ children }: { children: ReactNode }) {
         aria-label="Navegación"
         className="fixed inset-x-0 bottom-0 z-40 flex gap-1 border-t border-white/15 bg-marino px-2 pt-1 pb-[calc(0.25rem+env(safe-area-inset-bottom))] shadow-[0_-8px_24px_-12px_rgb(0_0_0/0.5)]"
       >
-        <Link href="/" aria-current={actual("/") && "page"} className={item}>
+        {/* prefetch: las cuatro secciones quedan precargadas para abrir al instante. */}
+        <Link href="/" prefetch aria-current={actual("/") && "page"} onClick={() => setTocado("/")} className={item}>
           <Icono d={ICONOS.inicio} />
           Inicio
         </Link>
-        <Link href="/?ver=comercios" aria-current={actual("/comercios") && "page"} className={item}>
+        <Link href="/?ver=comercios" prefetch aria-current={actual("/comercios") && "page"} onClick={() => setTocado("/comercios")} className={item}>
           <Icono d={ICONOS.comercios} />
           Comercios
         </Link>
-        <Link href="/ofertas" aria-current={actual("/ofertas") && "page"} className={item}>
+        <Link href="/ofertas" prefetch aria-current={actual("/ofertas") && "page"} onClick={() => setTocado("/ofertas")} className={item}>
           <Icono d={ICONOS.ofertas} />
           Ofertas
         </Link>
-        <Link href="/reservas" aria-current={actual("/reservas") && "page"} className={item}>
+        <Link href="/reservas" prefetch aria-current={actual("/reservas") && "page"} onClick={() => setTocado("/reservas")} className={item}>
           <Icono d={ICONOS.reservas} />
           Reservas
         </Link>

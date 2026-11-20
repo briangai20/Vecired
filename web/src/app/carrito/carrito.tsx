@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { avisarNavegacion } from "@/components/barra-carga";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
@@ -83,6 +84,7 @@ function Pedido({ grupo, datos }: { grupo: CarritoComercio; datos: DatosComercio
         return;
       }
       vaciarComercio(comercio.id);
+      avisarNavegacion();
       router.push(`/reservas${r.reserva ? `?nueva=${r.reserva}` : ""}`);
     });
 

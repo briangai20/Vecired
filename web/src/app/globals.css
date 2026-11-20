@@ -248,3 +248,18 @@ a img {
     font-size: 16px !important;
   }
 }
+
+/* Barra de carga al tocar un enlace (components/barra-carga.tsx): avanza
+   rápido al principio y cada vez más lento, hasta que llega la página. */
+@keyframes avanzar-carga {
+  0% { width: 0; }
+  20% { width: 45%; }
+  60% { width: 75%; }
+  100% { width: 92%; }
+}
+.barra-carga {
+  animation: avanzar-carga 6s cubic-bezier(0.1, 0.7, 0.3, 1) forwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .barra-carga { animation: none; width: 60%; }
+}
