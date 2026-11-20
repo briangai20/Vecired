@@ -594,6 +594,27 @@ export type Database = {
       reprogramar_retiro: { Args: { p_reserva: number; p_retiro: string }; Returns: undefined }
       reservar_pedido: { Args: { p_items: { producto: number; cantidad: number }[]; p_retiro: string; p_ya?: boolean }; Returns: number }
       marcar_no_vino: { Args: { p_reserva: number }; Returns: undefined }
+      usuarios_para_admin: {
+        Args: never;
+        Returns: {
+          id: string;
+          email: string;
+          nombre: string;
+          rol: "comprador" | "comerciante";
+          telefono: string | null;
+          foto_url: string | null;
+          avisos_mail: string;
+          creado_en: string;
+          mail_confirmado: boolean;
+          ultimo_ingreso: string | null;
+          comercio_id: number | null;
+          comercio_nombre: string | null;
+          comercio_estado: "publicado" | "en_revision" | "rechazado" | "dado_de_baja" | null;
+          reservas: number;
+          retiradas: number;
+          es_admin: boolean;
+        }[];
+      }
       cancelar_reprogramada: { Args: { p_reserva: number; p_motivo: string }; Returns: undefined }
       precio_vigente: { Args: { p_producto: number }; Returns: number | null }
       reactivar_mi_comercio: { Args: never; Returns: undefined }

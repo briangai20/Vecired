@@ -242,6 +242,10 @@ function Celular({ comercioId, productos }: { comercioId: number; productos: Pro
         <p className="text-xs text-white/70">
           Producto {indice + 1} de {pendientes.length} sin foto{hechos ? ` · ya sacaste ${hechos}` : ""}
         </p>
+        {/* Para ir directo a un producto en vez de seguir el orden. */}
+        <div className="mx-auto mt-2 max-w-sm text-left text-xs">
+          <ElegirProducto productos={pendientes} valor={null} alElegir={(id) => id != null && setIndice(Math.max(0, pendientes.findIndex((x) => x.id === id)))} />
+        </div>
         <p className="mt-2 text-lg font-bold">{actual.nombre}</p>
         {actual.codigo ? <p className="text-xs text-white/70">Código {actual.codigo}</p> : null}
         <input

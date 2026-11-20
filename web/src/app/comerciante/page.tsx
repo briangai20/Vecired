@@ -382,15 +382,7 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
                                 <form action={ofrecerAlternativas} className="mt-2 space-y-2">
                                   <input type="hidden" name="reserva" value={x.id} />
                                   <p className="text-xs text-white/75">Elegí uno o más productos. El cliente elige cuál le sirve o lo saca del pedido sin costo.</p>
-                                  <div className="max-h-48 space-y-1 overflow-y-auto">
-                                    {opciones(x.producto_id, x.cantidad).map((o) => (
-                                      <label key={o.id} className="flex items-center gap-2 rounded-lg border border-white/15 px-3 py-2 text-xs">
-                                        <input type="checkbox" name="productos" value={o.id} className="h-4 w-4 accent-white" />
-                                        <span className="flex-1">{o.nombre}</span>
-                                        <span className="text-white/75">{plata(o.precio)}</span>
-                                      </label>
-                                    ))}
-                                  </div>
+                                  <SelectorProductos titulo="Productos para ofrecer" maximo={10} productos={opciones(x.producto_id, x.cantidad)} />
                                   <BotonEnviar enviando="Enviando…" className="boton w-full rounded-xl py-2 text-sm font-semibold">
                                     Ofrecer al cliente
                                   </BotonEnviar>

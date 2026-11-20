@@ -248,8 +248,13 @@ export function Campanita({ yo }: { yo: string }) {
               ) : null}
             </div>
           </div>
-          {/* Pestañas por tipo de aviso; se desliza de costado si no entran. */}
-          <div role="tablist" aria-label="Tipo de aviso" className="sin-barra flex gap-1.5 overflow-x-auto border-b border-marino/10 px-3 py-2">
+          {/* Pestañas por tipo de aviso: en el celular se deslizan con el dedo; en la
+              compu (con mouse) se ven todas, en dos renglones si hace falta. */}
+          <div
+            role="tablist"
+            aria-label="Tipo de aviso"
+            className="sin-barra flex gap-1.5 overflow-x-auto border-b border-marino/10 px-3 py-2 [@media(hover:hover)]:flex-wrap [@media(hover:hover)]:overflow-visible"
+          >
             {filtros.map(([f, etiqueta]) => {
               const n = sinLeerDe(f);
               const activo = f === filtro;

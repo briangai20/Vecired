@@ -8,6 +8,7 @@ import Image from "next/image";
 import { LogoComercio } from "@/components/logo-comercio";
 import { enlaceWhatsapp } from "@/lib/whatsapp";
 import { revisarComercio } from "./acciones";
+import { Usuarios } from "./usuarios";
 import { chequeos, CONTROLES, distanciaDireccionPin, enlacesVerificacion, MOTIVOS, type Chequeo, type Control } from "./verificar";
 
 export const metadata: Metadata = { title: "Administración", robots: { index: false } };
@@ -24,6 +25,7 @@ const VISTAS = {
   pendientes: "En revisión",
   rechazados: "Rechazados",
   publicados: "Publicados",
+  usuarios: "Usuarios",
 } as const;
 type Vista = keyof typeof VISTAS;
 
@@ -35,15 +37,15 @@ async function Panel({ searchParams }: Pick<PageProps<"/admin">, "searchParams">
   if (!usuario) redirect("/ingresar?siguiente=/admin");
   if (!usuario.admin) notFound();
 
-  const { ver: verParam, error, ok } = await searchParams;
+  const { ver: verParam, error, ok, tipo, q } = await searchParams;
   const ver: Vista = typeof verParam === "string" && verParam in VISTAS ? (verParam as Vista) : "pendientes";
 
   const supabase = await supabaseServidor();
-  const { data } = await supabase.rpc("comercios_para_revisar");
+  const [{ data }, { data: usuarios }] = await Promise.all([supabase.rpc("comercios_para_revisar"), supabase.rpc("usuarios_para_admin")]);
   const todos = data ?? [];
   const vistaDe = (c: (typeof todos)[number]): Vista => (c.aprobado ? "publicados" : c.motivo_rechazo ? "rechazados" : "pendientes");
   const lista = todos.filter((c) => vistaDe(c) === ver);
-  const cuantos = (v: Vista) => todos.filter((c) => vistaDe(c) === v).length;
+  const cuantos = (v: Vista) => (v === "usuarios" ? (usuarios ?? []).length : todos.filter((c) => vistaDe(c) === v).length);
   // Dónde queda la dirección escrita respecto del pin (solo los que hay que revisar).
   const metros = new Map(
     await Promise.all(
@@ -86,7 +88,9 @@ async function Panel({ searchParams }: Pick<PageProps<"/admin">, "searchParams">
         </p>
       ) : null}
 
-      {lista.length === 0 ? (
+      {ver === "usuarios" ? (
+        <Usuarios usuarios={usuarios ?? []} tipo={typeof tipo === "string" ? tipo : undefined} q={typeof q === "string" ? q.slice(0, 80) : undefined} />
+      ) : lista.length === 0 ? (
         <p className="tarjeta rounded-3xl p-6 text-sm text-white/85">
           {ver === "pendientes" ? "No hay comercios esperando revisión." : "No hay comercios en esta lista."}
         </p>

@@ -13,14 +13,11 @@ export function ElegirProducto({
   valor,
   alElegir,
   disabled = false,
-  vacio = "No subir",
 }: {
   productos: OpcionProducto[];
   valor: number | null;
   alElegir: (id: number | null) => void;
   disabled?: boolean;
-  /** Texto cuando no hay ninguno elegido. */
-  vacio?: string;
 }) {
   const [texto, setTexto] = useState("");
   const [abierto, setAbierto] = useState(false);
@@ -100,7 +97,7 @@ export function ElegirProducto({
             elegir(opciones[activa].id);
           } else if (e.key === "Escape") setAbierto(false);
         }}
-        placeholder={`Escribí el producto (${vacio.toLowerCase()} si lo dejás vacío)`}
+        placeholder="Escribí el nombre, la marca o el código…"
         role="combobox"
         aria-expanded={abierto}
         aria-controls={lista}

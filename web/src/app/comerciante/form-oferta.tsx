@@ -7,6 +7,7 @@ import { supabaseNavegador } from "@/lib/supabase/navegador";
 import { crearOferta, type EstadoOferta } from "./acciones";
 import { achicar } from "./subir-foto";
 import { SelectorProductos } from "./selector-productos";
+import { ElegirProducto } from "@/components/elegir-producto";
 import { CamposPromo } from "./campos-promo";
 
 type Producto = { id: number; nombre: string; precio: number | null };
@@ -75,17 +76,13 @@ export function FormOferta({ comercioId, productos, hoy, maximo }: { comercioId:
 
       {tipo === "producto" ? (
         <div className="grid gap-3 sm:grid-cols-2">
-          <label className="block text-xs">
+          <div className="block text-xs">
             Producto
-            <select name="producto" value={productoId} onChange={(e) => setProductoId(e.target.value)} required className="campo mt-1">
-              <option value="">Elegí un producto…</option>
-              {productos.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.nombre} {p.precio != null ? `(${plata(p.precio)})` : ""}
-                </option>
-              ))}
-            </select>
-          </label>
+            {/* Se escribe el nombre, la marca o el código (con corrector) en vez de buscarlo en una lista. */}
+            <ElegirProducto productos={productos} valor={productoId ? Number(productoId) : null} alElegir={(id) => setProductoId(id ? String(id) : "")} />
+            <input type="hidden" name="producto" value={productoId} />
+            {elegido?.precio != null ? <p className="mt-1 text-white/60">Precio normal: {plata(elegido.precio)}</p> : null}
+          </div>
           <label className="block text-xs">
             Precio de oferta {elegido?.precio != null ? <span className="text-white/60">(normal {plata(elegido.precio)})</span> : null}
             <input name="precio" type="number" min="1" step="0.01" max={elegido?.precio != null ? elegido.precio - 0.01 : undefined} required className="campo mt-1" />

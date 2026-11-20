@@ -24,7 +24,8 @@ export default function PaginaPrivacidad() {
         <ul>
           <li>
             <strong>Datos de tu cuenta:</strong> nombre y apellido, mail, contraseña (guardada cifrada: nadie puede leerla, ni
-            nosotros), si usás VeciRed para comprar o para vender y, si lo cargás, tu teléfono.
+            nosotros), si usás VeciRed para comprar o para vender, la fecha en que te registraste y la de tu último ingreso y, si
+            los cargás, tu teléfono y tu foto de perfil.
           </li>
           <li>
             <strong>Reservas:</strong> qué producto reservaste, cantidad, precio, comercio, horario de retiro elegido y en qué
@@ -32,6 +33,15 @@ export default function PaginaPrivacidad() {
           </li>
           <li>
             <strong>Reseñas:</strong> las estrellas y el texto que escribas, junto con tu nombre y la inicial de tu apellido.
+          </li>
+          <li>
+            <strong>Mensajes, preguntas y favoritos:</strong> los mensajes que intercambiás con un comercio dentro de una reserva,
+            las preguntas que hacés en un producto (se publican sin tu nombre) y los productos y comercios que guardás en
+            favoritos.
+          </li>
+          <li>
+            <strong>Avisos:</strong> los avisos que te mandamos dentro de VeciRed (se borran solos a los 7 días) y, si activás los
+            avisos en tu celular o compu, los datos técnicos que tu navegador nos da para poder mandártelos.
           </li>
           <li>
             <strong>Datos del comercio:</strong> nombre, rubro, dirección, ubicación en el mapa, WhatsApp, horarios, días cerrados,
@@ -59,6 +69,10 @@ export default function PaginaPrivacidad() {
           <li>Que el comercio pueda gestionar las reservas que recibe.</li>
           <li>Mandarte mails necesarios: confirmar tu cuenta, recuperar tu contraseña y avisos sobre tus reservas.</li>
           <li>Prevenir abusos y fraudes y cumplir con la ley.</li>
+          <li>
+            Dar soporte y administrar VeciRed: solo las personas autorizadas del equipo de VeciRed pueden ver los datos de las
+            cuentas (por ejemplo, para verificar un comercio o resolver un reclamo), con deber de confidencialidad.
+          </li>
         </ul>
         <p>No vendemos tus datos ni los usamos para publicidad de terceros.</p>
       </Seccion>
