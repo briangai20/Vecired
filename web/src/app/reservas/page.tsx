@@ -310,13 +310,13 @@ async function Reservas({ searchParams }: Pick<PageProps<"/reservas">, "searchPa
 
         {retirada ? (
           retirada.resena ? (
-            <div className="mt-3 rounded-xl bg-crema p-3 text-sm text-marino">
-              <p className="text-xs text-marino/70">Tu reseña</p>
-              <Estrellas valor={retirada.resena.estrellas} vacias="text-marino/25" />
+            <div className="mt-3 rounded-xl border border-[#7d9ad6] bg-[#3d5c9c] p-3 text-sm">
+              <p className="text-xs text-white/80">Tu reseña</p>
+              <Estrellas valor={retirada.resena.estrellas} />
               {retirada.resena.texto ? <p className="mt-1">{retirada.resena.texto}</p> : null}
               {retirada.resena.respuesta ? (
-                <div className="mt-2 rounded-lg border-l-2 border-naranja bg-marino/5 p-2">
-                  <p className="text-xs font-semibold text-marino/75">Respuesta de {c?.nombre}</p>
+                <div className="mt-2 rounded-lg border-l-2 border-naranja-vivo bg-white/10 p-2">
+                  <p className="text-xs font-semibold text-white/80">Respuesta de {c?.nombre}</p>
                   <p className="mt-0.5">{retirada.resena.respuesta}</p>
                 </div>
               ) : null}
