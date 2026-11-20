@@ -36,11 +36,11 @@ const ESTADOS: Record<Estado, { texto: string; detalle: string; color: string }>
     detalle: "Ya te lo separaron. Mostrá el código en el local y pagás al retirar.",
     color: "border-verde bg-verde/15 text-verde",
   },
-  retirada: { texto: "Retirada", detalle: "", color: "border-white/30 text-white/80" },
-  no_retirada: { texto: "No la retiraste", detalle: "Pasó el plazo y el producto volvió a estar disponible. No se cobró nada.", color: "border-white/30 text-white/70" },
-  rechazada: { texto: "No la pudo confirmar", detalle: "El comercio no la pudo confirmar. No se cobró nada.", color: "border-white/30 text-white/70" },
-  cancelada: { texto: "Cancelada", detalle: "", color: "border-white/30 text-white/70" },
-  vencida: { texto: "Vencida", detalle: "El comercio no respondió a tiempo. No se cobró nada.", color: "border-white/30 text-white/70" },
+  retirada: { texto: "Retirada", detalle: "", color: "border-white/30 bg-white/5 text-white/80" },
+  no_retirada: { texto: "No la retiraste", detalle: "Pasó el plazo y el producto volvió a estar disponible. No se cobró nada.", color: "border-white/30 bg-white/5 text-white/70" },
+  rechazada: { texto: "No la pudo confirmar", detalle: "El comercio no la pudo confirmar. No se cobró nada.", color: "border-white/30 bg-white/5 text-white/70" },
+  cancelada: { texto: "Cancelada", detalle: "", color: "border-white/30 bg-white/5 text-white/70" },
+  vencida: { texto: "Vencida", detalle: "El comercio no respondió a tiempo. No se cobró nada.", color: "border-white/30 bg-white/5 text-white/70" },
 };
 const EN_CURSO: Estado[] = ["pendiente", "alternativa", "aceptada"];
 
