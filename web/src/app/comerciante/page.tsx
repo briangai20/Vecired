@@ -4,7 +4,7 @@ import { Suspense } from "react";
 import { disponibilidad, fechaAR, plata, totalReserva } from "@/lib/formato";
 import { usuarioActual } from "@/lib/sesion";
 import { supabaseServidor } from "@/lib/supabase/servidor";
-import type { Enum } from "@/lib/supabase/tipos";
+import type { Enum, Tabla } from "@/lib/supabase/tipos";
 import { reactivarComercio } from "@/app/cuenta/acciones";
 import { FormOferta } from "./form-oferta";
 import { HerramientasProductos } from "./herramientas-productos";
@@ -43,6 +43,11 @@ export default function PaginaComerciante({ searchParams }: PageProps<"/comercia
     </Suspense>
   );
 }
+
+// Todo lo que se puede editar de un producto: si algo cambia, su formulario se
+// vuelve a armar con los valores nuevos.
+const claveProducto = (p: Tabla<"productos">) =>
+  [p.id, p.actualizado_en, p.nombre, p.precio, p.stock, p.modo, p.semaforo, p.activo, p.marca, p.medida, p.material, p.grupo, p.codigo, p.descripcion, p.foto_url, (p.fotos ?? []).length].join("|");
 
 const ESTADOS: Record<Enum<"estado_reserva">, string> = {
   pendiente: "Para responder",
@@ -517,7 +522,9 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
                 })}
               >
                 {(productos ?? []).map((p) => (
-                  <ProductoFila key={p.id} p={p} comercioId={comercio.id} ahora={ahora} />
+                  // La clave cambia con los datos guardados: así, al guardar (uno, varios o
+                  // en bloque) los campos muestran enseguida lo nuevo, sin recargar.
+                  <ProductoFila key={claveProducto(p)} p={p} comercioId={comercio.id} ahora={ahora} />
                 ))}
               </HerramientasProductos>
             </div>
@@ -549,7 +556,7 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
                   <input type="hidden" name="pregunta" value={q.id} />
                   <label className="block text-xs text-white/80">
                     {q.respuesta ? "Tu respuesta (podés cambiarla)" : "Tu respuesta"}
-                    <textarea name="respuesta" maxLength={1000} rows={2} defaultValue={q.respuesta ?? ""} className="campo mt-1" placeholder="¡Hola! Sí, lo tenemos. Te esperamos." />
+                    <textarea key={q.respuesta ?? ""} name="respuesta" maxLength={1000} rows={2} defaultValue={q.respuesta ?? ""} className="campo mt-1" placeholder="¡Hola! Sí, lo tenemos. Te esperamos." />
                   </label>
                   <div className="flex flex-wrap items-center gap-3">
                     <BotonEnviar enviando="Guardando…" className="boton rounded-xl px-4 py-2 text-sm font-semibold">
@@ -666,7 +673,7 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
                   <input type="hidden" name="resena" value={r.id} />
                   <label className="block text-xs text-white/80">
                     {r.respuesta ? "Tu respuesta (podés cambiarla o borrarla)" : "Tu respuesta"}
-                    <textarea name="respuesta" maxLength={1000} rows={2} defaultValue={r.respuesta ?? ""} className="campo mt-1" placeholder="¡Gracias por venir! Te esperamos de nuevo." />
+                    <textarea key={r.respuesta ?? ""} name="respuesta" maxLength={1000} rows={2} defaultValue={r.respuesta ?? ""} className="campo mt-1" placeholder="¡Gracias por venir! Te esperamos de nuevo." />
                   </label>
                   <BotonEnviar enviando="Guardando…" className="boton rounded-xl px-4 py-2 text-sm font-semibold">
                     {r.respuesta ? "Guardar respuesta" : "Responder"}

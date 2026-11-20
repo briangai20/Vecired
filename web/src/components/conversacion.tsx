@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { supabaseNavegador } from "@/lib/supabase/navegador";
 
@@ -26,6 +27,7 @@ export function Conversacion({
   /** Mensajes del otro que todavía no leíste (avisos sin leer de esta reserva). */
   sinLeer?: number;
 }) {
+  const router = useRouter();
   const [mensajes, setMensajes] = useState<Mensaje[]>(() => [...iniciales].sort((a, b) => a.id - b.id));
   // Si la página se actualiza (llegó un aviso, volviste a la pestaña), se suman
   // los mensajes que trajo el servidor: así se ven también en la compu aunque
@@ -85,10 +87,12 @@ export function Conversacion({
         .eq("usuario_id", yo)
         .is("leida_en", null)
         .like("titulo", "Mensaje de %")
-        .like("enlace", `%#reserva-${reserva}`);
+        .like("enlace", `%#reserva-${reserva}`)
+        // Que el contador de mensajes del panel baje enseguida.
+        .then(() => router.refresh());
     }, 1500);
     return () => clearTimeout(t);
-  }, [mostrar, nuevos, reserva, yo]);
+  }, [mostrar, nuevos, reserva, yo, router]);
 
   // Si se abre desde un aviso (…#reserva-12), se despliega sola.
   useEffect(() => {

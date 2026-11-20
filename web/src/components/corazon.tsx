@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { supabaseNavegador } from "@/lib/supabase/navegador";
 
@@ -21,6 +21,7 @@ export function Corazon({
   className?: string;
 }) {
   const ruta = usePathname();
+  const router = useRouter();
   const [activo, setActivo] = useState(guardado);
   const [ocupado, setOcupado] = useState(false);
   const etiqueta = activo ? "Sacar de favoritos" : "Guardar en favoritos";
@@ -51,6 +52,8 @@ export function Corazon({
       : await supabase.from("favoritos").delete().eq(columna, id);
     // Si ya estaba guardado (por ejemplo desde otra pestaña), da igual: queda guardado.
     if (error && error.code !== "23505") setActivo(!nuevo);
+    // Que el resto de la página (por ejemplo "Mis favoritos") lo refleje enseguida.
+    else router.refresh();
     setOcupado(false);
   }
 
