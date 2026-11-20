@@ -5,12 +5,15 @@ import { coincideAprox, coincideExacto, corregir, palabrasBuscadas, palabrasDe, 
 import { cambiarEnBloque, guardarVarios, type AccionLote } from "./acciones";
 
 const ACCIONES: { valor: AccionLote; texto: string; numero?: string }[] = [
-  { valor: "sumar", texto: "Sumar o restar stock", numero: "Unidades (ej.: 10 o -5)" },
-  { valor: "fijar", texto: "Fijar el stock en", numero: "Unidades" },
-  { valor: "precio", texto: "Cambiar el precio en %", numero: "% (ej.: 10 o -5)" },
+  { valor: "sumar", texto: "Sumar/restar stock", numero: "Unidades (ej.: 10 o -5)" },
+  { valor: "fijar", texto: "Fijar stock", numero: "Unidades" },
+  { valor: "precio", texto: "Precio en %", numero: "% (ej.: 10 o -5)" },
   { valor: "pausar", texto: "Pausar (ocultar)" },
   { valor: "activar", texto: "Activar (mostrar)" },
 ];
+
+// Lo que va escrito adentro del campo del número (en el celular no entra la etiqueta).
+const PISTA: Partial<Record<AccionLote, string>> = { sumar: "±10", fijar: "Cant.", precio: "±%" };
 
 const DE_A = 20; // productos que se muestran al principio (después, "Ver más")
 
@@ -36,6 +39,7 @@ export function HerramientasProductos({ items, children }: { items: ItemStock[];
   const [texto, setTexto] = useState("");
   const [filtros, setFiltros] = useState<Filtros>(SIN_FILTROS);
   const [cuantos, setCuantos] = useState(DE_A);
+  const [verFiltros, setVerFiltros] = useState(false);
 
   const casillas = (soloVisibles = false) =>
     [...(lista.current?.querySelectorAll<HTMLInputElement>("input[data-elegir]") ?? [])].filter((c) => !soloVisibles || !c.closest("form")?.hidden);
@@ -123,14 +127,14 @@ export function HerramientasProductos({ items, children }: { items: ItemStock[];
     setFiltros((f) => ({ ...f, [k]: v }));
     setCuantos(DE_A);
   };
+  const filtrosActivos = [filtros.marca, filtros.grupo, filtros.estado, filtros.stock, filtros.sinFoto].filter(Boolean).length;
   const hayFiltros = texto.trim() !== "" || JSON.stringify(filtros) !== JSON.stringify(SIN_FILTROS);
 
   return (
     <div>
       {/* Buscador y filtros */}
       <div className="space-y-2 rounded-2xl border border-white/15 p-3">
-        <label className="block text-xs">
-          Buscar un producto
+        <div className="flex items-center gap-2">
           <input
             type="search"
             value={texto}
@@ -138,12 +142,22 @@ export function HerramientasProductos({ items, children }: { items: ItemStock[];
               setTexto(e.target.value);
               setCuantos(DE_A);
             }}
-            placeholder="Nombre, marca o código: tornillo, Bosch, 7790…"
-            className="campo mt-1"
+            aria-label="Buscar un producto"
+            placeholder="Buscar: nombre, marca o código"
+            className="campo min-w-0 flex-1"
             autoComplete="off"
           />
-        </label>
-        <div className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
+          {/* En el celular los filtros se abren con este botón; en la compu se ven siempre. */}
+          <button
+            type="button"
+            onClick={() => setVerFiltros((v) => !v)}
+            aria-expanded={verFiltros}
+            className={`shrink-0 rounded-xl border px-3 py-2.5 text-xs font-semibold sm:hidden ${filtrosActivos ? "border-naranja-vivo text-naranja-vivo" : "border-white/30"}`}
+          >
+            Filtros{filtrosActivos ? ` (${filtrosActivos})` : ""}
+          </button>
+        </div>
+        <div className={`${verFiltros ? "grid" : "hidden"} grid-cols-2 gap-2 text-xs sm:grid sm:grid-cols-4`}>
           <label className="block">
             Marca
             <select value={filtros.marca} onChange={(e) => cambiar("marca", e.target.value)} className="campo mt-1">
@@ -181,7 +195,7 @@ export function HerramientasProductos({ items, children }: { items: ItemStock[];
           </label>
         </div>
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
-          <label className="flex items-center gap-2">
+          <label className={`${verFiltros ? "flex" : "hidden"} items-center gap-2 sm:flex`}>
             <input type="checkbox" checked={filtros.sinFoto} onChange={(e) => cambiar("sinFoto", e.target.checked)} className="h-4 w-4 accent-white" />
             Solo sin foto
           </label>
@@ -221,61 +235,63 @@ export function HerramientasProductos({ items, children }: { items: ItemStock[];
         ) : null}
       </div>
 
-      {/* Cambios en bloque y "Guardar todo": siempre a la vista, con los pasos. */}
-      <div className="sticky top-28 z-20 -mx-2 my-2 rounded-2xl border-2 border-naranja-vivo/70 bg-marino-claro px-3 py-3 shadow-lg shadow-black/30 lg:top-20">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <p className="text-sm font-bold">✏️ Modificar stock, precio y más</p>
-          <button
-            type="button"
-            onClick={guardarTodo}
-            disabled={!cambiados || trabajando}
-            className="boton rounded-xl px-4 py-2 text-xs font-semibold"
-          >
-            {trabajando && cambiados ? "Guardando…" : `Guardar todo${cambiados ? ` (${cambiados})` : ""}`}
-          </button>
-        </div>
-        {tildados ? null : (
-          <ol className="mt-2 list-decimal space-y-0.5 pl-5 text-xs text-white/85">
-            <li>
-              Tocá la casilla <span className="inline-block h-3.5 w-3.5 translate-y-0.5 rounded border-2 border-naranja-vivo" aria-hidden /> de cada producto que querés cambiar (o “Tildar los que se ven”).
-            </li>
-            <li>Elegí qué cambiar (sumar stock, fijarlo, precio en %, pausar…) y cuánto.</li>
-            <li>Tocá “Aplicar”.</li>
-          </ol>
-        )}
-        <p className="mt-1 text-[11px] text-white/65">¿Uno solo? Cambiá sus datos en el producto y tocá “Guardar” (o “Guardar todo” si cambiaste varios).</p>
-        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
-          <span className={`font-semibold ${tildados ? "text-naranja-vivo" : ""}`}>
-            {tildados} {tildados === 1 ? "producto tildado" : "productos tildados"}
-          </span>
-          <button type="button" onClick={() => tildarTodos(true)} className="font-medium text-white/85 underline hover:text-naranja-vivo active:text-naranja-vivo">
-            Tildar los que se ven
-          </button>
-          {tildados ? (
-            <button type="button" onClick={() => tildarTodos(false)} className="font-medium text-white/85 underline hover:text-naranja-vivo active:text-naranja-vivo">
-              Destildar
+      {/* Cambios en bloque y "Guardar todo": siempre a la vista y compacto. En la
+          compu queda pegado arriba al bajar; en el celular no, para no tapar la lista. */}
+      <div className="-mx-2 my-2 rounded-2xl border-2 border-naranja-vivo/70 bg-marino-claro px-3 py-2.5 shadow-lg shadow-black/30 sm:sticky sm:top-28 sm:z-20 lg:top-20">
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-sm font-bold">✏️ Cambiar stock o precio</p>
+          {cambiados ? (
+            <button type="button" onClick={guardarTodo} disabled={trabajando} className="boton shrink-0 rounded-xl px-3 py-1.5 text-xs font-semibold">
+              {trabajando ? "Guardando…" : `Guardar todo (${cambiados})`}
             </button>
           ) : null}
         </div>
-        <div className="mt-2 flex flex-wrap items-end gap-2 text-xs">
-          <label className="block">
-            Qué cambiar
-            <select value={accion} onChange={(e) => setAccion(e.target.value as AccionLote)} className="campo mt-1">
-              {ACCIONES.map((a) => (
-                <option key={a.valor} value={a.valor}>
-                  {a.texto}
-                </option>
-              ))}
-            </select>
-          </label>
+        <p className="mt-1 text-xs text-white/80">
+          {tildados ? (
+            <>
+              <b className="text-naranja-vivo">
+                {tildados} {tildados === 1 ? "tildado" : "tildados"}
+              </b>
+              {" · "}
+              <button type="button" onClick={() => tildarTodos(false)} className="underline">
+                Destildar
+              </button>
+            </>
+          ) : (
+            <>
+              Tildá “Elegir” en los productos (o{" "}
+              <button type="button" onClick={() => tildarTodos(true)} className="font-semibold underline">
+                los que se ven
+              </button>
+              ), elegí el cambio y tocá Aplicar.
+            </>
+          )}
+        </p>
+        <div className="mt-2 flex flex-wrap items-center gap-2 text-xs sm:flex-nowrap">
+          <select
+            value={accion}
+            onChange={(e) => setAccion(e.target.value as AccionLote)}
+            aria-label="Qué cambiar"
+            className="campo min-w-0 basis-full py-2 sm:flex-1 sm:basis-auto"
+          >
+            {ACCIONES.map((a) => (
+              <option key={a.valor} value={a.valor}>
+                {a.texto}
+              </option>
+            ))}
+          </select>
           {pide ? (
-            <label className="block">
-              {pide}
-              <input value={valor} onChange={(e) => setValor(e.target.value)} inputMode="decimal" className="campo mt-1 w-32" />
-            </label>
+            <input
+              value={valor}
+              onChange={(e) => setValor(e.target.value)}
+              inputMode="decimal"
+              aria-label={pide}
+              placeholder={PISTA[accion] ?? "Nº"}
+              className="campo w-24 min-w-0 flex-1 py-2 sm:flex-none"
+            />
           ) : null}
-          <button type="button" onClick={aplicar} disabled={trabajando || !tildados} className="boton rounded-xl px-4 py-2.5 text-xs font-semibold">
-            {trabajando && tildados ? "Aplicando…" : tildados ? `Aplicar a ${tildados}` : "Aplicar (tildá productos)"}
+          <button type="button" onClick={aplicar} disabled={trabajando || !tildados} className="boton ml-auto shrink-0 rounded-xl px-4 py-2.5 text-xs font-semibold">
+            {trabajando && tildados ? "…" : tildados ? `Aplicar a ${tildados}` : "Aplicar"}
           </button>
         </div>
         {aviso ? (
