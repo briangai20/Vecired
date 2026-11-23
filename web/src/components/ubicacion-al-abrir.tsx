@@ -149,24 +149,26 @@ export function UbicacionAlAbrir() {
               Para permitirla:
             </p>
             {sistema === "ios" ? (
-              <ol className="list-decimal space-y-1 pl-5">
+              <ol className="list-decimal space-y-1.5 pl-5">
                 {"standalone" in navigator && (navigator as { standalone?: boolean }).standalone ? (
                   <li>
-                    <b>Cerrá VeciRed del todo:</b> deslizá hacia arriba desde abajo de la pantalla y sacá VeciRed de las apps abiertas.
+                    Abrí <b>Safari</b> (el navegador del iPhone) y entrá a <b>vecired.com.ar</b>.
+                  </li>
+                ) : null}
+                <li>
+                  Tocá el ícono a la izquierda de la dirección (<b>aA</b> o <b>☰</b>) › <b>Configuración del sitio web</b> › <b>Ubicación</b> y elegí{" "}
+                  <b>Permitir</b>.
+                </li>
+                <li>
+                  En <b>Ajustes › Privacidad y seguridad › Localización › Sitios web de Safari</b>, elegí <b>Al usar la app</b>.
+                </li>
+                {"standalone" in navigator && (navigator as { standalone?: boolean }).standalone ? (
+                  <li>
+                    <b>Cerrá VeciRed del todo</b> (deslizá hacia arriba y sacala de las apps abiertas) y volvé a abrirla.
                   </li>
                 ) : (
-                  <li>
-                    Tocá <b>aA</b> (o el ícono a la izquierda de la dirección) › <b>Configuración del sitio web</b> › <b>Ubicación</b> y elegí{" "}
-                    <b>Permitir</b> o <b>Preguntar</b>.
-                  </li>
+                  <li>Volvé a esta página y tocá “Ya la permití”.</li>
                 )}
-                <li>
-                  Volvé a abrir VeciRed y, cuando el iPhone pregunte, tocá <b>Permitir</b>.
-                </li>
-                <li>
-                  Si no pregunta: en <b>Ajustes › Privacidad y seguridad › Localización</b>, fijate que esté activada y que{" "}
-                  <b>Sitios web de Safari</b> no esté en “Nunca”.
-                </li>
               </ol>
             ) : sistema === "android" ? (
               <ol className="list-decimal space-y-1 pl-5">
