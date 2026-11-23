@@ -125,7 +125,7 @@ export function MapaComercios({
         style: ESTILO,
         center: [centro.lng, centro.lat],
         zoom: 13,
-        attributionControl: { compact: true },
+        attributionControl: false,
         clickTolerance: 8, // un clic con el pulso un poco movido sigue siendo clic, no arrastre
         // En el celular, un dedo baja por la página y dos mueven o acercan el mapa
         // (si no, el mapa se queda con el gesto y la página no se puede mover).
@@ -269,11 +269,21 @@ export function MapaComercios({
   }, [listo, centro.lat, centro.lng, radioKm, seleccionado, comercios]);
 
   return (
-    <div
-      ref={contenedor}
-      className={`w-full overflow-hidden rounded-2xl border border-white/20 bg-[#d8d1c4] ${className}`}
-      role="region"
-      aria-label="Mapa de comercios"
-    />
+    <>
+      <div
+        ref={contenedor}
+        className={`w-full overflow-hidden rounded-2xl border border-white/20 bg-[#d8d1c4] ${className}`}
+        role="region"
+        aria-label="Mapa de comercios"
+      />
+      {/* Crédito de los datos del mapa (lo pide la licencia de OpenStreetMap): debajo, no adentro. */}
+      <p className="mt-1 text-right text-[10px] text-white/45">
+        Mapa: ©{" "}
+        <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" className="hover:underline">
+          OpenStreetMap
+        </a>{" "}
+        · OpenFreeMap
+      </p>
+    </>
   );
 }

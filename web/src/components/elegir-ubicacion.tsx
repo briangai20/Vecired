@@ -26,7 +26,7 @@ export function ElegirUbicacion({ inicial, centroZona }: { inicial: Punto | null
         style: "https://tiles.openfreemap.org/styles/liberty",
         center: [inicio.lng, inicio.lat],
         zoom: inicial ? 16 : 13,
-        attributionControl: { compact: true },
+        attributionControl: false,
       });
       m.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
       m.scrollZoom.disable();
@@ -85,6 +85,14 @@ export function ElegirUbicacion({ inicial, centroZona }: { inicial: Punto | null
         </button>
       </div>
       <div ref={contenedor} className="mt-2 h-72 w-full overflow-hidden rounded-2xl border border-white/20 bg-[#d8d1c4]" />
+      {/* Crédito de los datos del mapa (lo pide la licencia de OpenStreetMap): debajo, no adentro. */}
+      <p className="mt-1 text-right text-[10px] text-white/45">
+        Mapa: ©{" "}
+        <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" className="hover:underline">
+          OpenStreetMap
+        </a>{" "}
+        · OpenFreeMap
+      </p>
       <p className="mt-2 text-xs text-white/80" role="status">
         {aviso || (punto ? "Podés arrastrar el pin para ajustarlo." : "Tocá el mapa en la puerta de tu local.")}
       </p>
