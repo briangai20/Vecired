@@ -9,6 +9,9 @@ import {
 } from "@/lib/ubicacion";
 
 const MARCA = "vecired:ubicacion-al-abrir";
+// En el iPhone, después de un "No permitir" el navegador no vuelve a preguntar
+// en la misma página: hay que recargarla y pedir de nuevo al cargar.
+const PEDIR_AL_CARGAR = "vecired:pedir-ubicacion";
 const DEPENDEN = ["/", "/ofertas"]; // páginas que muestran cosas según la ubicación
 const CLAVES = ["zona", "lat", "lng", "lugar", "comercio"];
 
@@ -84,6 +87,12 @@ export function UbicacionAlAbrir() {
 
   useEffect(() => {
     try {
+      if (sessionStorage.getItem(PEDIR_AL_CARGAR)) {
+        sessionStorage.removeItem(PEDIR_AL_CARGAR);
+        // Vino de tocar "Permitir ubicación": si sigue sin dejar, mostramos los pasos.
+        pedir(() => setCartel("bloqueada"));
+        return;
+      }
       if (sessionStorage.getItem(MARCA)) return;
       sessionStorage.setItem(MARCA, "1");
     } catch {}
@@ -97,6 +106,13 @@ export function UbicacionAlAbrir() {
   const cerrar = () => setCartel(null);
   const reintentar = () => {
     setBuscando(true);
+    if (sistema === "ios") {
+      try {
+        sessionStorage.setItem(PEDIR_AL_CARGAR, "1");
+        window.location.reload();
+        return;
+      } catch {}
+    }
     // Si el navegador ya no deja preguntar, explicamos cómo habilitarla.
     pedir(() => setCartel("bloqueada"));
   };
@@ -134,15 +150,23 @@ export function UbicacionAlAbrir() {
             </p>
             {sistema === "ios" ? (
               <ol className="list-decimal space-y-1 pl-5">
+                {"standalone" in navigator && (navigator as { standalone?: boolean }).standalone ? (
+                  <li>
+                    <b>Cerrá VeciRed del todo:</b> deslizá hacia arriba desde abajo de la pantalla y sacá VeciRed de las apps abiertas.
+                  </li>
+                ) : (
+                  <li>
+                    Tocá <b>aA</b> (o el ícono a la izquierda de la dirección) › <b>Configuración del sitio web</b> › <b>Ubicación</b> y elegí{" "}
+                    <b>Permitir</b> o <b>Preguntar</b>.
+                  </li>
+                )}
                 <li>
-                  Abrí <b>Ajustes › Privacidad y seguridad › Localización</b> y
-                  fijate que esté activada.
+                  Volvé a abrir VeciRed y, cuando el iPhone pregunte, tocá <b>Permitir</b>.
                 </li>
                 <li>
-                  En esa lista, entrá a <b>Sitios web de Safari</b> y elegí{" "}
-                  <b>Al usar la app</b>.
+                  Si no pregunta: en <b>Ajustes › Privacidad y seguridad › Localización</b>, fijate que esté activada y que{" "}
+                  <b>Sitios web de Safari</b> no esté en “Nunca”.
                 </li>
-                <li>Volvé a VeciRed y tocá “Ya la permití”.</li>
               </ol>
             ) : sistema === "android" ? (
               <ol className="list-decimal space-y-1 pl-5">
