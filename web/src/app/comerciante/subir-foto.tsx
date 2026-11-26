@@ -1,20 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { prepararImagen } from "@/lib/imagen";
 import { supabaseNavegador } from "@/lib/supabase/navegador";
 import { agregarFotoExtra, guardarFoto, quitarFotoExtra } from "./acciones";
 
-// Achica la foto a 1200 px de lado y la pasa a JPEG, para que suba rápido
-// con datos móviles y no ocupe espacio de más.
-export async function achicar(archivo: File): Promise<Blob> {
-  const imagen = await createImageBitmap(archivo);
-  const escala = Math.min(1, 1200 / Math.max(imagen.width, imagen.height));
-  const lienzo = document.createElement("canvas");
-  lienzo.width = Math.round(imagen.width * escala);
-  lienzo.height = Math.round(imagen.height * escala);
-  lienzo.getContext("2d")!.drawImage(imagen, 0, 0, lienzo.width, lienzo.height);
-  return new Promise((ok, mal) => lienzo.toBlob((b) => (b ? ok(b) : mal(new Error("No se pudo procesar la foto"))), "image/jpeg", 0.82));
-}
+// Achica la foto a 1200 px de lado y la pasa a JPEG (con fondo blanco si
+// era un PNG transparente), para que suba rápido con datos móviles y no ocupe
+// espacio de más.
+export const achicar = (archivo: File): Promise<Blob> => prepararImagen(archivo, 1200);
 
 // Achica, sube a Storage y guarda la foto del producto.
 export async function subirFotoProducto(archivo: File, productoId: number, comercioId: number, refrescar = true) {

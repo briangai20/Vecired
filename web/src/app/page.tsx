@@ -11,6 +11,7 @@ import { MapaComercios } from "@/components/mapa-comercios";
 import { abiertoAhora, disponibilidad, fechaAR, horario, km, nota, promedio, viaje } from "@/lib/formato";
 import { iconoRubro, nombreRubro, sinAcentos } from "@/lib/rubros";
 import { supabasePublico } from "@/lib/supabase/publico";
+import { cerradosHoy as buscarCerradosHoy } from "@/lib/cerrados-hoy";
 import type { Tabla } from "@/lib/supabase/tipos";
 import { CENTROS, RADIO_INICIAL, ZONA_INICIAL } from "@/lib/zonas";
 import { VistosRecientes } from "@/components/vistos-recientes";
@@ -260,12 +261,11 @@ async function FilasDeProductos({ searchParams }: { searchParams: Params }) {
   const ids = (comercios ?? []).map((c) => c.id);
   if (!ids.length) return null;
   const ahora = new Date();
-  const [{ data: productos }, { data: horarios }, cierres] = await Promise.all([
+  const [{ data: productos }, { data: horarios }, cerradoHoy] = await Promise.all([
     db.from("productos").select("*").in("comercio_id", ids).eq("activo", true).order("id", { ascending: false }).limit(400),
     db.from("horarios").select("*").in("comercio_id", ids),
-    Promise.all(ids.map((id) => db.rpc("dias_cerrados", { p_comercio: id, p_desde: fechaAR(ahora), p_hasta: fechaAR(ahora) }))),
+    buscarCerradosHoy(db, ids, ahora),
   ]);
-  const cerradoHoy = new Set(cierres.flatMap((r, i) => (r.data?.length ? [ids[i]] : [])));
   const abierto = new Map(
     ids.map((id) => [id, abiertoAhora((horarios ?? []).filter((h) => h.comercio_id === id), ahora, cerradoHoy.has(id) ? [fechaAR(ahora)] : [])]),
   );
@@ -372,9 +372,22 @@ async function Resultados({ searchParams }: { searchParams: Params }) {
   let otros: { p: Tabla<"productos">; c: (typeof comercios)[number] }[] = [];
   if (f.q && !comercios.length && buscadas.length) {
     const cerca = (await cercanos()).data ?? [];
-    const { data: deCerca } = cerca.length
-      ? await db.from("productos").select("*").in("comercio_id", cerca.map((c) => c.id)).eq("activo", true).limit(2000)
+    // La base devuelve los productos que más se parecen (no todos los de la zona).
+    const idsCerca = cerca.map((c) => c.id);
+    let { data: deCerca } = idsCerca.length
+      ? await db.rpc("buscar_productos", { p_comercios: idsCerca, p_palabras: buscadas, p_aprox: true, p_limite: 400 })
       : { data: [] };
+    // Comercios que se parecen por nombre o rubro: todo su catálogo.
+    const porNombre = cerca.filter((c) => coincideAprox(palabrasDe(`${c.nombre} ${c.rubro}`), buscadas)).map((c) => c.id);
+    if (porNombre.length) {
+      const { data: catalogo } = await db.from("productos").select("*").in("comercio_id", porNombre).eq("activo", true).limit(500);
+      const ya = new Set((deCerca ?? []).map((p) => p.id));
+      deCerca = [...(deCerca ?? []), ...(catalogo ?? []).filter((p) => !ya.has(p.id))];
+    }
+    // Nada parecido: algunos productos de la zona para ofrecer "otros".
+    if (!deCerca?.length && idsCerca.length) {
+      deCerca = (await db.from("productos").select("*").in("comercio_id", idsCerca).eq("activo", true).order("id", { ascending: false }).limit(200)).data;
+    }
     const conPalabras = (deCerca ?? []).map((p) => ({ p, palabras: palabrasDe(textoProducto(p)) }));
     const conProducto = new Set(conPalabras.filter((x) => coincideAprox(x.palabras, buscadas)).map((x) => x.p.comercio_id));
     const parecidos = cerca.filter((c) => conProducto.has(c.id) || coincideAprox(palabrasDe(`${c.nombre} ${c.rubro}`), buscadas));
@@ -411,17 +424,13 @@ async function Resultados({ searchParams }: { searchParams: Params }) {
     ? await Promise.all([
         db.from("resenas").select("comercio_id, estrellas").in("comercio_id", idsDatos),
         db.from("horarios").select("*").in("comercio_id", idsDatos),
-        f.q && ids.length && !productosTodos ? db.from("productos").select("*").in("comercio_id", ids).eq("activo", true).limit(1000) : Promise.resolve({ data: [] }),
+        f.q && ids.length && !productosTodos ? productosDeLaBusqueda(db, comercios, buscadas) : Promise.resolve({ data: [] }),
       ])
     : [{ data: [] }, { data: [] }, { data: [] }];
   const todosLosProductos = productosTodos ?? traidos ?? [];
   const ahora = new Date();
   // Qué comercios están cerrados hoy por feriado o cierre puntual.
-  const cerradosHoy = new Set(
-    (
-      await Promise.all(idsDatos.map((id) => db.rpc("dias_cerrados", { p_comercio: id, p_desde: fechaAR(ahora), p_hasta: fechaAR(ahora) })))
-    ).flatMap((r, i) => (r.data?.length ? [idsDatos[i]] : [])),
-  );
+  const cerradosHoy = await buscarCerradosHoy(db, idsDatos, ahora);
   const franjasDe = (id: number) => (horarios ?? []).filter((h) => h.comercio_id === id);
   const abierto = new Map(idsDatos.map((id) => [id, abiertoAhora(franjasDe(id), ahora, cerradosHoy.has(id) ? [fechaAR(ahora)] : [])]));
   const valoracion = new Map(ids.map((id) => [id, promedio((resenas ?? []).filter((r) => r.comercio_id === id).map((r) => r.estrellas))]));
@@ -796,6 +805,25 @@ function Vacio({ children }: { children: React.ReactNode }) {
 }
 
 // Todo lo que se mira de un producto al buscar.
+// Productos para una búsqueda con resultados: de los comercios que coinciden
+// por nombre o rubro, todo el catálogo; del resto, solo los que tienen las
+// palabras (eso lo filtra la base, no se traen todos).
+async function productosDeLaBusqueda(
+  db: ReturnType<typeof supabasePublico>,
+  comercios: { id: number; nombre: string; rubro: string }[],
+  buscadas: string[],
+) {
+  const porNombre = comercios.filter((c) => coincideExacto(`${c.nombre} ${c.rubro}`, buscadas)).map((c) => c.id);
+  const resto = comercios.map((c) => c.id).filter((id) => !porNombre.includes(id));
+  const [catalogo, coinciden] = await Promise.all([
+    porNombre.length ? db.from("productos").select("*").in("comercio_id", porNombre).eq("activo", true).limit(500) : Promise.resolve({ data: [] }),
+    resto.length && buscadas.length
+      ? db.rpc("buscar_productos", { p_comercios: resto, p_palabras: buscadas, p_limite: 500 })
+      : Promise.resolve({ data: [] }),
+  ]);
+  return { data: [...(catalogo.data ?? []), ...(coinciden.data ?? [])] as Tabla<"productos">[] };
+}
+
 function textoProducto(p: Tabla<"productos">) {
   return [p.nombre, p.marca, p.medida, p.material, p.descripcion, p.grupo, p.codigo].filter(Boolean).join(" ");
 }

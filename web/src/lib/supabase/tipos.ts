@@ -700,6 +700,10 @@ export type Database = {
       es_comerciante: { Args: never; Returns: boolean }
       es_dueno: { Args: { p_comercio: number }; Returns: boolean }
       es_dueno_carpeta: { Args: { p_carpeta: string }; Returns: boolean }
+      buscar_productos: {
+        Args: { p_comercios: number[]; p_palabras: string[]; p_aprox?: boolean; p_limite?: number }
+        Returns: Database["public"]["Tables"]["productos"]["Row"][]
+      }
       estadisticas_comercio: {
         Args: { p_comercio: number; p_desde?: string }
         Returns: {
